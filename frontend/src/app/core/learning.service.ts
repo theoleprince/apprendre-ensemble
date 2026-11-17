@@ -253,11 +253,10 @@ export class LearningService {
   }
 
   // ---------- Evaluation (corrigee cote serveur) ----------
+  /** Les certificats obtenus sont affiches par l'ecran de bilan (pas de notification en double). */
   async submitQuiz(courseId: number, answers: number[]): Promise<QuizResult> {
     await this.sync();
-    const r = await firstValueFrom(this.http.post<QuizResult>(`/api/courses/${courseId}/quiz`, { answers }));
-    this.celebrate(r.newCertificates);
-    return r;
+    return firstValueFrom(this.http.post<QuizResult>(`/api/courses/${courseId}/quiz`, { answers }));
   }
 
   // ---------- Portfolio (texte : file d'attente hors ligne ; video : necessite le reseau) ----------

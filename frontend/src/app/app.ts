@@ -45,7 +45,7 @@ interface NavItem {
           </div>
           <button class="icon-btn ghost" (click)="logout()" [title]="'action.logout' | t" [attr.aria-label]="'action.logout' | t"><app-icon name="logout" /></button>
         </header>
-        <div class="layout">
+        <div class="layout" [class.focus]="focus()">
           <nav class="sidenav" aria-label="Navigation principale">
             @for (n of nav(); track n.path) {
               <a [routerLink]="n.path" routerLinkActive="active"><app-icon [name]="n.icon" /> {{ n.key | t }}</a>
@@ -60,7 +60,7 @@ interface NavItem {
             <router-outlet />
           </main>
         </div>
-        <nav class="tabbar" aria-label="Navigation">
+        <nav class="tabbar" aria-label="Navigation" [hidden]="focus()">
           @for (n of nav().slice(0, 5); track n.path) {
             <a [routerLink]="n.path" routerLinkActive="active"><app-icon [name]="n.icon" [size]="22" />{{ n.key | t }}</a>
           }
@@ -131,6 +131,9 @@ export class App {
     if (this.auth.isMentor()) items.splice(1, 0, { path: '/mentorat', icon: 'eye', key: 'nav.mentor' });
     return items;
   });
+
+  /** Mode focus (lecon, evaluation) : pas de menus, toute l'attention sur l'apprentissage. */
+  protected focus = computed(() => /^\/modules\/\d+\/(lecon|evaluation)/.test(this.url()));
 
   protected showShell = computed(() => this.auth.isLoggedIn() && !this.routeIsBare());
   private routeIsBare = () => /^\/(login|inscription|verifier|bienvenue)/.test(this.currentUrl());

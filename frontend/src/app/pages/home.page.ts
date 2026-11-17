@@ -23,12 +23,12 @@ const WEEK_GOAL = 5;
       <h1>{{ firstName() }}, prêt·e pour 10 minutes de formation ?</h1>
       @if (learning.lastLesson(); as last) {
         <p>Reprenez là où vous vous êtes arrêté·e : <strong style="color:#fff">{{ last.lessonTitle }}</strong></p>
-        <a class="btn sun lg" [routerLink]="['/modules', last.courseId, 'lecon', last.lessonId]">
+        <a class="btn sun lg" [routerLink]="['/modules', last.courseId, 'reprendre']">
           <app-icon name="play" /> {{ 'action.continue' | t }}
         </a>
       } @else if (next(); as n) {
         <p>Nous vous conseillons : <strong style="color:#fff">{{ n.title }}</strong></p>
-        <a class="btn sun lg" [routerLink]="['/modules', n.id]"><app-icon name="play" /> {{ 'action.start' | t }}</a>
+        <a class="btn sun lg" [routerLink]="['/modules', n.id, 'reprendre']"><app-icon name="play" /> {{ 'action.start' | t }}</a>
       }
     </section>
 

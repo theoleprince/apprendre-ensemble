@@ -11,6 +11,7 @@ export const routes: Routes = [
   { path: 'accueil', canActivate: [authGuard], loadComponent: () => import('./pages/home.page').then((m) => m.HomePage) },
   { path: 'modules', canActivate: [authGuard], loadComponent: () => import('./pages/catalog.page').then((m) => m.CatalogPage) },
   { path: 'modules/:id', canActivate: [authGuard], loadComponent: () => import('./pages/module.page').then((m) => m.ModulePage) },
+  { path: 'modules/:id/reprendre', canActivate: [authGuard], loadComponent: () => import('./pages/resume.page').then((m) => m.ResumePage) },
   { path: 'modules/:id/lecon/:lessonId', canActivate: [authGuard], loadComponent: () => import('./pages/lesson.page').then((m) => m.LessonPage) },
   { path: 'modules/:id/evaluation', canActivate: [authGuard], loadComponent: () => import('./pages/quiz.page').then((m) => m.QuizPage) },
   { path: 'certificats', canActivate: [authGuard], loadComponent: () => import('./pages/certificates.page').then((m) => m.CertificatesPage) },

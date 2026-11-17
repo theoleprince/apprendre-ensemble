@@ -47,7 +47,7 @@ type Filter = 'all' | 'reco' | 'progress' | 'done' | 'offline';
             <div class="tags">@for (l of c.levels; track l) { <span class="tag sun"><app-icon [name]="levelIcon(l)" [size]="12" /> {{ medal(l) }}</span> }</div>
           }
           <div class="foot">
-            <a class="btn primary" [routerLink]="['/modules', c.id]" [queryParams]="{ v: c.contentVersion }">
+            <a class="btn primary" [routerLink]="['/modules', c.id, 'reprendre']">
               {{ (done(c) > 0 ? 'action.continue' : 'action.start') | t }}
             </a>
             @if (learning.downloaded().has(c.id)) {

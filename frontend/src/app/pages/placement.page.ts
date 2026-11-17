@@ -21,14 +21,17 @@ import { SpeakButtonComponent } from '../shared/speak-button.component';
         </div>
         <div class="stack section">
           @for (c of r.recommended; track c.id; let i = $index) {
-            <a class="lesson-item" [routerLink]="['/modules', c.id]">
+            <a class="lesson-item" [routerLink]="['/modules', c.id, 'reprendre']">
               <span class="course-icon"><app-icon [name]="c.icon || 'book-open'" [size]="26" /></span>
               <span class="grow"><span class="title">{{ c.title }}</span><br /><span class="small muted">{{ c.lessonCount }} leçons · {{ c.totalMinutes }} min</span></span>
               @if (i === 0) { <span class="tag sun">Conseillé</span> }
             </a>
           }
         </div>
-        <button class="primary block lg" (click)="finish()">Aller à mon accueil <app-icon name="arrow" /></button>
+        @if (result()!.recommended.length) {
+          <a class="btn primary block lg" [routerLink]="['/modules', result()!.recommended[0].id, 'reprendre']"><app-icon name="play" /> Commencer « {{ result()!.recommended[0].title }} »</a>
+        }
+        <button class="ghost block" style="margin-top:.5rem" (click)="finish()">Plus tard, aller à mon accueil</button>
       } @else if (questions().length) {
         <p class="small muted">Test d'entrée · question {{ index() + 1 }} / {{ questions().length }}</p>
         <div class="dots">@for (q of questions(); track q.id; let i = $index) {<span [class.on]="i === index()"></span>}</div>
