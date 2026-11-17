@@ -9,10 +9,11 @@ import { AuthService } from '../core/auth.service';
 import { LearningService } from '../core/learning.service';
 import { CourseSummary, ForumThread, ROLE_ICONS, ROLE_LABELS } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
+import { AvatarComponent } from '../shared/visuals';
 
 @Component({
   selector: 'app-community',
-  imports: [RouterLink, FormsModule, IconComponent, DatePipe],
+  imports: [RouterLink, FormsModule, IconComponent, DatePipe, AvatarComponent],
   template: `
     <div class="section-head">
       <h1 style="margin:0">Communauté de pratique</h1>
@@ -29,7 +30,7 @@ import { IconComponent } from '../shared/icon.component';
             @for (c of courses(); track c.id) { <option [ngValue]="c.id">{{ c.title }}</option> }</select>
         </label>
         @if (auth.isMentor()) {
-          <fieldset><legend>🎥 Séance animée (visioconférence)</legend>
+          <fieldset><legend>Séance animée (visioconférence)</legend>
             <div class="field-row">
               <label>Lien (Jitsi, BigBlueButton…) <input name="m" [(ngModel)]="form.meetingUrl" placeholder="https://meet.jit.si/…" /></label>
               <label>Date et heure <input type="datetime-local" name="ma" [(ngModel)]="form.meetingAt" /></label>
@@ -58,13 +59,13 @@ import { IconComponent } from '../shared/icon.component';
     <div class="stack">
       @for (t of others(); track t.id) {
         <a class="card flat thread" [routerLink]="['/communaute', t.id]">
-          <span class="avatar-sm" [title]="labels[t.authorRole]">{{ icons[t.authorRole] }}</span>
+          <app-avatar [name]="t.authorName" [title]="labels[t.authorRole]" />
           <span class="grow" style="flex:1;min-width:0"><strong>{{ t.title }}</strong>
             <br /><span class="xs muted">{{ t.authorName }} · {{ t.lastActivityAt | date: 'dd/MM HH:mm' }} @if (courseName(t.courseId); as cn) {· {{ cn }}}</span></span>
           <span class="tag grey"><app-icon name="chat" [size]="12" /> {{ t.replies }}</span>
         </a>
       } @empty {
-        @if (!loading()) { <div class="empty"><div class="big">💬</div>Aucune discussion pour le moment.</div> }
+        @if (!loading()) { <div class="empty"><div class="empty-icon"><app-icon name="chat" [size]="30" /></div>Aucune discussion pour le moment.</div> }
       }
     </div>
   `,

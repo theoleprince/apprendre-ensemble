@@ -9,15 +9,16 @@ import { TranslatePipe } from '../core/i18n';
 import { LearningService } from '../core/learning.service';
 import { CourseSummary, ForumThread, LEVELS, formatBytes } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
+import { CoverComponent } from '../shared/visuals';
 
 const WEEK_GOAL = 5;
 
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, IconComponent, DatePipe, TranslatePipe],
+  imports: [RouterLink, IconComponent, DatePipe, TranslatePipe, CoverComponent],
   template: `
     <section class="hero">
-      <span class="hero-emoji">🌱</span>
+      <span class="hero-emoji"><app-icon name="sprout" [size]="150" [stroke]="1.2" /></span>
       <p class="small" style="margin:0">{{ greeting() }}</p>
       <h1>{{ firstName() }}, prêt·e pour 10 minutes de formation ?</h1>
       @if (learning.lastLesson(); as last) {
@@ -33,7 +34,7 @@ const WEEK_GOAL = 5;
 
     <section class="tiles section">
       <div class="tile">
-        <span class="value">🔥 {{ learning.streak() }}</span>
+        <span class="value row" style="gap:.35rem"><app-icon name="flame" [size]="26" style="color:var(--clay)" /> {{ learning.streak() }}</span>
         <span class="label">jour(s) d'affilée</span>
       </div>
       <div class="tile row" style="gap:.8rem">
@@ -77,12 +78,13 @@ const WEEK_GOAL = 5;
       <div class="grid cols-3">
         @for (c of (recommended().length ? recommended() : courses()).slice(0, 3); track c.id) {
           <a class="card course-card" [routerLink]="['/modules', c.id]" style="text-decoration:none;color:inherit">
-            <div class="row"><span class="course-icon">{{ c.icon || '📘' }}</span>
+            <app-cover class="card-cover" [icon]="c.icon" [seed]="c.id" [height]="96" [label]="c.title" />
+            <div class="row">
               <div class="grow"><h3 style="margin:0">{{ c.title }}</h3><div class="xs muted">{{ c.lessonCount }} leçons · {{ c.totalMinutes }} min @if (c.mediaBytes) {· {{ size(c.mediaBytes) }}}</div></div>
             </div>
             <div class="progress"><div [style.width.%]="pct(c)"></div></div>
             <div class="tags">
-              @for (l of c.levels; track l) { <span class="tag sun">{{ medal(l) }}</span> }
+              @for (l of c.levels; track l) { <span class="tag sun"><app-icon [name]="levelIcon(l)" [size]="12" /> {{ medal(l) }}</span> }
               @if (learning.downloaded().has(c.id)) { <span class="tag"><app-icon name="check" [size]="12" /> hors ligne</span> }
             </div>
           </a>
@@ -152,6 +154,10 @@ export class HomePage implements OnInit {
 
   medal(l: string): string {
     const x = LEVELS.find((v) => v.key === l);
-    return x ? `${x.icon} ${x.short}` : l;
+    return x ? x.short : l;
+  }
+
+  levelIcon(l: string): string {
+    return LEVELS.find((v) => v.key === l)?.icon ?? 'award';
   }
 }

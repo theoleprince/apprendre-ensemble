@@ -20,7 +20,7 @@ import { IconComponent } from '../../shared/icon.component';
       <div class="tile"><span class="value">{{ tokens() }}</span><span class="label">Jetons consommés</span><div class="hint">suivi du coût des modèles</div></div>
       <div class="tile"><span class="value">{{ localShare() }} %</span><span class="label">Réponses en mode local</span></div>
     </section>
-    <div class="chips"><button [class.active]="!onlyFlagged()" (click)="onlyFlagged.set(false)">Tous</button><button [class.active]="onlyFlagged()" (click)="onlyFlagged.set(true)">🛡️ Signalés</button></div>
+    <div class="chips"><button [class.active]="!onlyFlagged()" (click)="onlyFlagged.set(false)">Tous</button><button [class.active]="onlyFlagged()" (click)="onlyFlagged.set(true)"><app-icon name="shield" [size]="16" /> Signalés</button></div>
     <div class="stack section">
       @for (l of shown(); track l.id) {
         <article class="card flat" [style.border-left]="l.flagged ? '5px solid var(--clay)' : ''">

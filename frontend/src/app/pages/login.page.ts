@@ -4,25 +4,27 @@ import { Router, RouterLink } from '@angular/router';
 import { errorMessage } from '../core/auth.interceptor';
 import { AuthService } from '../core/auth.service';
 import { IconComponent } from '../shared/icon.component';
+import { HeroArtComponent } from '../shared/visuals';
 
 /** Comptes du jeu de demonstration (seed du serveur de test). */
 const DEMO = [
-  { icon: '👩🏾‍🏫', label: 'Enseignante', email: 'enseignant@demo.local' },
-  { icon: '👪', label: 'Parent', email: 'parent@demo.local' },
-  { icon: '🧑🏾', label: 'Jeune', email: 'jeune@demo.local' },
-  { icon: '🏫', label: 'Direction', email: 'direction@demo.local' },
-  { icon: '🧭', label: 'Mentor', email: 'conseiller@demo.local' },
-  { icon: '📊', label: 'Pilotage', email: 'formateur@demo.local' },
+  { icon: 'book-open', label: 'Enseignante', email: 'enseignant@demo.local' },
+  { icon: 'family', label: 'Parent', email: 'parent@demo.local' },
+  { icon: 'smartphone', label: 'Jeune', email: 'jeune@demo.local' },
+  { icon: 'school', label: 'Direction', email: 'direction@demo.local' },
+  { icon: 'compass', label: 'Mentor', email: 'conseiller@demo.local' },
+  { icon: 'chart', label: 'Pilotage', email: 'formateur@demo.local' },
 ];
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, RouterLink, IconComponent],
+  imports: [FormsModule, RouterLink, IconComponent, HeroArtComponent],
   template: `
     <div class="auth-wrap">
       <aside class="auth-art">
-        <div class="brand" style="color:#fff"><span class="brand-mark" style="background:rgba(255,255,255,.15)">🌱</span> Apprendre Ensemble</div>
+        <div class="brand" style="color:#fff"><span class="brand-mark" style="background:rgba(255,255,255,.15)"><app-icon name="sprout" [size]="22" /></span> Apprendre Ensemble</div>
         <h1>Se former partout,<br />même sans réseau.</h1>
+        <app-hero-art />
         <ul>
           <li><app-icon name="wifi-off" /> Leçons téléchargées, consultables hors connexion</li>
           <li><app-icon name="headphones" /> Vidéo, audio et texte, avec transcription</li>
@@ -51,7 +53,7 @@ const DEMO = [
             <p class="small muted center">Démonstration : entrer en un clic</p>
             <div class="demo-accounts">
               @for (d of demo; track d.email) {
-                <button type="button" (click)="useDemo(d.email)" [disabled]="loading()"><span>{{ d.icon }}</span>{{ d.label }}</button>
+                <button type="button" (click)="useDemo(d.email)" [disabled]="loading()"><app-icon [name]="d.icon" [size]="24" />{{ d.label }}</button>
               }
             </div>
           </div>

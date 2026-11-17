@@ -6,12 +6,13 @@ import { LearningService } from '../core/learning.service';
 import { CourseSummary, LEVELS, formatBytes } from '../core/models';
 import { ToastService } from '../core/toast.service';
 import { IconComponent } from '../shared/icon.component';
+import { CoverComponent } from '../shared/visuals';
 
 type Filter = 'all' | 'reco' | 'progress' | 'done' | 'offline';
 
 @Component({
   selector: 'app-catalog',
-  imports: [RouterLink, IconComponent, TranslatePipe],
+  imports: [RouterLink, IconComponent, TranslatePipe, CoverComponent],
   template: `
     <h1>Modules</h1>
     <div class="chips" role="tablist">
@@ -25,12 +26,12 @@ type Filter = 'all' | 'reco' | 'progress' | 'done' | 'offline';
     <div class="grid cols-3 section">
       @for (c of shown(); track c.id) {
         <article class="card course-card">
+          <app-cover class="card-cover" [icon]="c.icon" [seed]="c.id" [height]="104" [label]="c.title" />
           <div class="row" style="align-items:flex-start">
-            <span class="course-icon">{{ c.icon || '📘' }}</span>
             <div class="grow">
               <div class="tags">
                 <span class="tag" [class.sun]="c.type === 'PRATIQUE'">{{ c.type === 'PRATIQUE' ? 'Pratique (LXP)' : 'Théorique (LMS)' }}</span>
-                @if (c.recommended) { <span class="tag violet">✨ Pour vous</span> }
+                @if (c.recommended) { <span class="tag violet"><app-icon name="sparkles" [size]="12" /> Pour vous</span> }
               </div>
               <h3><a [routerLink]="['/modules', c.id]" [queryParams]="{ v: c.contentVersion }">{{ c.title }}</a></h3>
             </div>
@@ -43,7 +44,7 @@ type Filter = 'all' | 'reco' | 'progress' | 'done' | 'offline';
           </div>
           <div class="progress"><div [style.width.%]="pct(c)"></div></div>
           @if (c.levels.length) {
-            <div class="tags">@for (l of c.levels; track l) { <span class="tag sun">{{ medal(l) }}</span> }</div>
+            <div class="tags">@for (l of c.levels; track l) { <span class="tag sun"><app-icon [name]="levelIcon(l)" [size]="12" /> {{ medal(l) }}</span> }</div>
           }
           <div class="foot">
             <a class="btn primary" [routerLink]="['/modules', c.id]" [queryParams]="{ v: c.contentVersion }">
@@ -62,7 +63,7 @@ type Filter = 'all' | 'reco' | 'progress' | 'done' | 'offline';
         </article>
       } @empty {
         @if (loading()) { <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div> }
-        @else { <div class="empty"><div class="big">🔍</div>Aucun module dans cette catégorie.</div> }
+        @else { <div class="empty"><div class="empty-icon"><app-icon name="search" [size]="30" /></div>Aucun module dans cette catégorie.</div> }
       }
     </div>
   `,
@@ -74,7 +75,7 @@ export class CatalogPage implements OnInit {
 
   filters: { key: Filter; label: string }[] = [
     { key: 'all', label: 'Tous' },
-    { key: 'reco', label: '✨ Recommandés' },
+    { key: 'reco', label: 'Recommandés' },
     { key: 'progress', label: 'En cours' },
     { key: 'done', label: 'Terminés' },
     { key: 'offline', label: 'Hors ligne' },
@@ -126,14 +127,18 @@ export class CatalogPage implements OnInit {
 
   medal(l: string): string {
     const x = LEVELS.find((v) => v.key === l);
-    return x ? `${x.icon} ${x.short}` : l;
+    return x ? x.short : l;
+  }
+
+  levelIcon(l: string): string {
+    return LEVELS.find((v) => v.key === l)?.icon ?? 'award';
   }
 
   async download(c: CourseSummary): Promise<void> {
     this.busy.update((b) => ({ ...b, [c.id]: 0 }));
     try {
       await this.learning.download(c.id, (r) => this.busy.update((b) => ({ ...b, [c.id]: r })));
-      this.toast.show({ icon: '📥', title: 'Disponible hors ligne', text: c.title });
+      this.toast.show({ icon: 'download', title: 'Disponible hors ligne', text: c.title });
     } catch (e) {
       this.error.set(errorMessage(e));
     } finally {

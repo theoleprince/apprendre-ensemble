@@ -7,10 +7,11 @@ import { errorMessage } from '../core/auth.interceptor';
 import { LearningService } from '../core/learning.service';
 import { Certificate, LEVELS } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
+import { MedalComponent } from '../shared/visuals';
 
 @Component({
   selector: 'app-certificates',
-  imports: [DatePipe, RouterLink, IconComponent],
+  imports: [DatePipe, RouterLink, IconComponent, MedalComponent],
   template: `
     <div class="section-head">
       <h1 style="margin:0">Mes certificats</h1>
@@ -21,7 +22,7 @@ import { IconComponent } from '../shared/icon.component';
 
     <section class="tiles section">
       @for (lv of levels; track lv.key) {
-        <div class="tile center"><div style="font-size:1.8rem" [style.filter]="count(lv.key) ? 'none' : 'grayscale(1)'" [style.opacity]="count(lv.key) ? 1 : 0.4">{{ lv.icon }}</div>
+        <div class="tile center"><app-medal [level]="lv.key" [earned]="count(lv.key) > 0" [size]="44" />
           <span class="value">{{ count(lv.key) }}</span><span class="label">{{ lv.short }}</span></div>
       }
     </section>
@@ -29,7 +30,7 @@ import { IconComponent } from '../shared/icon.component';
     <div class="stack">
       @for (c of sorted(); track c.code) {
         <article class="card cert-card">
-          <div class="medal">{{ icon(c.level) }}</div>
+          <app-medal [level]="c.level" [size]="60" />
           <div class="grow" style="flex:1;min-width:0">
             <div class="xs muted" style="text-transform:uppercase;letter-spacing:.05em">{{ c.levelLabel }}</div>
             <h3 style="margin:.1rem 0">{{ c.courseTitle }}</h3>
@@ -43,7 +44,7 @@ import { IconComponent } from '../shared/icon.component';
         </article>
       } @empty {
         @if (!loading()) {
-          <div class="empty"><div class="big">🏅</div>Pas encore de certificat.<br />Terminez les leçons d'un module pour obtenir votre première attestation.
+          <div class="empty"><app-medal level="ATTESTATION" [earned]="false" [size]="64" /><br />Pas encore de certificat.<br />Terminez les leçons d'un module pour obtenir votre première attestation.
             <p><a class="btn primary" routerLink="/modules">Voir les modules</a></p></div>
         }
       }
@@ -80,9 +81,6 @@ export class CertificatesPage implements OnInit {
     return this.list().filter((c) => c.level === l).length;
   }
 
-  icon(l: string): string {
-    return LEVELS.find((x) => x.key === l)?.icon ?? '🏅';
-  }
 
   /** Formulaire LinkedIn "Ajouter une certification", pre-rempli avec le lien de verification public. */
   linkedIn(c: Certificate): string {

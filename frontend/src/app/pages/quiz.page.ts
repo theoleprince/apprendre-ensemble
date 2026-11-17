@@ -2,27 +2,28 @@ import { Component, OnInit, computed, inject, input, signal } from '@angular/cor
 import { RouterLink } from '@angular/router';
 import { errorMessage } from '../core/auth.interceptor';
 import { LearningService } from '../core/learning.service';
-import { CoursePackage, LEVELS, QuizResult } from '../core/models';
+import { CoursePackage, QuizResult } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
+import { MedalComponent } from '../shared/visuals';
 import { SpeakButtonComponent } from '../shared/speak-button.component';
 
 /** Evaluation formative : une question par ecran, correction expliquee, niveaux de certification obtenus. */
 @Component({
   selector: 'app-quiz',
-  imports: [RouterLink, IconComponent, SpeakButtonComponent],
+  imports: [RouterLink, IconComponent, SpeakButtonComponent, MedalComponent],
   template: `
     @if (pkg(); as p) {
       <a [routerLink]="['/modules', p.id]" class="back"><app-icon name="back" [size]="18" /> {{ p.title }}</a>
       @if (result(); as r) {
         <section class="card center">
-          <div style="font-size:3rem">{{ r.mastery ? '🏆' : r.passed ? '🎉' : '💪' }}</div>
+          <div class="empty-icon" [class.sunbg]="r.passed" [class.clay]="!r.passed"><app-icon [name]="r.mastery ? 'trophy' : r.passed ? 'party' : 'target'" [size]="34" /></div>
           <div class="score-big" [style.color]="r.passed ? 'var(--ok)' : 'var(--clay)'">{{ r.scorePercent }} %</div>
           <p>{{ r.mastery ? 'Maîtrise atteinte, bravo !' : r.passed ? 'Évaluation réussie !' : 'Pas encore : relisez les leçons et réessayez.' }}</p>
           @if (!r.allLessonsCompleted) { <p class="notice">Terminez toutes les leçons pour obtenir l'attestation et la maîtrise.</p> }
           @if (r.newCertificates.length) {
             <div class="levels section">
               @for (c of r.newCertificates; track c.code) {
-                <div class="level got"><div class="medal">{{ medal(c.level) }}</div><div class="name">{{ c.levelLabel }}</div></div>
+                <div class="level got"><app-medal [level]="c.level" [size]="48" /><div class="name">{{ c.levelLabel }}</div></div>
               }
             </div>
             <a class="btn primary" routerLink="/certificats"><app-icon name="award" /> Voir mes certificats</a>
@@ -39,7 +40,7 @@ import { SpeakButtonComponent } from '../shared/speak-button.component';
                 </div>
               }
             </div>
-            @if (r.corrections[i].explanation) { <div class="notice info small">💡 {{ r.corrections[i].explanation }}</div> }
+            @if (r.corrections[i].explanation) { <div class="notice info small"><app-icon name="lightbulb" [size]="16" /> {{ r.corrections[i].explanation }}</div> }
           </div>
         }
         <button class="primary block lg" (click)="restart()">Recommencer</button>
@@ -129,7 +130,4 @@ export class QuizPage implements OnInit {
     this.answers.set(new Array(this.pkg()!.questions.length).fill(undefined));
   }
 
-  medal(l: string): string {
-    return LEVELS.find((x) => x.key === l)?.icon ?? '🏅';
-  }
 }

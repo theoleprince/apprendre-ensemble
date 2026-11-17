@@ -8,16 +8,17 @@ import { errorMessage } from '../core/auth.interceptor';
 import { LearningService } from '../core/learning.service';
 import { ForumPost, ForumThread, ROLE_ICONS, ROLE_LABELS } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
+import { AvatarComponent } from '../shared/visuals';
 
 @Component({
   selector: 'app-thread',
-  imports: [RouterLink, FormsModule, IconComponent, DatePipe],
+  imports: [RouterLink, FormsModule, IconComponent, DatePipe, AvatarComponent],
   template: `
     <a routerLink="/communaute" class="back"><app-icon name="back" [size]="18" /> Communauté</a>
     @if (error()) { <p class="error">{{ error() }}</p> }
     @if (thread(); as t) {
       <article class="card" [class.live]="!!t.meetingUrl">
-        <div class="row"><span class="avatar-sm">{{ icons[t.authorRole] }}</span>
+        <div class="row"><app-avatar [name]="t.authorName" />
           <div><strong>{{ t.authorName }}</strong><div class="xs muted">{{ labels[t.authorRole] }} · {{ t.createdAt | date: 'dd/MM/yyyy HH:mm' }}</div></div></div>
         <h1 style="margin-top:.8rem">{{ t.title }}</h1>
         @if (t.body) { <p>{{ t.body }}</p> }
@@ -30,7 +31,7 @@ import { IconComponent } from '../shared/icon.component';
     <div class="stack section">
       @for (p of posts(); track p.id) {
         <div class="card flat">
-          <div class="row"><span class="avatar-sm">{{ icons[p.authorRole] }}</span>
+          <div class="row"><app-avatar [name]="p.authorName" />
             <div><strong>{{ p.authorName }}</strong><div class="xs muted">{{ labels[p.authorRole] }} · {{ p.createdAt | date: 'dd/MM HH:mm' }}</div></div></div>
           <p style="white-space:pre-wrap">{{ p.body }}</p>
         </div>

@@ -95,7 +95,7 @@ export class LearnersPage implements OnInit {
         groups: this.groupList(), role: this.role || null, countryCode: 'BJ', onlyUnassigned: this.onlyUnassigned, seed: this.seed,
       })));
       await this.ngOnInit();
-      this.toast.show({ icon: '🎲', title: 'Tirage effectué', text: `graine ${this.seed} (reproductible)` });
+      this.toast.show({ icon: 'shuffle', title: 'Tirage effectué', text: `graine ${this.seed} (reproductible)` });
     } catch (e) {
       this.error.set(errorMessage(e));
     }

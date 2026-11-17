@@ -7,14 +7,15 @@ import { ROLE_ICONS, ROLE_LABELS, formatBytes } from '../core/models';
 import { PrefsService } from '../core/prefs.service';
 import { ToastService } from '../core/toast.service';
 import { IconComponent } from '../shared/icon.component';
+import { AvatarComponent } from '../shared/visuals';
 
 @Component({
   selector: 'app-profile',
-  imports: [IconComponent, TranslatePipe],
+  imports: [IconComponent, TranslatePipe, AvatarComponent],
   template: `
     @if (auth.user(); as u) {
       <section class="card row">
-        <span class="course-icon" style="width:64px;height:64px;font-size:2rem">{{ icons[u.role] }}</span>
+        <app-avatar [name]="u.fullName" [size]="64" />
         <div class="grow" style="flex:1"><h1 style="margin:0">{{ u.fullName }}</h1>
           <div class="muted small">{{ labels[u.role] }} · {{ u.countryCode }} @if (u.region) {· {{ u.region }}}</div>
           <div class="muted xs">{{ u.email }}</div></div>
@@ -76,19 +77,19 @@ export class ProfilePage implements OnInit {
 
   async sync(): Promise<void> {
     await this.learning.sync();
-    this.toast.show({ icon: '🔄', title: 'Synchronisation terminée' }, 2500);
+    this.toast.show({ icon: 'sync', title: 'Synchronisation terminée' }, 2500);
   }
 
   async clearMedia(): Promise<void> {
     await this.media.clear();
     await this.ngOnInit();
-    this.toast.show({ icon: '🧹', title: 'Vidéos et audios supprimés de l’appareil' }, 3000);
+    this.toast.show({ icon: 'trash', title: 'Vidéos et audios supprimés de l’appareil' }, 3000);
   }
 
   async logout(): Promise<void> {
     if (this.learning.pending() > 0) await this.learning.sync();
     if (this.learning.pending() > 0) {
-      this.toast.show({ icon: '⚠️', title: 'Progression non envoyée', text: 'Connectez-vous à Internet avant de vous déconnecter, sinon elle serait perdue.' }, 7000);
+      this.toast.show({ icon: 'alert', title: 'Progression non envoyée', text: 'Connectez-vous à Internet avant de vous déconnecter, sinon elle serait perdue.' }, 7000);
       return;
     }
     await this.media.clear();

@@ -58,7 +58,7 @@ import { SpeakButtonComponent } from '../shared/speak-button.component';
               <audio #audio [src]="src()" preload="metadata" (timeupdate)="onTime()" (loadedmetadata)="onTime()" (ended)="onEnded()" (pause)="playing.set(false)" (play)="playing.set(true)"></audio>
               <button class="big-play" (click)="togglePlay()" [attr.aria-label]="playing() ? 'Pause' : 'Lecture'"><app-icon [name]="playing() ? 'pause' : 'play'" [size]="30" /></button>
               <div class="grow" style="flex:1">
-                <div style="font-weight:700">🎧 Leçon audio</div>
+                <div class="row" style="font-weight:700;gap:.4rem"><app-icon name="headphones" [size]="18" /> Leçon audio</div>
                 <input type="range" min="0" [max]="duration()" step="0.5" [value]="time()" (input)="seek($event)" aria-label="Position" style="width:100%" />
                 <div class="row small" style="justify-content:space-between"><span>{{ fmt(time()) }} / {{ fmt(duration()) }}</span>
                   <div class="speed">@for (s of speeds; track s) {<button [class.active]="rate() === s" (click)="setRate(s)">{{ s }}×</button>}</div></div>
@@ -83,7 +83,7 @@ import { SpeakButtonComponent } from '../shared/speak-button.component';
 
         @if (l.practiceTask) {
           <div class="practice">
-            <h3>🛠️ Mise en pratique</h3>
+            <h3 class="row" style="gap:.4rem"><app-icon name="wrench" /> Mise en pratique</h3>
             <p>{{ l.practiceTask }}</p>
             <a class="btn" [routerLink]="['/modules', p.id]" [queryParams]="{ tab: 'portfolio' }"><app-icon name="camera" /> Déposer dans mon portfolio</a>
           </div>
@@ -237,7 +237,7 @@ export class LessonPage implements OnInit, OnDestroy {
     const l = this.lesson();
     if (!l) return;
     await this.learning.completeLesson(l.id, (Date.now() - this.startedAt) / 1000);
-    this.toast.show({ icon: '✅', title: 'Leçon terminée', text: navigator.onLine ? undefined : 'Enregistrée sur l’appareil' }, 2500);
+    this.toast.show({ icon: 'check-circle', title: 'Leçon terminée', text: navigator.onLine ? undefined : 'Enregistrée sur l’appareil' }, 2500);
   }
 
   private revoke(): void {

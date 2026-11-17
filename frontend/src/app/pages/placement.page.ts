@@ -15,14 +15,14 @@ import { SpeakButtonComponent } from '../shared/speak-button.component';
     <section class="card narrow" style="max-width:640px">
       @if (result(); as r) {
         <div class="center">
-          <div style="font-size:3rem">🎯</div>
+          <div class="empty-icon"><app-icon name="target" [size]="34" /></div>
           <h1>Votre parcours est prêt</h1>
           <p class="muted">{{ r.message }}</p>
         </div>
         <div class="stack section">
           @for (c of r.recommended; track c.id; let i = $index) {
             <a class="lesson-item" [routerLink]="['/modules', c.id]">
-              <span class="course-icon">{{ c.icon || '📘' }}</span>
+              <span class="course-icon"><app-icon [name]="c.icon || 'book-open'" [size]="26" /></span>
               <span class="grow"><span class="title">{{ c.title }}</span><br /><span class="small muted">{{ c.lessonCount }} leçons · {{ c.totalMinutes }} min</span></span>
               @if (i === 0) { <span class="tag sun">Conseillé</span> }
             </a>
@@ -39,7 +39,7 @@ import { SpeakButtonComponent } from '../shared/speak-button.component';
         <div class="placement-options">
           @for (o of current()!.options; track $index; let j = $index) {
             <button class="placement-opt" [class.selected]="answers()[current()!.id] === j" (click)="choose(j)">
-              <span class="emoji">{{ o.icon || '•' }}</span>{{ o.label }}
+              <span class="emoji"><app-icon [name]="o.icon || 'circle'" [size]="36" [stroke]="1.6" /></span>{{ o.label }}
             </button>
           }
         </div>

@@ -7,12 +7,13 @@ import { errorMessage } from '../../core/auth.interceptor';
 import { CourseInput, LessonInput, MediaUpload, ROLE_LABELS, Referentiel, Role, formatBytes } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
 import { IconComponent } from '../../shared/icon.component';
+import { CoverComponent } from '../../shared/visuals';
 
 const ALL_ROLES: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_ECOLE', 'PARENT', 'TRAVAILLEUR_SOCIAL', 'JEUNE'];
 
 @Component({
   selector: 'app-course-editor',
-  imports: [FormsModule, RouterLink, IconComponent],
+  imports: [FormsModule, RouterLink, IconComponent, CoverComponent],
   template: `
     <a routerLink="/admin/modules" class="back"><app-icon name="back" [size]="18" /> Modules</a>
     <h1>{{ isNew() ? 'Nouveau module' : 'Modifier le module' }}</h1>
@@ -23,7 +24,9 @@ const ALL_ROLES: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_EC
       <form (ngSubmit)="save()" #f="ngForm">
         <section class="card">
           <div class="field-row">
-            <label style="flex:0 0 90px">Icône <input name="icon" [(ngModel)]="c.icon" maxlength="8" style="font-size:1.4rem;text-align:center" /></label>
+            <label style="flex:0 0 220px">Pictogramme
+              <select name="icon" [(ngModel)]="c.icon">@for (i of courseIcons; track i) {<option [value]="i">{{ i }}</option>}</select></label>
+            <app-cover [icon]="c.icon" [seed]="isNew() ? 0 : +id()" [height]="70" style="width:140px;border-radius:12px;align-self:flex-end;margin-bottom:.85rem" />
             <label>Titre <input name="title" [(ngModel)]="c.title" required /></label>
           </div>
           <label>Description <textarea name="desc" rows="2" [(ngModel)]="c.description"></textarea></label>
@@ -45,10 +48,10 @@ const ALL_ROLES: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_EC
           </fieldset>
           <fieldset><legend>Critères de certification</legend>
             <div class="field-row">
-              <label>🏅 Badge : score ≥ (%) <input type="number" name="pass" min="0" max="100" [(ngModel)]="c.passScore" /></label>
-              <label>🎖️ Maîtrise : score ≥ (%) <input type="number" name="mast" min="0" max="100" [(ngModel)]="c.masteryScore" /></label>
+              <label>Badge : score ≥ (%) <input type="number" name="pass" min="0" max="100" [(ngModel)]="c.passScore" /></label>
+              <label>Maîtrise : score ≥ (%) <input type="number" name="mast" min="0" max="100" [(ngModel)]="c.masteryScore" /></label>
             </div>
-            <label class="check"><input type="checkbox" name="exp" [(ngModel)]="c.expertiseEnabled" /> 🏆 Certification d'expertise sur portfolio validé par un mentor</label>
+            <label class="check"><input type="checkbox" name="exp" [(ngModel)]="c.expertiseEnabled" /> Certification d'expertise sur portfolio validé par un mentor</label>
           </fieldset>
           <label class="check"><input type="checkbox" name="pub" [(ngModel)]="c.published" /> Publié</label>
         </section>
@@ -74,7 +77,7 @@ const ALL_ROLES: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_EC
                 }
               </div>
               @if (uploading()) { <p class="small muted">Envoi en cours…</p> }
-              @if (l.mediaUrl) { <p class="small"><app-icon name="check" [size]="14" /> {{ l.mediaUrl }} · {{ size(l.mediaSizeBytes) }} @if (l.subtitlesUrl) {· sous-titres ✓}</p> }
+              @if (l.mediaUrl) { <p class="small"><app-icon name="check" [size]="14" /> {{ l.mediaUrl }} · {{ size(l.mediaSizeBytes) }} @if (l.subtitlesUrl) {· sous-titres ajoutés}</p> }
             }
             <label>{{ l.mediaType === 'TEXT' ? 'Contenu (texte, **gras**, listes « - »)' : 'Transcription (obligatoire pour l’accessibilité et le hors ligne léger)' }}
               <textarea [name]="'lc' + i" rows="6" [(ngModel)]="l.content"></textarea></label>
@@ -119,6 +122,7 @@ export class CourseEditorPage implements OnInit {
 
   readonly id = input.required<string>();
   labels = ROLE_LABELS;
+  courseIcons = ['book-open', 'cloud-sun', 'handshake', 'family', 'smartphone', 'school', 'heart', 'compass', 'graduation', 'sprout', 'lightbulb', 'users', 'target', 'shield', 'globe', 'wrench'];
   roles = ALL_ROLES;
   types = [
     { v: 'TEXT' as const, l: 'Texte', icon: 'text' },
@@ -133,7 +137,7 @@ export class CourseEditorPage implements OnInit {
   cohorts = '';
   regions = '';
   c: CourseInput = {
-    title: '', description: '', icon: '📘', type: 'THEORIQUE', countryCode: null, languageCode: 'fr', targetRoles: ['ENSEIGNANT'],
+    title: '', description: '', icon: 'book-open', type: 'THEORIQUE', countryCode: null, languageCode: 'fr', targetRoles: ['ENSEIGNANT'],
     allowedCohorts: [], allowedRegions: [], passScore: 70, masteryScore: 85, expertiseEnabled: true, published: false, lessons: [], questions: [],
   };
 
@@ -217,7 +221,7 @@ export class CourseEditorPage implements OnInit {
       } else {
         await firstValueFrom(this.http.put(`/api/admin/courses/${this.id()}`, body));
       }
-      this.toast.show({ icon: '✅', title: 'Module enregistré', text: 'Nouvelle version publiée' });
+      this.toast.show({ icon: 'check-circle', title: 'Module enregistré', text: 'Nouvelle version publiée' });
     } catch (e) {
       this.error.set(errorMessage(e));
     } finally {

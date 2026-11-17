@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { AssistantService } from './core/assistant.service';
+import { MediaCacheService } from './core/media-cache.service';
 import { AuthService } from './core/auth.service';
 import { TranslatePipe } from './core/i18n';
 import { LearningService } from './core/learning.service';
@@ -23,7 +24,7 @@ interface NavItem {
     @if (showShell()) {
       <div class="shell">
         <header class="topbar">
-          <a class="brand" [routerLink]="auth.homeUrl()"><span class="brand-mark">🌱</span><span class="brand-name">Apprendre Ensemble</span></a>
+          <a class="brand" [routerLink]="auth.homeUrl()"><span class="brand-mark"><app-icon name="sprout" [size]="22" /></span><span class="brand-name">Apprendre Ensemble</span></a>
           <span class="spacer"></span>
           @if (learning.online()) {
             <span class="pill" [title]="'status.online' | t">
@@ -42,6 +43,7 @@ interface NavItem {
             <button [class.active]="prefs.prefs().lang === 'fr'" (click)="prefs.update({ lang: 'fr' })">FR</button>
             <button [class.active]="prefs.prefs().lang === 'en'" (click)="prefs.update({ lang: 'en' })">EN</button>
           </div>
+          <button class="icon-btn ghost" (click)="logout()" [title]="'action.logout' | t" [attr.aria-label]="'action.logout' | t"><app-icon name="logout" /></button>
         </header>
         <div class="layout">
           <nav class="sidenav" aria-label="Navigation principale">
@@ -51,6 +53,7 @@ interface NavItem {
             <div class="foot">
               <div><strong>{{ auth.user()?.fullName }}</strong></div>
               <div>{{ auth.user()?.region || auth.user()?.countryCode }}</div>
+              <button class="link" style="margin-top:.5rem;display:inline-flex;gap:.3rem;align-items:center" (click)="logout()"><app-icon name="logout" [size]="16" /> {{ 'action.logout' | t }}</button>
             </div>
           </nav>
           <main class="main" id="main">
@@ -73,7 +76,7 @@ interface NavItem {
     <div class="toasts" aria-live="polite">
       @for (t of toast.toasts(); track t.id) {
         <div class="toast" [class.celebrate]="t.celebrate" (click)="toast.dismiss(t.id)">
-          <span class="ti">{{ t.icon }}</span>
+          <span class="ti"><app-icon [name]="t.icon" [size]="26" /></span>
           <div><strong>{{ t.title }}</strong>@if (t.text) {<div class="small">{{ t.text }}</div>}</div>
         </div>
       }
@@ -94,6 +97,7 @@ export class App {
   protected toast = inject(ToastService);
   private assistant = inject(AssistantService);
   private router = inject(Router);
+  private media = inject(MediaCacheService);
 
   private url = signal(location.pathname);
   protected readonly confetti = Array.from({ length: 60 }, (_, i) => ({
@@ -131,6 +135,18 @@ export class App {
   protected showShell = computed(() => this.auth.isLoggedIn() && !this.routeIsBare());
   private routeIsBare = () => /^\/(login|inscription|verifier|bienvenue)/.test(this.currentUrl());
   private currentUrl = () => this.url();
+
+  /** Deconnexion : envoie d'abord la progression en attente (sinon elle serait perdue), puis efface l'appareil. */
+  async logout(): Promise<void> {
+    if (this.learning.pending() > 0) await this.learning.sync();
+    if (this.learning.pending() > 0) {
+      this.toast.show({ icon: 'alert', title: 'Progression non envoyée', text: 'Connectez-vous à Internet avant de vous déconnecter, sinon elle serait perdue.' }, 7000);
+      return;
+    }
+    await this.media.clear();
+    this.assistant.reset();
+    await this.auth.logout();
+  }
 
   constructor() {
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe((e) => {

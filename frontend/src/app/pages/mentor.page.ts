@@ -7,11 +7,12 @@ import { errorMessage } from '../core/auth.interceptor';
 import { Portfolio, PortfolioStatus } from '../core/models';
 import { ToastService } from '../core/toast.service';
 import { IconComponent } from '../shared/icon.component';
+import { AvatarComponent } from '../shared/visuals';
 
 /** Mentorat : evaluation des portfolios et videos de pratique de classe (debloque la certification d'expertise). */
 @Component({
   selector: 'app-mentor',
-  imports: [FormsModule, IconComponent, DatePipe],
+  imports: [FormsModule, IconComponent, DatePipe, AvatarComponent],
   template: `
     <h1>Mentorat</h1>
     <p class="muted">Portfolios à évaluer dans votre zone. Une validation débloque la certification d'expertise de l'apprenant·e.</p>
@@ -21,7 +22,7 @@ import { IconComponent } from '../shared/icon.component';
     <div class="stack">
       @for (p of items(); track p.id) {
         <article class="card">
-          <div class="row"><span class="avatar-sm">👩🏾‍🏫</span>
+          <div class="row"><app-avatar [name]="p.learnerName" />
             <div class="grow" style="flex:1"><strong>{{ p.learnerName }}</strong>
               <div class="xs muted">{{ p.courseTitle }} @if (p.lessonTitle) {› {{ p.lessonTitle }}} · {{ p.submittedAt | date: 'dd/MM HH:mm' }}</div></div></div>
           @if (p.text) { <p style="white-space:pre-wrap">{{ p.text }}</p> }
@@ -33,7 +34,7 @@ import { IconComponent } from '../shared/icon.component';
           </div>
         </article>
       } @empty {
-        @if (!loading()) { <div class="empty"><div class="big">🎉</div>Aucun portfolio en attente.</div> }
+        @if (!loading()) { <div class="empty"><div class="empty-icon"><app-icon name="check-circle" [size]="30" /></div>Aucun portfolio en attente.</div> }
       }
     </div>
   `,
@@ -62,7 +63,7 @@ export class MentorPage implements OnInit {
       await firstValueFrom(this.http.put(`/api/mentor/portfolios/${p.id}`, { status, feedback: this.feedback[p.id] ?? null }));
       this.items.update((l) => l.filter((x) => x.id !== p.id));
       this.reviewed.update((n) => n + 1);
-      this.toast.show({ icon: status === 'VALIDE' ? '✅' : '📝', title: status === 'VALIDE' ? 'Portfolio validé' : 'Révision demandée', text: p.learnerName }, 2500);
+      this.toast.show({ icon: status === 'VALIDE' ? 'check-circle' : 'edit', title: status === 'VALIDE' ? 'Portfolio validé' : 'Révision demandée', text: p.learnerName }, 2500);
     } catch (e) {
       this.error.set(errorMessage(e));
     }

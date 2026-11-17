@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.Map;
 
 /**
  * Donnees de reference + jeu de demonstration (serveur de test uniquement, APP_SEED_DEMO=true) :
@@ -102,6 +103,7 @@ public class DataInitializer implements ApplicationRunner {
             user("admin@demo.local", adminPassword, "Administrateur Démo", Role.ADMIN, "CH", null, null);
         }
         copyDemoMedia();
+        migrateEmojiIcons();
         if (!demoData || courses.count() > 0) {
             return;
         }
@@ -116,7 +118,7 @@ public class DataInitializer implements ApplicationRunner {
         Set<Role> teachers = Set.of(Role.ENSEIGNANT, Role.CONSEILLER_PEDAGOGIQUE, Role.DIRECTION_ECOLE);
 
         // ---------- Module 1 : texte + video + audio ----------
-        Course c1 = course("Gérer ses émotions en classe", "🌦️",
+        Course c1 = course("Gérer ses émotions en classe", "cloud-sun",
                 "Reconnaître, nommer et réguler les émotions pour un climat de classe apaisé. Vidéo, audio et fiches pratiques.",
                 CourseType.THEORIQUE, null, teachers);
         text(c1, "Pourquoi parler des émotions ?", """
@@ -156,7 +158,7 @@ public class DataInitializer implements ApplicationRunner {
         courses.save(c1);
 
         // ---------- Module 2 : parcours pratique ----------
-        Course c2 = course("Coopérer plutôt que s'opposer", "🤝",
+        Course c2 = course("Coopérer plutôt que s'opposer", "handshake",
                 "Parcours pratique : animer des jeux coopératifs et documenter l'expérience dans son portfolio.",
                 CourseType.PRATIQUE, "BJ", Set.of(Role.ENSEIGNANT, Role.TRAVAILLEUR_SOCIAL));
         text(c2, "Le principe des jeux coopératifs", """
@@ -179,7 +181,7 @@ public class DataInitializer implements ApplicationRunner {
         courses.save(c2);
 
         // ---------- Module 3 : parents, audio d'abord ----------
-        Course c3 = course("Accompagner son enfant sans violence", "👪",
+        Course c3 = course("Accompagner son enfant sans violence", "family",
                 "Pour les parents : écouter, poser des limites claires et résoudre les conflits à la maison. Leçons courtes à écouter.",
                 CourseType.THEORIQUE, null, Set.of(Role.PARENT));
         media(c3, "Se calmer avant de réagir (audio)", MediaType.AUDIO, AUDIO, null, resource("demo-media/audio-transcript.txt"), null, 2);
@@ -199,7 +201,7 @@ public class DataInitializer implements ApplicationRunner {
         courses.save(c3);
 
         // ---------- Module 4 : jeunes ----------
-        Course c4 = course("Premiers pas avec le téléphone", "📱",
+        Course c4 = course("Premiers pas avec le téléphone", "smartphone",
                 "Initiation numérique : utiliser son téléphone pour apprendre, communiquer et se protéger en ligne.",
                 CourseType.THEORIQUE, null, Set.of(Role.JEUNE));
         text(c4, "Protéger ses informations", """
@@ -215,7 +217,7 @@ public class DataInitializer implements ApplicationRunner {
         courses.save(c4);
 
         // ---------- Module 5 : directions ----------
-        Course c5 = course("Piloter un climat scolaire positif", "🏫",
+        Course c5 = course("Piloter un climat scolaire positif", "school",
                 "Pour les directions d'école : fixer des règles communes, suivre les incidents et soutenir les enseignant·es.",
                 CourseType.THEORIQUE, "BJ", Set.of(Role.DIRECTION_ECOLE, Role.CONSEILLER_PEDAGOGIQUE));
         text(c5, "Des règles communes à toute l'école", """
@@ -228,22 +230,22 @@ public class DataInitializer implements ApplicationRunner {
 
         // ---------- Test d'entree ----------
         placementQ(1, "Qu'aimeriez-vous améliorer en premier ?", Set.of(),
-                new PlacementOption("Le calme dans ma classe", "🧘", c1.getTitle()),
-                new PlacementOption("L'entraide entre les élèves", "🤝", c2.getTitle()),
-                new PlacementOption("Les relations à la maison", "🏠", c3.getTitle()),
-                new PlacementOption("Utiliser mon téléphone", "📱", c4.getTitle()));
+                new PlacementOption("Le calme dans ma classe", "wind", c1.getTitle()),
+                new PlacementOption("L'entraide entre les élèves", "handshake", c2.getTitle()),
+                new PlacementOption("Les relations à la maison", "home", c3.getTitle()),
+                new PlacementOption("Utiliser mon téléphone", "smartphone", c4.getTitle()));
         placementQ(2, "Quand un élève se met en colère, vous vous sentez :", Set.of(Role.ENSEIGNANT, Role.DIRECTION_ECOLE),
-                new PlacementOption("À l'aise", "🙂", c2.getTitle()),
-                new PlacementOption("Parfois dépassé·e", "😟", c1.getTitle()),
-                new PlacementOption("Souvent dépassé·e", "😣", c1.getTitle()));
+                new PlacementOption("À l'aise", "smile", c2.getTitle()),
+                new PlacementOption("Parfois dépassé·e", "meh", c1.getTitle()),
+                new PlacementOption("Souvent dépassé·e", "frown", c1.getTitle()));
         placementQ(3, "Avez-vous déjà animé un jeu coopératif ?", Set.of(Role.ENSEIGNANT, Role.TRAVAILLEUR_SOCIAL),
-                new PlacementOption("Jamais", "✋", c2.getTitle()),
-                new PlacementOption("Quelquefois", "👍", c1.getTitle()),
-                new PlacementOption("Souvent", "⭐", null));
+                new PlacementOption("Jamais", "hand", c2.getTitle()),
+                new PlacementOption("Quelquefois", "thumbs-up", c1.getTitle()),
+                new PlacementOption("Souvent", "star", null));
         placementQ(4, "Comment préférez-vous apprendre ?", Set.of(),
-                new PlacementOption("En écoutant", "🎧", null),
-                new PlacementOption("En regardant des vidéos", "🎬", null),
-                new PlacementOption("En lisant", "📖", null));
+                new PlacementOption("En écoutant", "headphones", null),
+                new PlacementOption("En regardant des vidéos", "video", null),
+                new PlacementOption("En lisant", "book-open", null));
 
         // ---------- Communaute ----------
         ForumThread welcome = new ForumThread();
@@ -370,6 +372,29 @@ public class DataInitializer implements ApplicationRunner {
                 certification.evaluate(u, c);
             }
             users.save(u);
+        }
+    }
+
+    /** Anciennes versions : pictogrammes en emoji. L'interface utilise desormais des icones SVG nommees. */
+    private static final Map<String, String> EMOJI_TO_ICON = Map.ofEntries(
+            Map.entry("🌦️", "cloud-sun"), Map.entry("🌦", "cloud-sun"), Map.entry("🤝", "handshake"), Map.entry("👪", "family"),
+            Map.entry("📱", "smartphone"), Map.entry("🏫", "school"), Map.entry("📘", "book-open"), Map.entry("🧘", "wind"),
+            Map.entry("🏠", "home"), Map.entry("🙂", "smile"), Map.entry("😟", "meh"), Map.entry("😣", "frown"),
+            Map.entry("✋", "hand"), Map.entry("👍", "thumbs-up"), Map.entry("⭐", "star"), Map.entry("🎧", "headphones"),
+            Map.entry("🎬", "video"), Map.entry("📖", "book-open"));
+
+    private void migrateEmojiIcons() {
+        for (Course c : courses.findAll()) {
+            if (c.getIcon() != null && !c.getIcon().matches("[a-z-]+")) {
+                c.setIcon(EMOJI_TO_ICON.getOrDefault(c.getIcon(), "book-open"));
+            }
+        }
+        for (PlacementQuestion q : placement.findAll()) {
+            for (PlacementOption o : q.getOptions()) {
+                if (o.getIcon() != null && !o.getIcon().matches("[a-z-]+")) {
+                    o.setIcon(EMOJI_TO_ICON.getOrDefault(o.getIcon(), "circle"));
+                }
+            }
         }
     }
 

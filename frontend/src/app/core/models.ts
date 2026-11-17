@@ -24,22 +24,23 @@ export const ROLE_LABELS: Record<Role, string> = {
   JEUNE: 'Jeune',
 };
 
+/** Noms d'icones SVG (voir shared/icon.component). */
 export const ROLE_ICONS: Record<Role, string> = {
-  ADMIN: '🛠️',
-  FORMATEUR: '🎓',
-  ENSEIGNANT: '👩🏾‍🏫',
-  CONSEILLER_PEDAGOGIQUE: '🧭',
-  DIRECTION_ECOLE: '🏫',
-  PARENT: '👪',
-  TRAVAILLEUR_SOCIAL: '🤲',
-  JEUNE: '🧑🏾',
+  ADMIN: 'settings',
+  FORMATEUR: 'graduation',
+  ENSEIGNANT: 'book-open',
+  CONSEILLER_PEDAGOGIQUE: 'compass',
+  DIRECTION_ECOLE: 'school',
+  PARENT: 'family',
+  TRAVAILLEUR_SOCIAL: 'heart',
+  JEUNE: 'smartphone',
 };
 
 export const LEVELS: { key: CertificateLevel; label: string; short: string; icon: string; rule: string }[] = [
-  { key: 'ATTESTATION', label: 'Attestation de participation', short: 'Participation', icon: '📜', rule: 'Suivre toutes les leçons' },
-  { key: 'BADGE', label: 'Badge de micro-certification', short: 'Badge', icon: '🏅', rule: "Réussir l'évaluation" },
-  { key: 'MAITRISE', label: 'Certification de maîtrise', short: 'Maîtrise', icon: '🎖️', rule: 'Toutes les leçons + score de maîtrise' },
-  { key: 'EXPERTISE', label: "Certification d'expertise", short: 'Expertise', icon: '🏆', rule: 'Portfolio validé par un mentor' },
+  { key: 'ATTESTATION', label: 'Attestation de participation', short: 'Participation', icon: 'scroll', rule: 'Suivre toutes les leçons' },
+  { key: 'BADGE', label: 'Badge de micro-certification', short: 'Badge', icon: 'badge-check', rule: "Réussir l'évaluation" },
+  { key: 'MAITRISE', label: 'Certification de maîtrise', short: 'Maîtrise', icon: 'medal', rule: 'Toutes les leçons + score de maîtrise' },
+  { key: 'EXPERTISE', label: "Certification d'expertise", short: 'Expertise', icon: 'trophy', rule: 'Portfolio validé par un mentor' },
 ];
 
 export interface User {

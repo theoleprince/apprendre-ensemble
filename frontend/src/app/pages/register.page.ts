@@ -6,10 +6,11 @@ import { firstValueFrom } from 'rxjs';
 import { errorMessage } from '../core/auth.interceptor';
 import { AuthService } from '../core/auth.service';
 import { ROLE_ICONS, ROLE_LABELS, Referentiel, Role } from '../core/models';
+import { IconComponent } from '../shared/icon.component';
 
 @Component({
   selector: 'app-register',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, IconComponent],
   template: `
     <section class="card narrow">
       <h1>Créer un compte</h1>
@@ -21,7 +22,7 @@ import { ROLE_ICONS, ROLE_LABELS, Referentiel, Role } from '../core/models';
             <div class="placement-options" style="margin-bottom:1rem">
               @for (role of r.learnerRoles; track role) {
                 <button type="button" class="placement-opt" [class.selected]="form.role === role" (click)="form.role = role">
-                  <span class="emoji">{{ icons[role] }}</span>{{ labels[role] }}
+                  <span class="emoji"><app-icon [name]="icons[role]" [size]="36" [stroke]="1.6" /></span>{{ labels[role] }}
                 </button>
               }
             </div>

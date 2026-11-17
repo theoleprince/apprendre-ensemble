@@ -10,18 +10,19 @@ import { MediaCacheService } from '../core/media-cache.service';
 import { Certificate, CoursePackage, Feedback, ForumThread, LEVELS, Portfolio, formatBytes } from '../core/models';
 import { ToastService } from '../core/toast.service';
 import { IconComponent } from '../shared/icon.component';
+import { MedalComponent } from '../shared/visuals';
 
 type Tab = 'lecons' | 'certif' | 'portfolio' | 'discussion' | 'avis';
 
 @Component({
   selector: 'app-module',
-  imports: [RouterLink, FormsModule, IconComponent],
+  imports: [RouterLink, FormsModule, IconComponent, MedalComponent],
   template: `
     <a routerLink="/modules" class="back"><app-icon name="back" [size]="18" /> Modules</a>
     @if (error()) { <p class="error">{{ error() }}</p> }
     @if (pkg(); as p) {
       <section class="hero" style="padding-bottom:1.1rem">
-        <span class="hero-emoji">{{ p.icon || '📘' }}</span>
+        <span class="hero-emoji"><app-icon [name]="p.icon || 'book-open'" [size]="150" [stroke]="1.2" /></span>
         <div class="tags"><span class="tag sun">{{ p.type === 'PRATIQUE' ? 'Parcours pratique' : 'Parcours théorique' }}</span>
           @if (fromCache()) { <span class="tag" style="background:rgba(255,255,255,.2);color:#fff"><app-icon name="wifi-off" [size]="12" /> hors ligne</span> }</div>
         <h1>{{ p.title }}</h1>
@@ -58,7 +59,7 @@ type Tab = 'lecons' | 'certif' | 'portfolio' | 'discussion' | 'avis';
                 <a class="lesson-item" [class.done]="learning.isDone(l.id)" [routerLink]="['/modules', p.id, 'lecon', l.id]">
                   <span class="lesson-num">@if (learning.isDone(l.id)) {<app-icon name="check" [size]="18" />} @else {{{ l.position }}}</span>
                   <span class="grow"><span class="title">{{ l.title }}</span><br />
-                    <span class="xs muted">{{ typeLabel(l.mediaType) }} · {{ l.durationMinutes }} min @if (l.practiceTask) {· 🛠️ mise en pratique}</span></span>
+                    <span class="xs muted">{{ typeLabel(l.mediaType) }} · {{ l.durationMinutes }} min @if (l.practiceTask) {· mise en pratique}</span></span>
                   <app-icon [name]="typeIcon(l.mediaType)" />
                 </a>
               </li>
@@ -66,7 +67,7 @@ type Tab = 'lecons' | 'certif' | 'portfolio' | 'discussion' | 'avis';
             @if (p.questions.length) {
               <li>
                 <a class="lesson-item" [routerLink]="['/modules', p.id, 'evaluation']">
-                  <span class="lesson-num" style="background:var(--sun-50)">🎯</span>
+                  <span class="lesson-num" style="background:var(--sun-50);color:#6b5300"><app-icon name="target" [size]="18" /></span>
                   <span class="grow"><span class="title">Évaluation finale</span><br /><span class="xs muted">{{ p.questions.length }} questions · badge à {{ p.passScore }} %, maîtrise à {{ p.masteryScore }} %</span></span>
                   <app-icon name="arrow" />
                 </a>
@@ -80,7 +81,7 @@ type Tab = 'lecons' | 'certif' | 'portfolio' | 'discussion' | 'avis';
             @for (lv of levels; track lv.key) {
               @if (lv.key !== 'EXPERTISE' || p.expertiseEnabled) {
                 <div class="level" [class.got]="hasLevel(lv.key)">
-                  <div class="medal">{{ lv.icon }}</div>
+                  <app-medal [level]="lv.key" [earned]="hasLevel(lv.key)" [size]="48" />
                   <div class="name">{{ lv.short }}</div>
                   <div class="rule">{{ ruleFor(lv.key) }}</div>
                 </div>
@@ -124,9 +125,9 @@ type Tab = 'lecons' | 'certif' | 'portfolio' | 'discussion' | 'avis';
           <div class="stack">
             @for (t of threads(); track t.id) {
               <a class="card flat thread" [routerLink]="['/communaute', t.id]">
-                <span class="avatar-sm">💬</span>
+                <span class="avatar-sm"><app-icon name="chat" [size]="18" /></span>
                 <span class="grow"><strong>{{ t.title }}</strong><br /><span class="xs muted">{{ t.authorName }} · {{ t.replies }} réponse(s)</span></span>
-                @if (t.meetingUrl) { <span class="tag sun">🎥 Live</span> }
+                @if (t.meetingUrl) { <span class="tag sun"><app-icon name="video" [size]="12" /> Live</span> }
               </a>
             } @empty { <div class="empty">Pas encore de discussion. <a routerLink="/communaute">Lancer la première</a></div> }
           </div>
@@ -138,7 +139,7 @@ type Tab = 'lecons' | 'certif' | 'portfolio' | 'discussion' | 'avis';
             @for (q of feedbackQuestions; track q.key) {
               <div style="margin:.6rem 0"><div class="small" style="font-weight:600">{{ q.label }}</div>
                 <div class="stars">@for (n of [1,2,3,4,5]; track n) {
-                  <button [class.on]="fb[q.key] >= n" (click)="fb[q.key] = n" [attr.aria-label]="n + ' sur 5'">★</button>
+                  <button [class.on]="fb[q.key] >= n" (click)="fb[q.key] = n" [attr.aria-label]="n + ' sur 5'"><app-icon name="star" [size]="28" /></button>
                 }</div>
               </div>
             }
@@ -251,7 +252,7 @@ export class ModulePage implements OnInit {
   }
 
   statusLabel(s: string): string {
-    return s === 'VALIDE' ? '✓ Validé' : s === 'A_REVOIR' ? 'À revoir' : 'En attente du mentor';
+    return s === 'VALIDE' ? 'Validé' : s === 'A_REVOIR' ? 'À revoir' : 'En attente du mentor';
   }
 
   async download(): Promise<void> {
@@ -259,7 +260,7 @@ export class ModulePage implements OnInit {
     try {
       const pkg = await this.learning.download(Number(this.id()), (r) => this.dl.set(r));
       this.pkg.set(pkg);
-      this.toast.show({ icon: '📥', title: 'Module disponible hors ligne', text: pkg.title });
+      this.toast.show({ icon: 'download', title: 'Module disponible hors ligne', text: pkg.title });
     } catch (e) {
       this.error.set(errorMessage(e));
     } finally {
@@ -282,7 +283,7 @@ export class ModulePage implements OnInit {
         mediaUrl = (await firstValueFrom(this.http.post<{ url: string }>('/api/media', fd))).url;
       }
       const r = await this.learning.submitPortfolio(p.id, this.pfLesson, this.pfText, mediaUrl);
-      this.toast.show({ icon: r === 'sent' ? '📤' : '🕓', title: r === 'sent' ? 'Envoyé au mentor' : 'Sera envoyé au retour du réseau' });
+      this.toast.show({ icon: r === 'sent' ? 'send' : 'clock', title: r === 'sent' ? 'Envoyé au mentor' : 'Sera envoyé au retour du réseau' });
       this.pfText = '';
       this.pfFile = null;
       void this.openTab('portfolio');
@@ -296,7 +297,7 @@ export class ModulePage implements OnInit {
   async sendFeedback(): Promise<void> {
     try {
       await this.learning.saveFeedback(this.pkg()!.id, this.fb);
-      this.toast.show({ icon: '🙏', title: 'Merci pour votre avis !' });
+      this.toast.show({ icon: 'heart', title: 'Merci pour votre avis !' });
     } catch (e) {
       this.error.set(errorMessage(e));
     }

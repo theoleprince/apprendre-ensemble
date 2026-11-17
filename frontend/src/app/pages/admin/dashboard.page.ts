@@ -205,7 +205,7 @@ export class DashboardPage implements OnInit {
 
   levelShort(label: string): string {
     const l = LEVELS.find((x) => x.label.toLowerCase() === label.toLowerCase());
-    return l ? `${l.icon} ${l.short}` : label;
+    return l ? l.short : label;
   }
 
   roleLabel(r: string): string {

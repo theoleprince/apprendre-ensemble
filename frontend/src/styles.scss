@@ -413,3 +413,21 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .prio-haute { border-left: 5px solid var(--clay); }
 .prio-moyenne { border-left: 5px solid var(--sun); }
 .prio-basse { border-left: 5px solid var(--brand); }
+
+/* ---------- Visuels (icones SVG, couvertures, medailles) ---------- */
+.card-cover { display: block; height: 104px; margin: -1.1rem -1.1rem 0.2rem; border-radius: var(--radius) var(--radius) 0 0; }
+.course-icon app-icon { color: var(--brand-700); }
+.hero-emoji { color: #fff; font-size: 0; right: -18px; bottom: -28px; }
+.empty-icon { width: 64px; height: 64px; margin: 0 auto 0.6rem; border-radius: 20px; display: grid; place-items: center; background: var(--brand-50); color: var(--brand-700); }
+.empty-icon.clay { background: var(--clay-50); color: #8a2f1d; }
+.empty-icon.sunbg { background: var(--sun-50); color: #6b5300; }
+.stars button app-icon svg { fill: none; }
+.stars button.on app-icon svg { fill: currentColor; }
+.demo-accounts button app-icon { color: var(--brand-700); }
+.placement-opt .emoji { color: var(--brand-700); line-height: 0; }
+.placement-opt.selected .emoji { color: var(--brand); }
+.auth-art app-hero-art { margin: 0.5rem 0 1.2rem; }
+.brand-mark app-icon { color: #fff; }
+.level app-medal { display: flex; justify-content: center; margin-bottom: 0.3rem; }
+.toast .ti { line-height: 0; color: var(--sun); }
+.tile app-medal { display: flex; justify-content: center; }

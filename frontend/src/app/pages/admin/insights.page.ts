@@ -43,7 +43,7 @@ import { IconComponent } from '../../shared/icon.component';
               <div class="hbars" style="margin-top:.4rem">
                 @for (o of q.distribution; track $index) {
                   <div class="hbar" [class.correct]="o.correct" [class.wrongtop]="!o.correct && o.count === maxWrong(q)">
-                    <span class="small">{{ o.correct ? '✓ ' : '' }}{{ o.option }}</span>
+                    <span class="small row" style="gap:.25rem;flex-wrap:nowrap">@if (o.correct) {<app-icon name="check" [size]="14" style="color:var(--ok)" />}{{ o.option }}</span>
                     <div class="track"><div class="fill" [style.width.%]="q.answers ? (o.count * 100) / q.answers : 0"></div></div>
                     <span class="v">{{ o.count }}</span>
                   </div>

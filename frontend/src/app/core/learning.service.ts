@@ -141,7 +141,7 @@ export class LearningService {
       if (stale) {
         // nouvelle version publiee : on remet aussi les medias a jour
         void this.downloadMedia(pkg);
-        this.toast.show({ icon: '🔄', title: 'Module mis à jour', text: pkg.title });
+        this.toast.show({ icon: 'sync', title: 'Module mis à jour', text: pkg.title });
       }
       return { pkg, fromCache: false };
     } catch (e) {
@@ -248,7 +248,7 @@ export class LearningService {
 
   celebrate(certs: Certificate[]): void {
     for (const c of certs) {
-      this.toast.show({ icon: '🎉', title: c.levelLabel + ' obtenu·e !', text: c.courseTitle, celebrate: true }, 7000);
+      this.toast.show({ icon: 'party', title: c.levelLabel + ' obtenu·e !', text: c.courseTitle, celebrate: true }, 7000);
     }
   }
 

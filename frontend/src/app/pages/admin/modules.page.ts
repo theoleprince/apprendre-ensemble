@@ -5,10 +5,11 @@ import { firstValueFrom } from 'rxjs';
 import { errorMessage } from '../../core/auth.interceptor';
 import { AdminCourse, ROLE_LABELS } from '../../core/models';
 import { IconComponent } from '../../shared/icon.component';
+import { CoverComponent } from '../../shared/visuals';
 
 @Component({
   selector: 'app-admin-modules',
-  imports: [RouterLink, IconComponent],
+  imports: [RouterLink, IconComponent, CoverComponent],
   template: `
     <div class="section-head">
       <h1 style="margin:0">Modules</h1>
@@ -19,7 +20,8 @@ import { IconComponent } from '../../shared/icon.component';
     <div class="grid cols-3 section">
       @for (c of courses(); track c.id) {
         <article class="card course-card">
-          <div class="row"><span class="course-icon">{{ c.icon || '📘' }}</span>
+          <app-cover class="card-cover" [icon]="c.icon" [seed]="c.id" [height]="84" [label]="c.title" />
+          <div class="row">
             <div class="grow" style="flex:1"><h3 style="margin:0">{{ c.title }}</h3><span class="xs muted">v{{ c.contentVersion }} · {{ c.lessonCount }} leçons · {{ c.questionCount }} questions</span></div></div>
           <div class="tags">
             <span class="tag" [class.grey]="!c.published">{{ c.published ? 'Publié' : 'Brouillon' }}</span>

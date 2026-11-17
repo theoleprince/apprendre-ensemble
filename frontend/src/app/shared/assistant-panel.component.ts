@@ -34,7 +34,7 @@ import { IconComponent } from './icon.component';
             <div class="bubble" [class.user]="m.role === 'user'" [class.bot]="m.role === 'assistant'" [class.flag]="m.flagged"
                  [class.typing]="last && ai.busy() && m.role === 'assistant'">{{ m.content }}</div>
             @if (m.flagged) {
-              <div class="xs muted">🛡️ Ce message est transmis de façon confidentielle à l'équipe pour un suivi humain.</div>
+              <div class="xs muted row" style="gap:.3rem"><app-icon name="shield" [size]="14" /> Ce message est transmis de façon confidentielle à l'équipe pour un suivi humain.</div>
             }
           }
         </div>
