@@ -1,0 +1,301 @@
+                                     Consultation plateforme de formation
+
+Termes de référence
+
+Développement d'une plateforme de formation en ligne et hors
+connexion
+
+Appel à propositions publié le 16.11.2026
+Date limite de dépôt des offres : 30.11.2026
+
+1. Présentation de Graines de Paix
+
+La Fondation Graines de Paix, basée à Genève, conçoit des programmes d'éducation qui
+améliorent la réussite scolaire tout en prévenant les violences, par le développement des
+compétences de vie. Elle intervient en Côte d'Ivoire depuis 2012 et au Bénin depuis 2018, en
+partenariat avec les ministères de l'éducation. Ses approches ont reçu le Prix UNESCO-
+Hamdan en 2022 et sont évaluées avec J-PAL.
+
+2. Objet de la consultation
+
+Graines de Paix recherche un prestataire pour concevoir, développer, héberger et maintenir
+une plateforme de formation unique et réutilisable, en ligne et hors connexion, combinant un
+parcours théorique (LMS) et un parcours pratique et expérientiel (LXP), avec certification.
+
+La plateforme est conçue dès l'origine pour un usage multipays. Elle est d'abord déployée au
+nord du Bénin, où son impact sera mesuré par un essai contrôlé randomisé, avant son
+extension, déjà prévue, à d'autres pays et à d'autres publics, y compris en Suisse.
+L'architecture doit l'anticiper : l'ajout d'un pays, d'une langue ou d'un public doit pouvoir se
+faire par simple paramétrage, sans redéveloppement.
+
+3. Publics et volumétrie
+
+La plateforme propose des parcours différenciés selon le public. Pour la phase pilote au
+Bénin, les volumes visés sont les suivants.
+
+Public                       Effectif visé Usage principal
+
+Enseignant·es du primaire    12 000  Formation initiale certifiante, formation
+                                     continue, communautés de pratique
+
+Conseillers pédagogiques et  120     Animation, mentorat, suivi des enseignant·es
+formateur·trices
+Public                              Effectif visé Usage principal
+
+Directeur·trices d'école et cadres  2 805   Accès aux formations et suivi des écoles
+du ministère
+
+Parents et éducateur·trices         33 600  Modules de sensibilisation, ressources
+communautaires                              téléchargeables
+
+Assistants sociaux et animateurs    141     Formation et suivi
+sociaux
+
+Jeunes déscolarisé·es               250     Remise à niveau, initiation numérique,
+
+                                            formation professionnelle
+
+À titre indicatif, le curriculum enseignant·es compte douze modules d'environ douze heures
+chacun, dont six pour la première version (MVP).
+
+4. Exigences fonctionnelles
+
+   1. Test d'entrée orientant chaque utilisateur·trice vers le parcours adapté.
+
+   2. Bot/assistant IA d’aide aux utilisateurs sur tout le parcours, du choix du module à
+       l’obtention du certificat.
+
+   3. Parcours combinant modules théoriques courts, mises en situation pratiques, études de
+       cas et évaluations formatives.
+
+   4. Quatre niveaux de certification : badges de micro-certification, attestation de
+       participation, certification de maîtrise et certification d'expertise sur portfolio. Des liens
+       de certification doivent pouvoir être générés et connectés avec LinkedIn. Les critères de
+       certification doivent être paramétrables par Graines de Paix, en lien avec les autorités
+       éducatives.
+
+   5. Dépôt et évaluation de portfolios et de vidéos de pratique de classe, avec suivi du
+       mentorat.
+
+   6. Communautés de pratique animées, forums et visioconférences.
+
+   7. Accompagnement par l'intelligence artificielle (recommandations selon le profil et les
+       besoins). Cet accompagnement devra permettre de proposer des ajustements aux
+       modules issus des erreurs les plus fréquentes commises par les utilisateurs de manière
+       à produire de nouvelles versions de manière itérative, permettant d’améliorer
+       l’expérience utilisateurs.
+
+   8. Tableau de bord analytique : complétion, scores, fréquence de connexion, abandons,
+       usage hors connexion, temps moyen et médian pour compléter les modules, retour
+
+Fondation Graines de Paix    Termes de référence : plateforme de formation            2
+       utilisateurs analysés sur la base de questionnaires permettant le retour de l’expérience
+       de l’utilisateur.
+
+   9. Gestion fine des droits d'accès par zone géographique et par groupe d'utilisateurs,
+       notamment entre groupes de traitement et de contrôle du protocole d'évaluation
+       randomisée mené avec J-PAL.
+
+   10. Export des données dans des formats ouverts, pour l'évaluation d'impact.
+
+   11. Gestion de plusieurs modèles d'accès : accès gratuit financé par un programme, licences
+       institutionnelles et abonnements individuels, avec paiement en ligne.
+
+5. Exigences techniques
+
+   1. Fonctionnement hors connexion avec synchronisation différée, y compris via des
+       serveurs locaux installés dans des lieux relais. Le nombre et la localisation des lieux
+       relais seront arrêtés lors du cadrage. L'offre précise la configuration proposée (matériel,
+       capacité, bande passante requise) et qui en assure la maintenance.
+
+   2. Accessibilité sur téléphone d'entrée de gamme et en faible connectivité. Interface
+       adaptée à des utilisateurs à faible littératie et à des appareils partagés : langues locales,
+       audio, icônes, sous-titres et transcriptions, navigation au clavier, contrastes suffisants,
+       tests avec les utilisateurs.
+
+   3. Multilinguisme, avec contenus dans les langues de scolarisation des pays
+       d'intervention, européennes et africaines.
+
+   4. Standards ouverts garantissant la portabilité vers de nouveaux pays.
+
+   5. Authentification unique (SSO) et sécurité des connexions.
+
+   6. Hébergement conforme au RGPD et à la loi suisse sur la protection des données (nLPD),
+       avec une politique de protection de l'enfance et des données dès la conception. L'offre
+       précise la localisation des serveurs et des données (Suisse ou Union européenne).
+
+   7. Capacité d’augmenter le nombre d’utilisateurs de la plateforme sans plafond, au-delà
+       de la cohorte pilote, sans refonte de l'architecture. Les éventuels coûts supplémentaires
+       au-delà d’un certain nombre d’utilisateurs devront être clairement mentionnés.
+
+   8. Plateforme respectant la charte graphique de Graines de Paix, sous son nom de
+       domaine.
+
+   9. Capacité de migration de tout ou partie des modules de la plateforme, avec un code
+       simple et documenté, transférable à un pays ou à une institution comme bien public
+       numérique (digital public good).
+
+Fondation Graines de Paix  Termes de référence : plateforme de formation  3
+6. Propriété intellectuelle et conditions contractuelles
+
+Les contenus pédagogiques, les parcours et leur évolution restent la propriété de Graines de
+Paix. L'offre précise le régime du code et des fonctionnalités développées pour Graines de
+Paix, ainsi que les droits d'usage et l'éventuelle exclusivité. Graines de Paix est responsable
+du traitement des données des utilisateurs (scores, portfolios, vidéos), qui restent sa
+propriété. En fin de contrat, le prestataire les restitue dans un format ouvert, puis les supprime
+de ses systèmes.
+
+Le contrat prévoira une maquette fonctionnelle validée avant l'engagement du
+développement complet, une livraison par lots au forfait avec jalons de validation, la
+restitution du code source spécifique et des données, ainsi qu'une clause de réversibilité. Le
+prestataire remettra une documentation technique et un guide de déploiement permettant de
+répliquer la plateforme dans un nouveau pays.
+
+L'architecture doit permettre deux modèles, sans que l'un exclue l'autre : le transfert du code
+à un pays ou à une institution comme bien public numérique, et l'octroi de licences à des
+utilisateurs publics ou privés. L'accessibilité du code s'entend comme suit : code source
+déposé dans un dépôt documenté, licence précisée, composants tiers listés, dépôt fiduciaire
+(escrow) le cas échéant et conditions de transfert définies.
+
+7. Calendrier indicatif                          Échéance
+                                                 Décembre 2026 à janvier 2027
+ Étape                                           Premier trimestre 2027
+ Sélection du prestataire et contractualisation  2027, avec développement progressif des
+ Cadrage, spécifications et maquette validée     modules dès le deuxième trimestre
+ Développement et mise en service du MVP         Fin 2028
+
+ Livraison intermédiaire (fonctionnalités        2028 à 2029
+ complémentaires, dont IA)
+ Développement de la version complète
+
+8. Contenu de l'offre
+
+   1. Offre méthodologique : compréhension du besoin, analyse des plateformes
+       comparables existantes et valeur ajoutée de la solution, méthode et calendrier de
+       cadrage, de développement et de test.
+
+   2. Offre technique : architecture, base logicielle, solution hors connexion, composantes
+       IA, hébergement et sécurité, maintenance et évolutivité, réponse point par point aux
+       sections 4 et 5.
+
+Fondation Graines de Paix  Termes de référence : plateforme de formation                  4
+3. Offre financière : coût du MVP et de la version complète, détaillé par lot (conception,
+    développement, contenus, hébergement, maintenance, support, localisation,
+    accessibilité, sécurité, IA, hors connexion, formation, évaluation) ; taux journaliers par
+    profil ; licences ou abonnements selon le nombre d'utilisateurs, sans plafond ;
+    hébergement, maintenance et support ; transformation de contenus existants en
+    formats interactifs, chiffrée séparément ; coût d'adaptation pour un pays, une langue ou
+    un public supplémentaire ; coût total de possession sur cinq ans (2027 à 2031), selon
+    un scénario commun à toutes les offres : un seul pays (Bénin), effectifs de la section 3
+    (48 925 comptes), MVP en 2027 puis version complète selon le calendrier de la section
+    7 ; le coût inclut licences, hébergement, maintenance, support, serveurs locaux, mises à
+    jour et coûts d’usage de l’IA.
+
+4. Références et équipe : référence globale de la structure dont derniers états financiers,
+    trois références de projets comparables, idéalement dans l'éducation ou l'humanitaire ;
+    CV de l'équipe proposée et niveau de français des personnes en lien avec les équipes
+    au Bénin.
+
+5. Propriété intellectuelle : conditions proposées au regard de la section 6.
+
+9. Critères d'évaluation
+
+Critère                    Sous-critères                                                Points
+                                                                                          10
+1. Compréhension du        1.1 Compréhension des publics, du multipays et du
+besoin et offre            protocole RCT                                                  20
+méthodologique
+                           1.2 Analyse des plateformes comparables et valeur
+                           ajoutée
+
+                           1.3 Méthode de cadrage, développement, test, recette et
+                           calendrier MVP/version complète
+
+2. Architecture            2.1 Architecture multi-pays, multi-langue et multi-public
+technique et               par simple paramétrage
+fonctionnelle cœur
+                           2.2 Couverture fonctionnelle LMS + LXP : test d’entrée,
+                           parcours, portfolios, mentorat, communautés, certifications
+                           et liens LinkedIn
+
+                           2.3 Sécurité, SSO, hébergement, conformité et protection
+                           de l’enfance
+
+                           2.4 Évolutivité sans plafond, maintenance, standards
+                           ouverts et réversibilité
+
+                           2.5 Accessibilité UI et performance sur téléphone d’entrée
+                           de gamme
+
+Fondation Graines de Paix  Termes de référence : plateforme de formation                        5
+Critère                    Sous-critères                                                Points
+                                                                                          10
+3. Intelligence            3.1 Assistant IA et recommandations selon profil et
+artificielle               besoins                                                        10
+                                                                                          20
+                           3.2 Boucle d’amélioration des modules à partir des erreurs
+                           et retours utilisateurs                                        15
+                                                                                          15
+                           3.3 Conformité IA, protection des données d’enfants, biais,   100
+                           supervision humaine et coûts des modèles
+
+                           3.4 Qualité de la démonstration et pertinence des cas
+                           d’usage
+
+4. Hors connexion et       4.1 Synchronisation différée, gestion des conflits et
+faible connectivité        serveurs locaux relais
+
+                           4.2 Fonctionnement réel sur téléphone d’entrée de
+                           gamme, poids des contenus et UX hors connexion
+
+                           4.3 Preuve ou démonstration et plan de test terrain au
+                           Bénin
+
+5. Offre financière et     5.1 Complétude et cohérence du chiffrage par lot : MVP,
+coût total de              version complète, contenus, adaptation pays
+possession
+                           5.2 Coût total de possession sur cinq ans, calculé selon le
+                           scénario de la section 8
+
+                           5.3 Coût d’adaptation pays/langue/public et modèle
+                           licences/abonnements sans plafond
+
+                           5.4 Coûts récurrents : hébergement, maintenance, support,
+                           transformation de contenus
+
+6. Références, équipe      6.1 Trois références comparables, idéalement
+et capacité de             éducation/humanitaire/multipays/offline
+déploiement                6.2 CV, rôles, disponibilité et niveau de français
+                           6.3 Expérience Afrique de l’Ouest/Bénin et protocoles
+                           RCT/J-PAL
+                           6.4 Capacité de formation, support et mentorat local
+
+7. Propriété               7.1 Licence et droits permettant le transfert comme bien
+intellectuelle, code et    public numérique, sans exclure l’octroi de licences
+bien public numérique
+                           7.2 Code documenté, dépôt, documentation et composants
+                           tiers
+
+                           7.3 Réversibilité, transfert à un pays ou une institution,
+                           escrow éventuel
+                           7.4 Absence de dépendance propriétaire et coût de sortie
+
+Total
+
+Fondation Graines de Paix  Termes de référence : plateforme de formation                        6
+10. Modalités de soumission
+
+Les offres, en français ou en anglais, sont à envoyer par email au plus tard le 30.11.2026. Les
+questions peuvent être posées jusqu'au 20.11.2026 ; les réponses seront partagées avec
+l'ensemble des candidats.
+
+Les prestataires présélectionnés recevront la note de concept détaillée après signature d'un
+accord de confidentialité, et seront invités à une présentation orale. Ils recevront également
+les conditions de propriété intellectuelle de référence de Graines de Paix ; leur offre précise
+les éventuels écarts. Graines de Paix se réserve le droit de ne pas donner suite à la
+consultation.
+
+Contact : Yasmine Labidi, Cheffe de projets Afrique, yasmine.labidi@grainesdepaix.org
+
+Fondation Graines de Paix  Termes de référence : plateforme de formation  7
+

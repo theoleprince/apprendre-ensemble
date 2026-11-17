@@ -1,0 +1,19 @@
+# Secrets et configuration locale
+.env
+*.local
+
+# Dependances et builds
+node_modules/
+frontend/dist/
+frontend/.angular/
+backend/target/
+
+# Donnees locales (H2, medias televerses)
+backend/data/
+
+# Fichiers de travail hors projet
+photo_*.jpg
+*.log
+.idea/
+.DS_Store
+Thumbs.db

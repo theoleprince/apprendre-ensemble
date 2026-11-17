@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Certificat A4 paysage. Modifiable dans Jaspersoft Studio 7 : couleurs, textes et signataires suivent la charte du client. -->
+<jasperReport name="certificate" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="842" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<style name="base" default="true" fontName="DejaVu Sans" fontSize="11.0" forecolor="#1F2A24"/>
+	<style name="serif" fontName="DejaVu Serif"/>
+	<parameter name="PLATFORM_NAME" class="java.lang.String"/>
+	<parameter name="LEVEL_LABEL" class="java.lang.String"/>
+	<parameter name="LEVEL_SHORT" class="java.lang.String"/>
+	<parameter name="LEVEL_TEXT" class="java.lang.String"/>
+	<parameter name="LEARNER_NAME" class="java.lang.String"/>
+	<parameter name="COURSE_TITLE" class="java.lang.String"/>
+	<parameter name="DETAILS" class="java.lang.String"/>
+	<parameter name="CODE" class="java.lang.String"/>
+	<parameter name="VERIFY_URL" class="java.lang.String"/>
+	<parameter name="YEAR" class="java.lang.String"/>
+	<parameter name="SIGNATORY_1" class="java.lang.String"/>
+	<parameter name="SIGNATORY_1_ROLE" class="java.lang.String"/>
+	<parameter name="SIGNATORY_2" class="java.lang.String"/>
+	<parameter name="SIGNATORY_2_ROLE" class="java.lang.String"/>
+	<parameter name="QR" class="java.awt.Image"/>
+	<background height="595">
+		<element kind="rectangle" x="0" y="0" width="842" height="595" backcolor="#FFFDF6">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="rectangle" x="0" y="0" width="16" height="595" backcolor="#2F7D4F">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="rectangle" x="16" y="0" width="5" height="595" backcolor="#C9A227">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="rectangle" x="38" y="26" width="782" height="543" mode="Transparent">
+			<pen lineWidth="2.5" lineColor="#2F7D4F"/>
+		</element>
+		<element kind="rectangle" x="46" y="34" width="766" height="527" mode="Transparent">
+			<pen lineWidth="0.75" lineColor="#C9A227"/>
+		</element>
+		<element kind="ellipse" x="42" y="30" width="8" height="8" backcolor="#C9A227">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="ellipse" x="808" y="30" width="8" height="8" backcolor="#C9A227">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="ellipse" x="42" y="557" width="8" height="8" backcolor="#C9A227">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="ellipse" x="808" y="557" width="8" height="8" backcolor="#C9A227">
+			<pen lineWidth="0.0"/>
+		</element>
+	</background>
+	<title height="595">
+		<element kind="textField" x="60" y="58" width="742" height="18" forecolor="#2F7D4F" fontSize="11.0" bold="true" hTextAlign="Center">
+			<expression><![CDATA[$P{PLATFORM_NAME}.toUpperCase()]]></expression>
+		</element>
+		<element kind="staticText" x="60" y="82" width="742" height="50" style="serif" fontSize="40.0" bold="true" hTextAlign="Center">
+			<text><![CDATA[CERTIFICAT]]></text>
+		</element>
+		<element kind="textField" x="60" y="134" width="742" height="22" forecolor="#9A7B12" fontSize="15.0" bold="true" hTextAlign="Center">
+			<expression><![CDATA[$P{LEVEL_LABEL}.toUpperCase()]]></expression>
+		</element>
+		<element kind="line" x="331" y="166" width="200" height="1" forecolor="#C9A227">
+			<pen lineWidth="1.0" lineColor="#C9A227"/>
+		</element>
+		<element kind="staticText" x="60" y="184" width="742" height="20" forecolor="#5D6B63" fontSize="13.0" italic="true" hTextAlign="Center">
+			<text><![CDATA[Ce certificat est décerné à]]></text>
+		</element>
+		<element kind="textField" x="60" y="208" width="742" height="46" forecolor="#23603C" style="serif" fontSize="32.0" bold="true" hTextAlign="Center">
+			<expression><![CDATA[$P{LEARNER_NAME}]]></expression>
+		</element>
+		<element kind="line" x="221" y="260" width="400" height="1">
+			<pen lineWidth="0.75" lineColor="#C9A227"/>
+		</element>
+		<element kind="textField" x="111" y="274" width="620" height="20" fontSize="13.0" hTextAlign="Center">
+			<expression><![CDATA[$P{LEVEL_TEXT}]]></expression>
+		</element>
+		<element kind="textField" x="91" y="298" width="660" height="56" style="serif" fontSize="21.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<expression><![CDATA["« " + $P{COURSE_TITLE} + " »"]]></expression>
+		</element>
+		<element kind="textField" x="111" y="358" width="620" height="18" forecolor="#5D6B63" fontSize="11.0" hTextAlign="Center">
+			<expression><![CDATA[$P{DETAILS}]]></expression>
+		</element>
+		<!-- Sceau -->
+		<element kind="ellipse" x="86" y="398" width="112" height="112" backcolor="#C9A227">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="ellipse" x="94" y="406" width="96" height="96" mode="Transparent">
+			<pen lineWidth="1.25" lineColor="#FFFDF6" lineStyle="Dashed"/>
+		</element>
+		<element kind="staticText" x="94" y="424" width="96" height="14" forecolor="#FFFDF6" fontSize="8.0" bold="true" hTextAlign="Center">
+			<text><![CDATA[CERTIFIÉ]]></text>
+		</element>
+		<element kind="textField" x="94" y="440" width="96" height="28" forecolor="#FFFFFF" fontSize="11.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<expression><![CDATA[$P{LEVEL_SHORT}]]></expression>
+		</element>
+		<element kind="textField" x="94" y="470" width="96" height="14" forecolor="#FFFDF6" fontSize="9.0" bold="true" hTextAlign="Center">
+			<expression><![CDATA[$P{YEAR}]]></expression>
+		</element>
+		<!-- Signatures -->
+		<element kind="line" x="252" y="470" width="180" height="1">
+			<pen lineWidth="0.75" lineColor="#1F2A24"/>
+		</element>
+		<element kind="textField" x="242" y="476" width="200" height="16" fontSize="10.0" bold="true" hTextAlign="Center">
+			<expression><![CDATA[$P{SIGNATORY_1}]]></expression>
+		</element>
+		<element kind="textField" x="232" y="492" width="220" height="24" forecolor="#5D6B63" fontSize="8.5" hTextAlign="Center">
+			<expression><![CDATA[$P{SIGNATORY_1_ROLE}]]></expression>
+		</element>
+		<element kind="line" x="472" y="470" width="180" height="1">
+			<pen lineWidth="0.75" lineColor="#1F2A24"/>
+		</element>
+		<element kind="textField" x="462" y="476" width="200" height="16" fontSize="10.0" bold="true" hTextAlign="Center">
+			<expression><![CDATA[$P{SIGNATORY_2}]]></expression>
+		</element>
+		<element kind="textField" x="452" y="492" width="220" height="24" forecolor="#5D6B63" fontSize="8.5" hTextAlign="Center">
+			<expression><![CDATA[$P{SIGNATORY_2_ROLE}]]></expression>
+		</element>
+		<!-- Verification -->
+		<element kind="image" x="694" y="396" width="92" height="92" scaleImage="RetainShape" hImageAlign="Center">
+			<expression><![CDATA[$P{QR}]]></expression>
+		</element>
+		<element kind="textField" x="664" y="490" width="152" height="13" fontSize="8.0" bold="true" hTextAlign="Center">
+			<expression><![CDATA["Code " + $P{CODE}]]></expression>
+		</element>
+		<element kind="textField" x="654" y="503" width="172" height="22" forecolor="#5D6B63" fontSize="6.5" hTextAlign="Center">
+			<expression><![CDATA[$P{VERIFY_URL}]]></expression>
+		</element>
+		<element kind="staticText" x="60" y="540" width="742" height="14" forecolor="#8A958F" fontSize="7.5" hTextAlign="Center">
+			<text><![CDATA[Authenticité vérifiable en ligne en scannant le QR code. Ce document ne contient aucune donnée personnelle autre que le nom du ou de la titulaire.]]></text>
+		</element>
+	</title>
+</jasperReport>

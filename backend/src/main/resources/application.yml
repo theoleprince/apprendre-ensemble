@@ -1,0 +1,81 @@
+spring:
+  application:
+    name: formation-api
+  datasource:
+    # Dev : H2 fichier local. En test/prod : profil "prod" (PostgreSQL).
+    url: jdbc:h2:file:./data/formation;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  h2:
+    console:
+      enabled: true
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 210MB
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  # PaaS (Railway, Render...) : port fourni par la variable PORT
+  port: ${PORT:8080}
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,application/javascript,application/json,text/vtt,image/svg+xml,application/manifest+json
+    min-response-size: 1024
+  error:
+    include-message: always
+  forward-headers-strategy: framework
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+app:
+  public-url: ${APP_PUBLIC_URL:http://localhost:4200}
+  jwt:
+    # A remplacer en test/prod via la variable APP_JWT_SECRET (>= 32 caracteres)
+    secret: ${APP_JWT_SECRET:dev-secret-change-me-dev-secret-change-me}
+    validity-days: 30
+  cors:
+    allowed-origins: ${APP_CORS_ORIGINS:http://localhost:4200}
+  media:
+    dir: ${APP_MEDIA_DIR:./data/media}
+  seed:
+    demo-data: true
+    admin-password: ${APP_ADMIN_PASSWORD:Admin123!}
+  ai:
+    enabled: ${APP_AI_ENABLED:true}
+    # Vide : identifiants lus dans l'environnement (ANTHROPIC_API_KEY...). Sans identifiants : mode local.
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: ${APP_AI_MODEL:claude-opus-5-5}
+  brand:
+    # Nom et signataires imprimes sur les certificats (charte du client)
+    name: ${APP_BRAND_NAME:Plateforme de formation - démonstration}
+    signatory1: ${APP_SIGNATORY1:Responsable pédagogique}
+    signatory1-role: ${APP_SIGNATORY1_ROLE:Coordination pédagogique}
+    signatory2: ${APP_SIGNATORY2:Direction du programme}
+    signatory2-role: ${APP_SIGNATORY2_ROLE:En partenariat avec le ministère de l'éducation}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://db:5432/formation}
+    username: ${DB_USER:formation}
+    password: ${DB_PASSWORD}
+  h2:
+    console:
+      enabled: false
+app:
+  seed:
+    demo-data: ${APP_SEED_DEMO:true}

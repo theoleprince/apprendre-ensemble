@@ -1,0 +1,227 @@
+import { HttpClient } from '@angular/common/http';
+import { Component, OnInit, inject, input, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+import { errorMessage } from '../../core/auth.interceptor';
+import { CourseInput, LessonInput, MediaUpload, ROLE_LABELS, Referentiel, Role, formatBytes } from '../../core/models';
+import { ToastService } from '../../core/toast.service';
+import { IconComponent } from '../../shared/icon.component';
+
+const ALL_ROLES: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_ECOLE', 'PARENT', 'TRAVAILLEUR_SOCIAL', 'JEUNE'];
+
+@Component({
+  selector: 'app-course-editor',
+  imports: [FormsModule, RouterLink, IconComponent],
+  template: `
+    <a routerLink="/admin/modules" class="back"><app-icon name="back" [size]="18" /> Modules</a>
+    <h1>{{ isNew() ? 'Nouveau module' : 'Modifier le module' }}</h1>
+    @if (!isNew()) { <p class="notice info small">Chaque enregistrement publie une nouvelle version : les appareils hors ligne la téléchargent à la prochaine connexion. La progression existante est conservée.</p> }
+    @if (error()) { <p class="error">{{ error() }}</p> }
+
+    @if (ref(); as r) {
+      <form (ngSubmit)="save()" #f="ngForm">
+        <section class="card">
+          <div class="field-row">
+            <label style="flex:0 0 90px">Icône <input name="icon" [(ngModel)]="c.icon" maxlength="8" style="font-size:1.4rem;text-align:center" /></label>
+            <label>Titre <input name="title" [(ngModel)]="c.title" required /></label>
+          </div>
+          <label>Description <textarea name="desc" rows="2" [(ngModel)]="c.description"></textarea></label>
+          <div class="field-row">
+            <label>Parcours <select name="type" [(ngModel)]="c.type"><option value="THEORIQUE">Théorique (LMS)</option><option value="PRATIQUE">Pratique (LXP)</option></select></label>
+            <label>Pays <select name="country" [(ngModel)]="c.countryCode"><option [ngValue]="null">Tous</option>@for (x of r.countries; track x.code) {<option [ngValue]="x.code">{{ x.name }}</option>}</select></label>
+            <label>Langue <select name="lang" [(ngModel)]="c.languageCode"><option [ngValue]="null">Toutes</option>@for (x of r.languages; track x.code) {<option [ngValue]="x.code">{{ x.name }}</option>}</select></label>
+          </div>
+          <fieldset><legend>Publics</legend>
+            @for (role of roles; track role) {
+              <label class="check inline"><input type="checkbox" [checked]="c.targetRoles.includes(role)" (change)="toggleRole(role)" /> {{ labels[role] }}</label>
+            }
+          </fieldset>
+          <fieldset><legend>Droits d'accès fins</legend>
+            <div class="field-row">
+              <label>Groupes RCT autorisés <input name="coh" [(ngModel)]="cohorts" placeholder="vide = tous · ex. TRAITEMENT" /></label>
+              <label>Zones autorisées <input name="reg" [(ngModel)]="regions" placeholder="vide = toutes · ex. Borgou, Alibori" /></label>
+            </div>
+          </fieldset>
+          <fieldset><legend>Critères de certification</legend>
+            <div class="field-row">
+              <label>🏅 Badge : score ≥ (%) <input type="number" name="pass" min="0" max="100" [(ngModel)]="c.passScore" /></label>
+              <label>🎖️ Maîtrise : score ≥ (%) <input type="number" name="mast" min="0" max="100" [(ngModel)]="c.masteryScore" /></label>
+            </div>
+            <label class="check"><input type="checkbox" name="exp" [(ngModel)]="c.expertiseEnabled" /> 🏆 Certification d'expertise sur portfolio validé par un mentor</label>
+          </fieldset>
+          <label class="check"><input type="checkbox" name="pub" [(ngModel)]="c.published" /> Publié</label>
+        </section>
+
+        <h2 class="section">Leçons</h2>
+        @for (l of c.lessons; track $index; let i = $index) {
+          <section class="card" style="margin-bottom:1rem">
+            <div class="section-head"><strong>Leçon {{ i + 1 }}</strong>
+              <div class="row">
+                <button type="button" class="ghost icon-btn" [disabled]="i === 0" (click)="move(i, -1)" title="Monter">↑</button>
+                <button type="button" class="ghost icon-btn danger" (click)="c.lessons.splice(i, 1)" title="Supprimer"><app-icon name="trash" [size]="18" /></button>
+              </div></div>
+            <label>Titre <input [name]="'lt' + i" [(ngModel)]="l.title" required /></label>
+            <div class="chips" style="margin-bottom:.8rem">
+              @for (t of types; track t.v) { <button type="button" [class.active]="l.mediaType === t.v" (click)="l.mediaType = t.v"><app-icon [name]="t.icon" [size]="16" /> {{ t.l }}</button> }
+            </div>
+            @if (l.mediaType !== 'TEXT') {
+              <div class="field-row">
+                <label>{{ l.mediaType === 'VIDEO' ? 'Vidéo (MP4, 480p conseillé)' : 'Audio (MP3 mono 32-64 kbit/s)' }}
+                  <input type="file" [accept]="l.mediaType === 'VIDEO' ? 'video/mp4,video/webm' : 'audio/*'" (change)="upload($event, l, 'media')" /></label>
+                @if (l.mediaType === 'VIDEO') {
+                  <label>Sous-titres (WebVTT) <input type="file" accept=".vtt,text/vtt" (change)="upload($event, l, 'vtt')" /></label>
+                }
+              </div>
+              @if (uploading()) { <p class="small muted">Envoi en cours…</p> }
+              @if (l.mediaUrl) { <p class="small"><app-icon name="check" [size]="14" /> {{ l.mediaUrl }} · {{ size(l.mediaSizeBytes) }} @if (l.subtitlesUrl) {· sous-titres ✓}</p> }
+            }
+            <label>{{ l.mediaType === 'TEXT' ? 'Contenu (texte, **gras**, listes « - »)' : 'Transcription (obligatoire pour l’accessibilité et le hors ligne léger)' }}
+              <textarea [name]="'lc' + i" rows="6" [(ngModel)]="l.content"></textarea></label>
+            <div class="field-row">
+              <label>Mise en pratique (portfolio, facultatif) <textarea [name]="'lp' + i" rows="2" [(ngModel)]="l.practiceTask"></textarea></label>
+              <label style="flex:0 0 130px">Durée (min) <input type="number" min="0" [name]="'ld' + i" [(ngModel)]="l.durationMinutes" /></label>
+            </div>
+          </section>
+        }
+        <button type="button" (click)="addLesson()"><app-icon name="plus" /> Ajouter une leçon</button>
+
+        <h2 class="section">Évaluation</h2>
+        @for (q of c.questions; track $index; let i = $index) {
+          <section class="card" style="margin-bottom:1rem">
+            <div class="section-head"><strong>Question {{ i + 1 }}</strong>
+              <button type="button" class="ghost icon-btn danger" (click)="c.questions.splice(i, 1)"><app-icon name="trash" [size]="18" /></button></div>
+            <label>Énoncé <input [name]="'q' + i" [(ngModel)]="q.question" required /></label>
+            @for (o of q.options; track $index; let j = $index) {
+              <div class="row" style="flex-wrap:nowrap;margin-bottom:.4rem">
+                <input type="radio" [name]="'qc' + i" [value]="j" [(ngModel)]="q.correctIndex" title="Bonne réponse" />
+                <input [name]="'qo' + i + '_' + j" [(ngModel)]="q.options[j]" required style="margin:0" />
+                @if (q.options.length > 2) { <button type="button" class="ghost icon-btn" (click)="removeOption(i, j)"><app-icon name="x" [size]="16" /></button> }
+              </div>
+            }
+            <button type="button" class="link" (click)="q.options.push('')">+ option</button>
+            <label class="section">Explication affichée après correction <input [name]="'qe' + i" [(ngModel)]="q.explanation" /></label>
+          </section>
+        }
+        <button type="button" (click)="addQuestion()"><app-icon name="plus" /> Ajouter une question</button>
+
+        <div class="lesson-nav">
+          <button class="primary grow lg" type="submit" [disabled]="f.invalid || saving() || !c.targetRoles.length">{{ saving() ? 'Enregistrement…' : 'Enregistrer et publier' }}</button>
+        </div>
+      </form>
+    }
+  `,
+})
+export class CourseEditorPage implements OnInit {
+  private http = inject(HttpClient);
+  private router = inject(Router);
+  private toast = inject(ToastService);
+
+  readonly id = input.required<string>();
+  labels = ROLE_LABELS;
+  roles = ALL_ROLES;
+  types = [
+    { v: 'TEXT' as const, l: 'Texte', icon: 'text' },
+    { v: 'AUDIO' as const, l: 'Audio', icon: 'headphones' },
+    { v: 'VIDEO' as const, l: 'Vidéo', icon: 'video' },
+  ];
+  ref = signal<Referentiel | null>(null);
+  error = signal('');
+  saving = signal(false);
+  uploading = signal(false);
+  isNew = signal(true);
+  cohorts = '';
+  regions = '';
+  c: CourseInput = {
+    title: '', description: '', icon: '📘', type: 'THEORIQUE', countryCode: null, languageCode: 'fr', targetRoles: ['ENSEIGNANT'],
+    allowedCohorts: [], allowedRegions: [], passScore: 70, masteryScore: 85, expertiseEnabled: true, published: false, lessons: [], questions: [],
+  };
+
+  async ngOnInit(): Promise<void> {
+    this.isNew.set(this.id() === 'nouveau');
+    try {
+      this.ref.set(await firstValueFrom(this.http.get<Referentiel>('/api/referentiel')));
+      if (!this.isNew()) {
+        this.c = await firstValueFrom(this.http.get<CourseInput>(`/api/admin/courses/${this.id()}`));
+        this.cohorts = (this.c.allowedCohorts ?? []).join(', ');
+        this.regions = (this.c.allowedRegions ?? []).join(', ');
+      }
+    } catch (e) {
+      this.error.set(errorMessage(e));
+    }
+  }
+
+  toggleRole(r: Role): void {
+    this.c.targetRoles = this.c.targetRoles.includes(r) ? this.c.targetRoles.filter((x) => x !== r) : [...this.c.targetRoles, r];
+  }
+
+  addLesson(): void {
+    this.c.lessons.push({ title: '', mediaType: 'TEXT', mediaUrl: null, mediaSizeBytes: 0, subtitlesUrl: null, content: '', practiceTask: null, durationMinutes: 10 });
+  }
+
+  addQuestion(): void {
+    this.c.questions.push({ question: '', options: ['', ''], correctIndex: 0, explanation: null });
+  }
+
+  move(i: number, d: number): void {
+    const l = this.c.lessons;
+    [l[i], l[i + d]] = [l[i + d], l[i]];
+  }
+
+  removeOption(qi: number, oi: number): void {
+    const q = this.c.questions[qi];
+    q.options.splice(oi, 1);
+    if (q.correctIndex >= q.options.length) q.correctIndex = 0;
+  }
+
+  size(b: number): string {
+    return formatBytes(b);
+  }
+
+  async upload(ev: Event, l: LessonInput, kind: 'media' | 'vtt'): Promise<void> {
+    const file = (ev.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.uploading.set(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await firstValueFrom(this.http.post<MediaUpload>('/api/media', fd));
+      if (kind === 'media') {
+        l.mediaUrl = r.url;
+        l.mediaSizeBytes = r.sizeBytes;
+      } else {
+        l.subtitlesUrl = r.url;
+      }
+    } catch (e) {
+      this.error.set(errorMessage(e));
+    } finally {
+      this.uploading.set(false);
+    }
+  }
+
+  async save(): Promise<void> {
+    this.saving.set(true);
+    this.error.set('');
+    const split = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
+    const body = {
+      ...this.c,
+      allowedCohorts: split(this.cohorts),
+      allowedRegions: split(this.regions),
+      questions: this.c.questions.map((q) => ({ ...q, correctIndex: Number(q.correctIndex) })),
+    };
+    try {
+      if (this.isNew()) {
+        const created = await firstValueFrom(this.http.post<{ id: number }>('/api/admin/courses', body));
+        await this.router.navigate(['/admin/modules', created.id]);
+        this.isNew.set(false);
+      } else {
+        await firstValueFrom(this.http.put(`/api/admin/courses/${this.id()}`, body));
+      }
+      this.toast.show({ icon: '✅', title: 'Module enregistré', text: 'Nouvelle version publiée' });
+    } catch (e) {
+      this.error.set(errorMessage(e));
+    } finally {
+      this.saving.set(false);
+    }
+  }
+}

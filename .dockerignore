@@ -1,0 +1,9 @@
+**/node_modules
+frontend/dist
+frontend/.angular
+backend/target
+backend/data
+docs
+.git
+.env
+*.jpg

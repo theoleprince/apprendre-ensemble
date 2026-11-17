@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Rapport de suivi du programme (A4 paysage) : indicateurs globaux + tableau par module. -->
+<jasperReport name="impact-report" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="762" leftMargin="40" rightMargin="40" topMargin="32" bottomMargin="32">
+	<style name="base" default="true" fontName="DejaVu Sans" fontSize="9.0" forecolor="#1F2A24"/>
+	<style name="kpiValue" fontName="DejaVu Sans" fontSize="20.0" bold="true" forecolor="#1F2A24"/>
+	<style name="kpiLabel" fontName="DejaVu Sans" fontSize="7.5" forecolor="#5D6B63"/>
+	<style name="th" fontName="DejaVu Sans" fontSize="7.5" bold="true" forecolor="#5D6B63"/>
+	<parameter name="PLATFORM_NAME" class="java.lang.String"/>
+	<parameter name="SCOPE" class="java.lang.String"/>
+	<parameter name="GENERATED_AT" class="java.lang.String"/>
+	<parameter name="K_LEARNERS" class="java.lang.String"/>
+	<parameter name="K_ACTIVE" class="java.lang.String"/>
+	<parameter name="K_LESSONS" class="java.lang.String"/>
+	<parameter name="K_OFFLINE" class="java.lang.String"/>
+	<parameter name="K_CERTS" class="java.lang.String"/>
+	<parameter name="K_RATING" class="java.lang.String"/>
+	<parameter name="CERTS_BY_LEVEL" class="java.lang.String"/>
+	<field name="title" class="java.lang.String"/>
+	<field name="started" class="java.lang.String"/>
+	<field name="completed" class="java.lang.String"/>
+	<field name="rate" class="java.lang.String"/>
+	<field name="score" class="java.lang.String"/>
+	<field name="time" class="java.lang.String"/>
+	<field name="dropouts" class="java.lang.String"/>
+	<field name="offline" class="java.lang.String"/>
+	<field name="rating" class="java.lang.String"/>
+	<title height="170">
+		<element kind="textField" x="0" y="0" width="762" height="14" forecolor="#2F7D4F" fontSize="9.0" bold="true">
+			<expression><![CDATA[$P{PLATFORM_NAME}.toUpperCase()]]></expression>
+		</element>
+		<element kind="staticText" x="0" y="16" width="500" height="28" fontName="DejaVu Serif" fontSize="20.0" bold="true">
+			<text><![CDATA[Rapport de suivi du programme]]></text>
+		</element>
+		<element kind="textField" x="500" y="22" width="262" height="14" forecolor="#5D6B63" hTextAlign="Right">
+			<expression><![CDATA["Édité le " + $P{GENERATED_AT}]]></expression>
+		</element>
+		<element kind="textField" x="0" y="46" width="762" height="14" forecolor="#5D6B63">
+			<expression><![CDATA["Périmètre : " + $P{SCOPE}]]></expression>
+		</element>
+		<element kind="rectangle" x="0" y="66" width="762" height="3" backcolor="#C9A227">
+			<pen lineWidth="0.0"/>
+		</element>
+		<!-- 6 indicateurs -->
+		<element kind="textField" x="0" y="80" width="120" height="26" style="kpiValue"><expression><![CDATA[$P{K_LEARNERS}]]></expression></element>
+		<element kind="staticText" x="0" y="106" width="120" height="12" style="kpiLabel"><text><![CDATA[APPRENANT·ES]]></text></element>
+		<element kind="textField" x="128" y="80" width="120" height="26" style="kpiValue"><expression><![CDATA[$P{K_ACTIVE}]]></expression></element>
+		<element kind="staticText" x="128" y="106" width="120" height="12" style="kpiLabel"><text><![CDATA[ACTIFS SUR 7 JOURS]]></text></element>
+		<element kind="textField" x="256" y="80" width="120" height="26" style="kpiValue"><expression><![CDATA[$P{K_LESSONS}]]></expression></element>
+		<element kind="staticText" x="256" y="106" width="120" height="12" style="kpiLabel"><text><![CDATA[LEÇONS TERMINÉES]]></text></element>
+		<element kind="textField" x="384" y="80" width="120" height="26" style="kpiValue"><expression><![CDATA[$P{K_OFFLINE}]]></expression></element>
+		<element kind="staticText" x="384" y="106" width="120" height="12" style="kpiLabel"><text><![CDATA[SUIVIES HORS LIGNE]]></text></element>
+		<element kind="textField" x="512" y="80" width="120" height="26" style="kpiValue"><expression><![CDATA[$P{K_CERTS}]]></expression></element>
+		<element kind="staticText" x="512" y="106" width="120" height="12" style="kpiLabel"><text><![CDATA[CERTIFICATIONS]]></text></element>
+		<element kind="textField" x="640" y="80" width="122" height="26" style="kpiValue"><expression><![CDATA[$P{K_RATING}]]></expression></element>
+		<element kind="staticText" x="640" y="106" width="122" height="12" style="kpiLabel"><text><![CDATA[SATISFACTION (/5)]]></text></element>
+		<element kind="textField" x="0" y="126" width="762" height="14" forecolor="#5D6B63">
+			<expression><![CDATA["Certifications par niveau : " + $P{CERTS_BY_LEVEL}]]></expression>
+		</element>
+		<element kind="staticText" x="0" y="148" width="762" height="18" fontSize="12.0" bold="true">
+			<text><![CDATA[Indicateurs par module]]></text>
+		</element>
+	</title>
+	<columnHeader height="22">
+		<element kind="rectangle" x="0" y="0" width="762" height="20" backcolor="#EEF3EF">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="staticText" x="6" y="0" width="226" height="20" style="th" vTextAlign="Middle"><text><![CDATA[MODULE]]></text></element>
+		<element kind="staticText" x="232" y="0" width="62" height="20" style="th" hTextAlign="Right" vTextAlign="Middle"><text><![CDATA[DÉMARRÉ]]></text></element>
+		<element kind="staticText" x="294" y="0" width="62" height="20" style="th" hTextAlign="Right" vTextAlign="Middle"><text><![CDATA[TERMINÉ]]></text></element>
+		<element kind="staticText" x="356" y="0" width="70" height="20" style="th" hTextAlign="Right" vTextAlign="Middle"><text><![CDATA[COMPLÉTION]]></text></element>
+		<element kind="staticText" x="426" y="0" width="66" height="20" style="th" hTextAlign="Right" vTextAlign="Middle"><text><![CDATA[SCORE MOY.]]></text></element>
+		<element kind="staticText" x="492" y="0" width="92" height="20" style="th" hTextAlign="Right" vTextAlign="Middle"><text><![CDATA[TEMPS MOY./MÉD.]]></text></element>
+		<element kind="staticText" x="584" y="0" width="60" height="20" style="th" hTextAlign="Right" vTextAlign="Middle"><text><![CDATA[ABANDONS]]></text></element>
+		<element kind="staticText" x="644" y="0" width="60" height="20" style="th" hTextAlign="Right" vTextAlign="Middle"><text><![CDATA[HORS LIGNE]]></text></element>
+		<element kind="staticText" x="704" y="0" width="52" height="20" style="th" hTextAlign="Right" vTextAlign="Middle"><text><![CDATA[AVIS]]></text></element>
+	</columnHeader>
+	<detail>
+		<band height="22">
+			<element kind="textField" x="6" y="0" width="226" height="21" bold="true" vTextAlign="Middle" textAdjust="ScaleFont"><expression><![CDATA[$F{title}]]></expression></element>
+			<element kind="textField" x="232" y="0" width="62" height="21" hTextAlign="Right" vTextAlign="Middle"><expression><![CDATA[$F{started}]]></expression></element>
+			<element kind="textField" x="294" y="0" width="62" height="21" hTextAlign="Right" vTextAlign="Middle"><expression><![CDATA[$F{completed}]]></expression></element>
+			<element kind="textField" x="356" y="0" width="70" height="21" hTextAlign="Right" vTextAlign="Middle" bold="true"><expression><![CDATA[$F{rate}]]></expression></element>
+			<element kind="textField" x="426" y="0" width="66" height="21" hTextAlign="Right" vTextAlign="Middle"><expression><![CDATA[$F{score}]]></expression></element>
+			<element kind="textField" x="492" y="0" width="92" height="21" hTextAlign="Right" vTextAlign="Middle"><expression><![CDATA[$F{time}]]></expression></element>
+			<element kind="textField" x="584" y="0" width="60" height="21" hTextAlign="Right" vTextAlign="Middle"><expression><![CDATA[$F{dropouts}]]></expression></element>
+			<element kind="textField" x="644" y="0" width="60" height="21" hTextAlign="Right" vTextAlign="Middle"><expression><![CDATA[$F{offline}]]></expression></element>
+			<element kind="textField" x="704" y="0" width="52" height="21" hTextAlign="Right" vTextAlign="Middle"><expression><![CDATA[$F{rating}]]></expression></element>
+			<element kind="line" x="0" y="21" width="762" height="1"><pen lineWidth="0.5" lineColor="#DFE4DF"/></element>
+		</band>
+	</detail>
+	<pageFooter height="20">
+		<element kind="staticText" x="0" y="6" width="600" height="12" forecolor="#8A958F" fontSize="7.0">
+			<text><![CDATA[Données pseudonymisées. Abandon = module commencé, non terminé, sans activité depuis 14 jours. Temps = temps actif mesuré sur l'appareil.]]></text>
+		</element>
+		<element kind="textField" x="662" y="6" width="100" height="12" forecolor="#8A958F" fontSize="7.0" hTextAlign="Right">
+			<expression><![CDATA["Page " + $V{PAGE_NUMBER}]]></expression>
+		</element>
+	</pageFooter>
+</jasperReport>

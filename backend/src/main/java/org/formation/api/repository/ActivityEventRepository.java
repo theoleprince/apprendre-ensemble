@@ -1,0 +1,11 @@
+package org.formation.api.repository;
+
+import org.formation.api.domain.ActivityEvent;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.time.Instant;
+import java.util.List;
+
+public interface ActivityEventRepository extends JpaRepository<ActivityEvent, Long> {
+    List<ActivityEvent> findByAtAfter(Instant since);
+}

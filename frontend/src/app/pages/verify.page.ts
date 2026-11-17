@@ -1,0 +1,50 @@
+import { DatePipe } from '@angular/common';
+import { Component, OnInit, inject, input, signal } from '@angular/core';
+import { errorMessage } from '../core/auth.interceptor';
+import { LearningService } from '../core/learning.service';
+import { Certificate, LEVELS } from '../core/models';
+import { IconComponent } from '../shared/icon.component';
+
+/** Page publique : un recruteur ou une autorite verifie l'authenticite d'un certificat (QR code, LinkedIn). */
+@Component({
+  selector: 'app-verify',
+  imports: [DatePipe, IconComponent],
+  template: `
+    <section class="card narrow center" style="max-width:520px">
+      <div class="brand" style="justify-content:center;margin-bottom:1rem"><span class="brand-mark">🌱</span> Apprendre Ensemble</div>
+      @if (cert(); as c) {
+        <div style="font-size:3.5rem">{{ icon(c.level) }}</div>
+        <p class="pill" style="margin:0 auto"><app-icon name="check-circle" [size]="16" /> Certificat authentique</p>
+        <h1 style="margin-top:1rem">{{ c.learnerName }}</h1>
+        <p>a obtenu la <strong>{{ c.levelLabel.toLowerCase() }}</strong> du module</p>
+        <h2>« {{ c.courseTitle }} »</h2>
+        <p class="muted">le {{ c.issuedAt | date: 'dd/MM/yyyy' }} @if (c.level !== 'ATTESTATION') {· score {{ c.scorePercent }} %}</p>
+        <p class="small muted">Code <span class="kbd">{{ c.code }}</span></p>
+        <a class="btn primary" [href]="'/api/public/certificates/' + c.code + '/pdf'" target="_blank" rel="noopener"><app-icon name="download" /> Télécharger le PDF</a>
+      } @else if (error()) {
+        <div style="font-size:3rem">⚠️</div>
+        <p class="error">{{ error() }}</p>
+      } @else {
+        <div class="skeleton"></div>
+      }
+    </section>
+  `,
+})
+export class VerifyPage implements OnInit {
+  private learning = inject(LearningService);
+  readonly code = input.required<string>();
+  cert = signal<Certificate | null>(null);
+  error = signal('');
+
+  async ngOnInit(): Promise<void> {
+    try {
+      this.cert.set(await this.learning.verifyCertificate(this.code()));
+    } catch (e) {
+      this.error.set(errorMessage(e));
+    }
+  }
+
+  icon(l: string): string {
+    return LEVELS.find((x) => x.key === l)?.icon ?? '🏅';
+  }
+}

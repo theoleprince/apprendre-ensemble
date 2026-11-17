@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Releve de formation individuel (A4 portrait) : modules suivis, scores et certifications. -->
+<jasperReport name="transcript" pageWidth="595" pageHeight="842" columnWidth="515" leftMargin="40" rightMargin="40" topMargin="36" bottomMargin="36">
+	<style name="base" default="true" fontName="DejaVu Sans" fontSize="9.5" forecolor="#1F2A24"/>
+	<parameter name="PLATFORM_NAME" class="java.lang.String"/>
+	<parameter name="LEARNER_NAME" class="java.lang.String"/>
+	<parameter name="PROFILE" class="java.lang.String"/>
+	<parameter name="GENERATED_AT" class="java.lang.String"/>
+	<parameter name="SUMMARY" class="java.lang.String"/>
+	<field name="course" class="java.lang.String"/>
+	<field name="type" class="java.lang.String"/>
+	<field name="progress" class="java.lang.String"/>
+	<field name="ratio" class="java.lang.Double"/>
+	<field name="score" class="java.lang.String"/>
+	<field name="levels" class="java.lang.String"/>
+	<title height="150">
+		<element kind="rectangle" x="0" y="0" width="515" height="70" backcolor="#2F7D4F">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="rectangle" x="0" y="70" width="515" height="4" backcolor="#C9A227">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="textField" x="16" y="10" width="483" height="16" forecolor="#E5F2E9" fontSize="9.0" bold="true">
+			<expression><![CDATA[$P{PLATFORM_NAME}.toUpperCase()]]></expression>
+		</element>
+		<element kind="staticText" x="16" y="28" width="483" height="30" forecolor="#FFFFFF" fontName="DejaVu Serif" fontSize="22.0" bold="true">
+			<text><![CDATA[Relevé de formation]]></text>
+		</element>
+		<element kind="textField" x="0" y="86" width="515" height="22" fontSize="15.0" bold="true">
+			<expression><![CDATA[$P{LEARNER_NAME}]]></expression>
+		</element>
+		<element kind="textField" x="0" y="108" width="515" height="14" forecolor="#5D6B63">
+			<expression><![CDATA[$P{PROFILE}]]></expression>
+		</element>
+		<element kind="textField" x="0" y="124" width="515" height="16" forecolor="#23603C" bold="true">
+			<expression><![CDATA[$P{SUMMARY}]]></expression>
+		</element>
+	</title>
+	<columnHeader height="24">
+		<element kind="rectangle" x="0" y="0" width="515" height="22" backcolor="#EEF3EF">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="staticText" x="8" y="0" width="207" height="22" fontSize="8.5" bold="true" vTextAlign="Middle">
+			<text><![CDATA[MODULE]]></text>
+		</element>
+		<element kind="staticText" x="215" y="0" width="110" height="22" fontSize="8.5" bold="true" vTextAlign="Middle">
+			<text><![CDATA[PROGRESSION]]></text>
+		</element>
+		<element kind="staticText" x="325" y="0" width="60" height="22" fontSize="8.5" bold="true" hTextAlign="Right" vTextAlign="Middle">
+			<text><![CDATA[SCORE]]></text>
+		</element>
+		<element kind="staticText" x="395" y="0" width="120" height="22" fontSize="8.5" bold="true" vTextAlign="Middle">
+			<text><![CDATA[CERTIFICATIONS]]></text>
+		</element>
+	</columnHeader>
+	<detail>
+		<band height="38">
+			<element kind="textField" x="8" y="4" width="203" height="16" bold="true" textAdjust="ScaleFont">
+				<expression><![CDATA[$F{course}]]></expression>
+			</element>
+			<element kind="textField" x="8" y="20" width="203" height="13" forecolor="#5D6B63" fontSize="8.0">
+				<expression><![CDATA[$F{type}]]></expression>
+			</element>
+			<element kind="rectangle" x="215" y="9" width="100" height="7" backcolor="#E8ECE8" radius="3">
+				<pen lineWidth="0.0"/>
+			</element>
+			<element kind="rectangle" x="215" y="9" width="100" height="7" backcolor="#2F7D4F" radius="3">
+				<printWhenExpression><![CDATA[$F{ratio} >= 0.999]]></printWhenExpression>
+				<pen lineWidth="0.0"/>
+			</element>
+			<element kind="rectangle" x="215" y="9" width="50" height="7" backcolor="#2F7D4F" radius="3">
+				<printWhenExpression><![CDATA[$F{ratio} >= 0.5 && $F{ratio} < 0.999]]></printWhenExpression>
+				<pen lineWidth="0.0"/>
+			</element>
+			<element kind="rectangle" x="215" y="9" width="20" height="7" backcolor="#2F7D4F" radius="3">
+				<printWhenExpression><![CDATA[$F{ratio} > 0 && $F{ratio} < 0.5]]></printWhenExpression>
+				<pen lineWidth="0.0"/>
+			</element>
+			<element kind="textField" x="215" y="19" width="110" height="13" forecolor="#5D6B63" fontSize="8.0">
+				<expression><![CDATA[$F{progress}]]></expression>
+			</element>
+			<element kind="textField" x="325" y="4" width="60" height="16" bold="true" hTextAlign="Right">
+				<expression><![CDATA[$F{score}]]></expression>
+			</element>
+			<element kind="textField" x="395" y="4" width="120" height="30" fontSize="8.0" textAdjust="StretchHeight">
+				<expression><![CDATA[$F{levels}]]></expression>
+			</element>
+			<element kind="line" positionType="Float" x="0" y="37" width="515" height="1">
+				<pen lineWidth="0.5" lineColor="#DFE4DF"/>
+			</element>
+		</band>
+	</detail>
+	<pageFooter height="24">
+		<element kind="textField" x="0" y="8" width="400" height="14" forecolor="#8A958F" fontSize="7.5">
+			<expression><![CDATA["Généré le " + $P{GENERATED_AT} + " · Les certificats sont vérifiables en ligne par leur code."]]></expression>
+		</element>
+		<element kind="textField" x="400" y="8" width="90" height="14" forecolor="#8A958F" fontSize="7.5" hTextAlign="Right">
+			<expression><![CDATA["Page " + $V{PAGE_NUMBER} + " / "]]></expression>
+		</element>
+		<element kind="textField" x="490" y="8" width="25" height="14" forecolor="#8A958F" fontSize="7.5" evaluationTime="Report">
+			<expression><![CDATA[$V{PAGE_NUMBER}]]></expression>
+		</element>
+	</pageFooter>
+</jasperReport>
