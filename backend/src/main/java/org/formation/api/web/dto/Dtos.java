@@ -70,7 +70,11 @@ public final class Dtos {
 
     public record LessonDto(Long id, int position, String title, MediaType mediaType, String mediaUrl,
                             long mediaSizeBytes, String subtitlesUrl, String content, String practiceTask,
-                            int durationMinutes) {
+                            int durationMinutes, List<CheckQuestion> checks) {
+    }
+
+    /** Test de comprehension apres une lecon : corrige sur l'appareil (fonctionne hors ligne). */
+    public record CheckQuestion(Long id, String question, List<String> options, int correctIndex, String explanation) {
     }
 
     /** Question envoyee au client : sans la bonne reponse. */
@@ -159,7 +163,7 @@ public final class Dtos {
     }
 
     public record QuestionInput(@NotBlank String question, @NotNull @Size(min = 2) List<String> options,
-                                @Min(0) int correctIndex, String explanation) {
+                                @Min(0) int correctIndex, String explanation, Integer lessonPosition) {
     }
 
     public record CourseInput(
@@ -178,12 +182,14 @@ public final class Dtos {
             boolean published,
             @NotNull List<@Valid LessonInput> lessons,
             @NotNull List<@Valid QuestionInput> questions,
-            Long domainId) {
+            Long domainId,
+            @Min(0) int price) {
     }
 
     public record AdminCourse(Long id, String title, String icon, CourseType type, String countryCode,
                               String languageCode, Set<Role> targetRoles, Set<String> allowedCohorts,
-                              boolean published, int lessonCount, int questionCount, int contentVersion, String domainName) {
+                              boolean published, int lessonCount, int questionCount, int contentVersion, String domainName,
+                              int price) {
     }
 
     public record MediaUpload(String url, long sizeBytes, String contentType) {
@@ -316,12 +322,12 @@ public final class Dtos {
     // ---------- Administration ----------
     public record ProgramInput(@NotBlank String title, String description, String icon, String durationLabel, String countryCode,
                                @NotEmpty Set<Role> targetRoles, @NotNull List<Long> courseIds, @NotNull CertificateLevel requiredLevel,
-                               boolean published) {
+                               boolean published, @Min(0) int price) {
     }
 
     public record ProgramAdmin(Long id, String title, String description, String icon, String durationLabel, String countryCode,
                                Set<Role> targetRoles, List<Long> courseIds, List<String> courseTitles,
-                               CertificateLevel requiredLevel, boolean published, long classroomCount) {
+                               CertificateLevel requiredLevel, boolean published, long classroomCount, int price) {
     }
 
     public record ClassroomInput(@NotBlank String name, @NotNull Long programId, Long facilitatorId,
@@ -344,5 +350,55 @@ public final class Dtos {
     }
 
     public record UserBrief(Long id, String fullName, Role role, String region, String schoolName, String cohort) {
+    }
+
+    // ---------- Catalogue public, inscriptions, progression ----------
+    public record CatalogCourse(Long id, String title, String description, String icon, Long domainId, String domainName,
+                                CourseType type, int lessonCount, int totalMinutes, int questionCount, int price,
+                                Set<Role> targetRoles, boolean hasVideo, boolean hasAudio, long learners) {
+    }
+
+    public record CatalogProgram(Long id, String title, String description, String icon, String durationLabel, int courseCount,
+                                 int totalMinutes, int price, Set<Role> targetRoles, CertificateLevel requiredLevel,
+                                 List<String> domains) {
+    }
+
+    public record Catalog(List<CatalogProgram> programs, List<CatalogCourse> courses, List<DomainDto> domains) {
+    }
+
+    public record SyllabusItem(Long id, int position, String title, MediaType mediaType, int minutes, int checkCount,
+                               boolean practice) {
+    }
+
+    public record ProgramRef(Long id, String title) {
+    }
+
+    public record CourseDetail(CatalogCourse course, List<SyllabusItem> syllabus, int passScore, int masteryScore,
+                               boolean expertiseEnabled, List<ProgramRef> programs) {
+    }
+
+    public record ProgramPublicDetail(CatalogProgram program, List<CatalogCourse> courses) {
+    }
+
+    public record EnrollRequest(Long courseId, Long programId, @NotNull org.formation.api.domain.Enrollment.Method method,
+                                String phone, String code) {
+    }
+
+    public record EnrollResult(Long courseId, Long programId, int amount, String paymentRef, String message) {
+    }
+
+    /** Un cours suivi : tout ce qu'il faut pour savoir ou on en est et quelle est la prochaine etape. */
+    public record MyCourse(Long courseId, String title, String icon, String domainName, int lessonCount, int doneLessons,
+                           int questionCount, int bestScore, boolean examPassed, int passScore, List<CertificateLevel> levels,
+                           Long programId, String programTitle, String lockReason, Instant enrolledAt, int contentVersion,
+                           int totalMinutes) {
+    }
+
+    public record MyProgram(Long programId, String title, String icon, String durationLabel, List<Long> courseIds,
+                            int doneCourses, int percent, CertificateLevel requiredLevel, ProgramCertDto certificate,
+                            ClassroomBrief classroom) {
+    }
+
+    public record MyLearning(List<MyProgram> programs, List<MyCourse> courses) {
     }
 }

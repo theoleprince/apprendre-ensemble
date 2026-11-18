@@ -50,8 +50,9 @@ public class AdminService {
                         l.getMediaSizeBytes(), l.getSubtitlesUrl(), l.getContent(), l.getPracticeTask(),
                         l.getDurationMinutes())).toList(),
                 c.getQuestions().stream().map(q -> new QuestionInput(q.getQuestion(), List.copyOf(q.getOptions()),
-                        q.getCorrectIndex(), q.getExplanation())).toList(),
-                c.getDomain() == null ? null : c.getDomain().getId());
+                        q.getCorrectIndex(), q.getExplanation(),
+                        q.getLesson() == null ? null : q.getLesson().getPosition())).toList(),
+                c.getDomain() == null ? null : c.getDomain().getId(), c.getPrice());
     }
 
     public AdminCourse create(CourseInput in) {
@@ -113,6 +114,7 @@ public class AdminService {
         c.setExpertiseEnabled(in.expertiseEnabled());
         c.setPublished(in.published());
         c.setDomain(in.domainId() == null ? null : domains.findById(in.domainId()).orElse(null));
+        c.setPrice(Math.max(0, in.price()));
         c.setUpdatedAt(Instant.now());
 
         List<Lesson> ls = c.getLessons();
@@ -155,6 +157,8 @@ public class AdminService {
             q.getOptions().addAll(qi.options());
             q.setCorrectIndex(qi.correctIndex());
             q.setExplanation(blankToNull(qi.explanation()));
+            Integer lp = qi.lessonPosition();
+            q.setLesson(lp == null || lp < 1 || lp > ls.size() ? null : ls.get(lp - 1));
         }
     }
 
@@ -169,7 +173,7 @@ public class AdminService {
     private AdminCourse toAdmin(Course c) {
         return new AdminCourse(c.getId(), c.getTitle(), c.getIcon(), c.getType(), c.getCountryCode(), c.getLanguageCode(),
                 c.getTargetRoles(), c.getAllowedCohorts(), c.isPublished(), c.getLessons().size(), c.getQuestions().size(),
-                c.getContentVersion(), c.getDomain() == null ? null : c.getDomain().getName());
+                c.getContentVersion(), c.getDomain() == null ? null : c.getDomain().getName(), c.getPrice());
     }
 
     // ---------- Apprenants et groupes RCT ----------

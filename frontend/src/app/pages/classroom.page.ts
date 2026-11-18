@@ -27,7 +27,7 @@ import { AvatarComponent } from '../shared/visuals';
           <p class="small" style="margin-top:.4rem">Semaine {{ c.week }} sur {{ c.totalWeeks }}</p>
         }
         <div class="row" style="margin-top:.6rem">
-          <a class="btn sun" [routerLink]="['/parcours', c.programId]"><app-icon name="book-open" /> Le parcours</a>
+          <a class="btn sun" [routerLink]="['/formations', c.programId]"><app-icon name="book-open" /> La formation</a>
           @if (c.meetingUrl && c.status !== 'CLOSED') { <a class="btn ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" [href]="c.meetingUrl" target="_blank" rel="noopener"><app-icon name="video" /> Visio de la classe</a> }
         </div>
       </section>
@@ -121,7 +121,7 @@ export class ClassroomPage implements OnInit {
   }
 
   backLink(): unknown[] {
-    return this.auth.isStaff() ? ['/admin/classes'] : ['/parcours', this.lb()?.classroom.programId];
+    return this.auth.isStaff() ? ['/admin/classes'] : ['/formations', this.lb()?.classroom.programId];
   }
 
   weeks(n: number): number[] {

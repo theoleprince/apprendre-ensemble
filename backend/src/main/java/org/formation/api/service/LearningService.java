@@ -30,12 +30,13 @@ public class LearningService {
     private final ProgramService programs;
     private final ClassroomLocks locks;
     private final ProgramCertificateRepository programCerts;
+    private final EnrollmentService enrollments;
 
     public LearningService(CourseRepository courses, LessonRepository lessons, LessonProgressRepository progress,
                            QuizAttemptRepository attempts, CertificateRepository certificates,
                            CourseFeedbackRepository feedbacks, ActivityEventRepository activity, AppUserRepository users,
                            CertificationService certification, AccessPolicy policy, ProgramService programs,
-                           ClassroomLocks locks, ProgramCertificateRepository programCerts) {
+                           ClassroomLocks locks, ProgramCertificateRepository programCerts, EnrollmentService enrollments) {
         this.courses = courses;
         this.lessons = lessons;
         this.progress = progress;
@@ -49,6 +50,7 @@ public class LearningService {
         this.programs = programs;
         this.locks = locks;
         this.programCerts = programCerts;
+        this.enrollments = enrollments;
     }
 
     @Transactional(readOnly = true)
@@ -88,20 +90,32 @@ public class LearningService {
 
     @Transactional(readOnly = true)
     public CoursePackage coursePackage(AppUser user, Long courseId) {
-        Course c = accessibleCourse(user, courseId);
-        locks.lockedUntil(user, c).ifPresent(d -> {
-            throw new ResponseStatusException(HttpStatus.LOCKED, "Ce module ouvrira le "
-                    + d.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + " pour votre classe");
+        Course c = enrolledCourse(user, courseId);
+        enrollments.lockReason(user, c).ifPresent(r -> {
+            throw new ResponseStatusException(HttpStatus.LOCKED, r);
         });
         return new CoursePackage(c.getId(), c.getTitle(), c.getDescription(), c.getIcon(), c.getType(),
                 c.getPassScore(), c.getMasteryScore(), c.isExpertiseEnabled(), c.getContentVersion(), c.getUpdatedAt(),
-                c.getLessons().stream().map(LearningService::lessonDto).toList(),
+                c.getLessons().stream().map(l -> lessonDto(l, c.getQuestions())).toList(),
                 c.getQuestions().stream().map(q -> new QuestionDto(q.getId(), q.getQuestion(), List.copyOf(q.getOptions()))).toList());
     }
 
-    static LessonDto lessonDto(Lesson l) {
+    static LessonDto lessonDto(Lesson l, List<QuizQuestion> questions) {
+        List<CheckQuestion> checks = questions.stream()
+                .filter(q -> q.getLesson() != null && q.getLesson().getId().equals(l.getId()))
+                .map(q -> new CheckQuestion(q.getId(), q.getQuestion(), List.copyOf(q.getOptions()), q.getCorrectIndex(), q.getExplanation()))
+                .toList();
         return new LessonDto(l.getId(), l.getPosition(), l.getTitle(), l.getMediaType(), l.getMediaUrl(),
-                l.getMediaSizeBytes(), l.getSubtitlesUrl(), l.getContent(), l.getPracticeTask(), l.getDurationMinutes());
+                l.getMediaSizeBytes(), l.getSubtitlesUrl(), l.getContent(), l.getPracticeTask(), l.getDurationMinutes(), checks);
+    }
+
+    /** Cours accessible ET suivi : il faut etre inscrit pour acceder au contenu. */
+    public Course enrolledCourse(AppUser user, Long courseId) {
+        Course c = accessibleCourse(user, courseId);
+        if (!enrollments.isEnrolled(user, c)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Inscrivez-vous à ce cours pour le suivre");
+        }
+        return c;
     }
 
     /**
@@ -114,7 +128,8 @@ public class LearningService {
         Set<Course> touched = new HashSet<>();
         for (ProgressItem item : items) {
             Optional<Lesson> lesson = lessons.findById(item.lessonId());
-            if (lesson.isEmpty() || !policy.canAccess(user, lesson.get().getCourse())) {
+            if (lesson.isEmpty() || !policy.canAccess(user, lesson.get().getCourse())
+                    || !enrollments.isEnrolled(user, lesson.get().getCourse())) {
                 continue;
             }
             Instant completedAt = item.completedAt().isAfter(Instant.now()) ? Instant.now() : item.completedAt();
@@ -155,10 +170,13 @@ public class LearningService {
     }
 
     public QuizResult submitQuiz(AppUser user, Long courseId, List<Integer> answers) {
-        Course c = accessibleCourse(user, courseId);
+        Course c = enrolledCourse(user, courseId);
         List<QuizQuestion> qs = c.getQuestions();
         if (qs.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ce module n'a pas d'evaluation");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ce cours n'a pas d'évaluation");
+        }
+        if (progress.countByUserIdAndLessonCourseId(user.getId(), c.getId()) < c.getLessons().size()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Terminez toutes les leçons avant l'évaluation finale");
         }
         if (answers.size() != qs.size()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nombre de reponses incorrect");

@@ -21,7 +21,7 @@ import { SpeakButtonComponent } from '../shared/speak-button.component';
         </div>
         <div class="stack section">
           @for (c of r.recommended; track c.id; let i = $index) {
-            <a class="lesson-item" [routerLink]="['/modules', c.id, 'reprendre']">
+            <a class="lesson-item" [routerLink]="['/cours', c.id]">
               <span class="course-icon"><app-icon [name]="c.icon || 'book-open'" [size]="26" /></span>
               <span class="grow"><span class="title">{{ c.title }}</span><br /><span class="small muted">{{ c.lessonCount }} leçons · {{ c.totalMinutes }} min</span></span>
               @if (i === 0) { <span class="tag sun">Conseillé</span> }
@@ -29,7 +29,7 @@ import { SpeakButtonComponent } from '../shared/speak-button.component';
           }
         </div>
         @if (result()!.recommended.length) {
-          <a class="btn primary block lg" [routerLink]="['/modules', result()!.recommended[0].id, 'reprendre']"><app-icon name="play" /> Commencer « {{ result()!.recommended[0].title }} »</a>
+          <a class="btn primary block lg" [routerLink]="['/cours', result()!.recommended[0].id]"><app-icon name="arrow" /> Découvrir « {{ result()!.recommended[0].title }} »</a>
         }
         <button class="ghost block" style="margin-top:.5rem" (click)="finish()">Plus tard, aller à mon accueil</button>
       } @else if (questions().length) {
@@ -109,6 +109,6 @@ export class PlacementPage implements OnInit {
   }
 
   finish(): void {
-    void this.router.navigateByUrl('/accueil');
+    void this.router.navigateByUrl('/catalogue');
   }
 }

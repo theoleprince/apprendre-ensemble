@@ -4,6 +4,7 @@ import org.formation.api.domain.*;
 import org.formation.api.repository.AppUserRepository;
 import org.formation.api.repository.CourseRepository;
 import org.formation.api.service.AdminService;
+import org.formation.api.service.EnrollmentService;
 import org.formation.api.service.LearningService;
 import org.formation.api.web.dto.Dtos.*;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,7 @@ class CoreRulesTest {
     @Autowired AdminService admin;
     @Autowired AppUserRepository users;
     @Autowired CourseRepository courses;
+    @Autowired EnrollmentService enrollments;
 
     private AppUser teacher() {
         return users.findByEmailIgnoreCase("enseignant@demo.local").orElseThrow();
@@ -44,7 +46,7 @@ class CoreRulesTest {
     @Test
     void offlineSyncIsIdempotentAndResolvesConflicts() {
         AppUser u = teacher();
-        Lesson l = emotions().getLessons().getFirst();
+        Lesson l = emotions().getLessons().getLast();
         Instant early = Instant.parse("2026-11-01T08:00:00Z");
         Instant late = Instant.parse("2026-11-05T08:00:00Z");
 
@@ -82,6 +84,38 @@ class CoreRulesTest {
 
         // aucun doublon en cas de nouvelle reussite
         assertThat(learning.submitQuiz(u, c.getId(), List.of(1, 2, 1, 1)).newCertificates()).isEmpty();
+    }
+
+    @Test
+    void learnerMustEnrollAndFollowLessonsBeforeFinalEvaluation() {
+        AppUser u = users.findByEmailIgnoreCase("jeune@demo.local").orElseThrow();
+        Course c = emotions();
+        // pas inscrit : pas d'acces au contenu
+        assertThatThrownBy(() -> learning.coursePackage(u, c.getId())).isInstanceOf(ResponseStatusException.class);
+
+        EnrollResult r = enrollments.enroll(u, new EnrollRequest(c.getId(), null, Enrollment.Method.GRATUIT, null, null));
+        assertThat(r.courseId()).isEqualTo(c.getId());
+        CoursePackage pkg = learning.coursePackage(u, c.getId());
+        // apres chaque notion, un test de comprehension (corrige sur l'appareil)
+        assertThat(pkg.lessons()).allMatch(l -> !l.checks().isEmpty());
+
+        // l'evaluation finale reste fermee tant que toutes les lecons ne sont pas terminees
+        assertThatThrownBy(() -> learning.submitQuiz(u, c.getId(), List.of(1, 2, 1, 1)))
+                .isInstanceOf(ResponseStatusException.class).hasMessageContaining("Terminez");
+    }
+
+    @Test
+    void paidCourseNeedsPaymentOrLicenceCode() {
+        AppUser u = users.findByEmailIgnoreCase("jeune@demo.local").orElseThrow();
+        Course paid = courses.findAllByOrderByIdAsc().stream().filter(c -> c.getPrice() > 0).findFirst().orElseThrow();
+        assertThatThrownBy(() -> enrollments.enroll(u, new EnrollRequest(paid.getId(), null, Enrollment.Method.GRATUIT, null, null)))
+                .isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> enrollments.enroll(u, new EnrollRequest(paid.getId(), null, Enrollment.Method.CODE, null, "FAUX")))
+                .isInstanceOf(ResponseStatusException.class);
+        EnrollResult ok = enrollments.enroll(u, new EnrollRequest(paid.getId(), null, Enrollment.Method.MOBILE_MONEY, "+229 97 00 00 00", null));
+        assertThat(ok.amount()).isEqualTo(paid.getPrice());
+        assertThat(ok.paymentRef()).startsWith("SIM-MM-");
+        assertThat(enrollments.isEnrolled(u, paid)).isTrue();
     }
 
     @Test

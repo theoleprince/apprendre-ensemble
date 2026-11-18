@@ -1,10 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { errorMessage } from '../core/auth.interceptor';
 import { AuthService } from '../core/auth.service';
+import { safeRedirect } from '../core/guards';
 import { ROLE_ICONS, ROLE_LABELS, Referentiel, Role } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
 
@@ -77,6 +78,7 @@ export class RegisterPage implements OnInit {
   labels = ROLE_LABELS;
   icons = ROLE_ICONS;
   step = signal(1);
+  private route = inject(ActivatedRoute);
   ref = signal<Referentiel | null>(null);
   loading = signal(false);
   error = signal('');
@@ -95,7 +97,7 @@ export class RegisterPage implements OnInit {
     this.error.set('');
     try {
       await this.auth.register(this.form);
-      await this.router.navigateByUrl('/bienvenue');
+      await this.router.navigateByUrl(safeRedirect(this.route.snapshot.queryParamMap.get('redirect'), '/catalogue'));
     } catch (e) {
       this.error.set(errorMessage(e));
     } finally {

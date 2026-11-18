@@ -30,6 +30,7 @@ const ALL_ROLES: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_EC
             <label>Titre <input name="title" [(ngModel)]="c.title" required /></label>
           </div>
           <label>Description <textarea name="desc" rows="2" [(ngModel)]="c.description"></textarea></label>
+          <label>Prix d'inscription (FCFA, 0 = gratuit) <input type="number" name="price" min="0" step="500" [(ngModel)]="c.price" /></label>
           <label>Domaine de compétences <select name="dom" [(ngModel)]="c.domainId"><option [ngValue]="null">—</option>@for (d of domains(); track d.id) {<option [ngValue]="d.id">{{ d.name }}</option>}</select></label>
           <div class="field-row">
             <label>Parcours <select name="type" [(ngModel)]="c.type"><option value="THEORIQUE">Théorique (LMS)</option><option value="PRATIQUE">Pratique (LXP)</option></select></label>
@@ -90,12 +91,18 @@ const ALL_ROLES: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_EC
         }
         <button type="button" (click)="addLesson()"><app-icon name="plus" /> Ajouter une leçon</button>
 
-        <h2 class="section">Évaluation</h2>
+        <h2 class="section">Quiz et évaluation finale</h2>
+        <p class="small muted">Chaque question peut servir de quiz juste après une leçon (l'apprenant doit la réussir pour continuer). Toutes les questions composent l'évaluation finale.</p>
         @for (q of c.questions; track $index; let i = $index) {
           <section class="card" style="margin-bottom:1rem">
             <div class="section-head"><strong>Question {{ i + 1 }}</strong>
               <button type="button" class="ghost icon-btn danger" (click)="c.questions.splice(i, 1)"><app-icon name="trash" [size]="18" /></button></div>
             <label>Énoncé <input [name]="'q' + i" [(ngModel)]="q.question" required /></label>
+            <label>Quiz après la leçon
+              <select [name]="'ql' + i" [(ngModel)]="q.lessonPosition">
+                <option [ngValue]="null">Aucune (évaluation finale seulement)</option>
+                @for (l of c.lessons; track $index; let k = $index) { <option [ngValue]="k + 1">Leçon {{ k + 1 }} · {{ l.title || 'sans titre' }}</option> }
+              </select></label>
             @for (o of q.options; track $index; let j = $index) {
               <div class="row" style="flex-wrap:nowrap;margin-bottom:.4rem">
                 <input type="radio" [name]="'qc' + i" [value]="j" [(ngModel)]="q.correctIndex" title="Bonne réponse" />
@@ -140,7 +147,7 @@ export class CourseEditorPage implements OnInit {
   regions = '';
   c: CourseInput = {
     title: '', description: '', icon: 'book-open', type: 'THEORIQUE', countryCode: null, languageCode: 'fr', targetRoles: ['ENSEIGNANT'],
-    allowedCohorts: [], allowedRegions: [], passScore: 70, masteryScore: 85, expertiseEnabled: true, published: false, lessons: [], questions: [], domainId: null,
+    allowedCohorts: [], allowedRegions: [], passScore: 70, masteryScore: 85, expertiseEnabled: true, published: false, lessons: [], questions: [], domainId: null, price: 0,
   };
 
   async ngOnInit(): Promise<void> {
@@ -167,7 +174,7 @@ export class CourseEditorPage implements OnInit {
   }
 
   addQuestion(): void {
-    this.c.questions.push({ question: '', options: ['', ''], correctIndex: 0, explanation: null });
+    this.c.questions.push({ question: '', options: ['', ''], correctIndex: 0, explanation: null, lessonPosition: null });
   }
 
   move(i: number, d: number): void {

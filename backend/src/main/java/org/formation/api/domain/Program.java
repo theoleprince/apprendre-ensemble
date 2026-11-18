@@ -48,5 +48,8 @@ public class Program {
     @Enumerated(EnumType.STRING)
     private CertificateLevel requiredLevel = CertificateLevel.ATTESTATION;
 
+    /** Prix d'inscription a la formation complete (FCFA). 0 = gratuite. */
+    private int price;
+
     private boolean published = true;
 }

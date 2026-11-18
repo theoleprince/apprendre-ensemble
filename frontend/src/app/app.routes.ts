@@ -1,21 +1,30 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard, mentorGuard, staffGuard } from './core/guards';
+import { authGuard, guestGuard, landingGuard, mentorGuard, staffGuard } from './core/guards';
 
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'accueil' },
+  // ---- public : on decouvre et on choisit sans compte ----
+  { path: '', pathMatch: 'full', canActivate: [landingGuard], loadComponent: () => import('./pages/landing.page').then((m) => m.LandingPage) },
+  { path: 'catalogue', loadComponent: () => import('./pages/catalog.page').then((m) => m.CatalogPage) },
+  { path: 'cours/:id', loadComponent: () => import('./pages/course.page').then((m) => m.CoursePage) },
+  { path: 'formations/:id', loadComponent: () => import('./pages/formation.page').then((m) => m.FormationPage) },
+  // ---- inscription puis apprentissage lineaire ----
+  { path: 'paiement/:kind/:id', canActivate: [authGuard], loadComponent: () => import('./pages/checkout.page').then((m) => m.CheckoutPage) },
+  { path: 'apprendre/:id', canActivate: [authGuard], loadComponent: () => import('./pages/player.page').then((m) => m.PlayerPage) },
+  { path: 'apprendre/:id/:step', canActivate: [authGuard], loadComponent: () => import('./pages/player.page').then((m) => m.PlayerPage) },
+  // anciennes adresses
+  { path: 'modules', redirectTo: 'catalogue' },
+  { path: 'modules/:id', redirectTo: 'cours/:id' },
+  { path: 'modules/:id/reprendre', redirectTo: 'apprendre/:id' },
+  { path: 'modules/:id/lecon/:lessonId', redirectTo: 'apprendre/:id' },
+  { path: 'modules/:id/evaluation', redirectTo: 'apprendre/:id/evaluation' },
+  { path: 'parcours', redirectTo: 'accueil' },
+  { path: 'parcours/:id', redirectTo: 'formations/:id' },
   { path: 'login', canActivate: [guestGuard], loadComponent: () => import('./pages/login.page').then((m) => m.LoginPage) },
   { path: 'inscription', canActivate: [guestGuard], loadComponent: () => import('./pages/register.page').then((m) => m.RegisterPage) },
   { path: 'verifier/:code', loadComponent: () => import('./pages/verify.page').then((m) => m.VerifyPage) },
   { path: 'bienvenue', canActivate: [authGuard], loadComponent: () => import('./pages/placement.page').then((m) => m.PlacementPage) },
   { path: 'accueil', canActivate: [authGuard], loadComponent: () => import('./pages/home.page').then((m) => m.HomePage) },
-  { path: 'modules', canActivate: [authGuard], loadComponent: () => import('./pages/catalog.page').then((m) => m.CatalogPage) },
-  { path: 'modules/:id', canActivate: [authGuard], loadComponent: () => import('./pages/module.page').then((m) => m.ModulePage) },
-  { path: 'modules/:id/reprendre', canActivate: [authGuard], loadComponent: () => import('./pages/resume.page').then((m) => m.ResumePage) },
-  { path: 'modules/:id/lecon/:lessonId', canActivate: [authGuard], loadComponent: () => import('./pages/lesson.page').then((m) => m.LessonPage) },
-  { path: 'modules/:id/evaluation', canActivate: [authGuard], loadComponent: () => import('./pages/quiz.page').then((m) => m.QuizPage) },
-  { path: 'parcours', canActivate: [authGuard], loadComponent: () => import('./pages/programs.page').then((m) => m.ProgramsPage) },
-  { path: 'parcours/:id', canActivate: [authGuard], loadComponent: () => import('./pages/program.page').then((m) => m.ProgramPage) },
   { path: 'classes/:id', canActivate: [authGuard], loadComponent: () => import('./pages/classroom.page').then((m) => m.ClassroomPage) },
   { path: 'fiches', canActivate: [authGuard], loadComponent: () => import('./pages/resources.page').then((m) => m.ResourcesPage) },
   { path: 'fiches/:id', canActivate: [authGuard], loadComponent: () => import('./pages/resources.page').then((m) => m.ResourcesPage) },
@@ -36,5 +45,5 @@ export const routes: Routes = [
   { path: 'admin/referentiels', canActivate: [staffGuard], loadComponent: () => import('./pages/admin/referentials.page').then((m) => m.ReferentialsPage) },
   { path: 'admin/apprenants', canActivate: [staffGuard], loadComponent: () => import('./pages/admin/learners.page').then((m) => m.LearnersPage) },
   { path: 'admin/ia', canActivate: [staffGuard], loadComponent: () => import('./pages/admin/ai-supervision.page').then((m) => m.AiSupervisionPage) },
-  { path: '**', redirectTo: 'accueil' },
+  { path: '**', redirectTo: '' },
 ];

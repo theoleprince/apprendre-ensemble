@@ -1,8 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { errorMessage } from '../core/auth.interceptor';
 import { AuthService } from '../core/auth.service';
+import { safeRedirect } from '../core/guards';
 import { IconComponent } from '../shared/icon.component';
 import { HeroArtComponent } from '../shared/visuals';
 
@@ -35,7 +36,9 @@ const DEMO = [
       </aside>
       <section class="auth-form">
         <div style="width:min(420px,100%)">
+          <a routerLink="/catalogue" class="back"><app-icon name="back" [size]="18" /> Voir le catalogue</a>
           <h1>Connexion</h1>
+          @if (redirect) { <p class="notice info small"><app-icon name="lock" [size]="16" /> Connectez-vous pour continuer : vous reviendrez directement à votre formation.</p> }
           <form (ngSubmit)="submit()" #f="ngForm" class="card">
             <label>Email
               <input type="email" name="email" [(ngModel)]="email" required autocomplete="username" />
@@ -47,7 +50,7 @@ const DEMO = [
             <button class="primary block lg" type="submit" [disabled]="f.invalid || loading()">
               {{ loading() ? 'Connexion…' : 'Se connecter' }}
             </button>
-            <p class="center small">Pas encore de compte ? <a routerLink="/inscription">Créer un compte</a></p>
+            <p class="center small">Pas encore de compte ? <a routerLink="/inscription" [queryParams]="redirect ? { redirect } : {}">Créer un compte gratuit</a></p>
           </form>
           <div class="section">
             <p class="small muted center">Démonstration : entrer en un clic</p>
@@ -65,6 +68,8 @@ const DEMO = [
 export class LoginPage {
   private auth = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  protected redirect = this.route.snapshot.queryParamMap.get('redirect');
 
   demo = DEMO;
   email = '';
@@ -83,7 +88,7 @@ export class LoginPage {
     this.error.set('');
     try {
       await this.auth.login(this.email, this.password);
-      await this.router.navigateByUrl(this.auth.homeUrl());
+      await this.router.navigateByUrl(safeRedirect(this.redirect, this.auth.homeUrl()));
     } catch (e) {
       this.error.set(errorMessage(e));
     } finally {

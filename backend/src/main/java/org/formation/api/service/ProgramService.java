@@ -77,7 +77,7 @@ public class ProgramService {
 
     private boolean visible(AppUser u, Program p) {
         if (policy.isStaff(u)) return true;
-        return p.isPublished() && p.getTargetRoles().contains(u.getRole())
+        return p.isPublished()
                 && (p.getCountryCode() == null || p.getCountryCode().equals(u.getCountryCode()));
     }
 
@@ -128,6 +128,18 @@ public class ProgramService {
         return new ProgramDetail(p.getId(), p.getTitle(), p.getDescription(), p.getIcon(), p.getDurationLabel(), p.getRequiredLevel(),
                 modules, domains, cl == null ? null : brief(cl, u),
                 programCerts.findByUserIdAndProgramId(u.getId(), p.getId()).map(this::certDto).orElse(null));
+    }
+
+    /** Classe de l'apprenant pour cette formation (resume affichable), ou null. */
+    @Transactional(readOnly = true)
+    public ClassroomBrief classroomBriefFor(AppUser u, Program p) {
+        Classroom cl = classroomFor(u, p, classrooms.findForMember(u.getId()));
+        return cl == null ? null : brief(cl, u);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<ProgramCertDto> programCertificate(AppUser u, Program p) {
+        return programCerts.findByUserIdAndProgramId(u.getId(), p.getId()).map(this::certDto);
     }
 
     /** Classe de l'apprenant pour ce programme : en cours, sinon a venir, sinon la plus recente. */

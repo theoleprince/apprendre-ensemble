@@ -132,7 +132,7 @@
   <tr><td>Hors ligne sur l'appareil</td><td>Oui</td><td>Oui</td><td class="ok">Oui (PWA)</td></tr>
   <tr><td>Serveurs relais locaux</td><td>Pilote</td><td>Généralisé</td><td class="part">Spécifié (section 6)</td></tr>
   <tr><td>SSO (OpenID Connect)</td><td>Oui</td><td>Oui</td><td class="no">Non</td></tr>
-  <tr><td>Paiement, licences, abonnements</td><td>Non</td><td>Oui</td><td class="no">Non</td></tr>
+  <tr><td>Catalogue public, inscription, paiement</td><td>Oui</td><td>Oui</td><td class="part">Oui, paiement simulé (Mobile Money, carte, code de licence)</td></tr>
   <tr><td>Langues de l'interface</td><td>Français, anglais</td><td>+ baatonum, dendi, fongbe</td><td class="part">Français, anglais</td></tr>
 </table>
 </section>
@@ -166,21 +166,35 @@
 <h2>4. Parcours utilisateurs par profil</h2>
 <p>Chaque profil arrive sur un accueil qui lui est propre. La première question n'est jamais « que voulez-vous faire ? » mais « voici la prochaine étape ».</p>
 
-<h3>Enseignant·e</h3>
+<h3>Le parcours de tout apprenant : simple, linéaire, sans ambiguïté</h3>
+<p>On sait toujours où l'on commence, où l'on en est et où l'on finit. Le parcours suit le modèle des grandes plateformes de formation en ligne.</p>
 <ol>
-  <li>Première connexion : test d'entrée de 4 questions à pictogrammes, lues à voix haute.</li>
-  <li>Recommandation de modules, puis accueil « Mon parcours » avec la prochaine leçon.</li>
-  <li>Le parcours s'affiche en frise : modules terminés, en cours, à faire, verrouillés avec leur date d'ouverture.</li>
-  <li>Leçon en mode focus (texte, audio ou vidéo sous-titrée), mise en pratique, puis évaluation formative avec explications.</li>
-  <li>Dépôt d'un portfolio (texte ou vidéo de pratique de classe), validé par le conseiller.</li>
-  <li>Sa classe : rang, points, « plus que N points pour gagner une place », visio de la classe.</li>
-  <li>Certificats PDF, vérifiables par QR code, à ajouter sur LinkedIn.</li>
+  <li><b>Découvrir sans compte</b> : accueil public, catalogue des formations et des cours, fiche de présentation avec plan, durée, prix et certification.</li>
+  <li><b>Créer son compte</b> en une minute, puis revenir automatiquement à la formation choisie.</li>
+  <li><b>S'inscrire</b> : en un clic si c'est gratuit ; sinon Mobile Money, carte ou code de licence institutionnel.</li>
+  <li><b>Suivre le cours dans l'ordre</b> : leçon, exercice pratique, puis quiz de la notion. La leçon suivante ne s'ouvre que lorsque le quiz est réussi. On ne peut pas sauter vers l'évaluation finale.</li>
+  <li><b>Évaluation finale</b> : ouverte quand toutes les leçons sont validées, autant d'essais que nécessaire.</li>
+  <li><b>Certificat</b> délivré automatiquement (PDF, QR code, LinkedIn). Dans une formation, le cours suivant s'ouvre alors.</li>
 </ol>
 <div class="shots">
-  <figure class="m"><img src="../captures/3x-e1-accueil.png"><figcaption>Accueil enseignante</figcaption></figure>
-  <figure class="m"><img src="../captures/3x-e3-frise.png"><figcaption>Frise du parcours</figcaption></figure>
-  <figure class="m"><img src="../captures/3x-e4-classe.png"><figcaption>Sa classe et son rang</figcaption></figure>
+  <figure class="m"><img src="../captures/4x-g2-catalogue.png"><figcaption>1. Catalogue public</figcaption></figure>
+  <figure class="m"><img src="../captures/4x-g4-cours.png"><figcaption>2. Fiche du cours</figcaption></figure>
+  <figure class="m"><img src="../captures/4x-j3-lecon1.png"><figcaption>3. Leçon</figcaption></figure>
 </div>
+<div class="shots">
+  <figure class="m"><img src="../captures/4x-j4-quiz-rate.png"><figcaption>4. Quiz raté : on ne passe pas</figcaption></figure>
+  <figure class="m"><img src="../captures/4x-j5-quiz-ok.png"><figcaption>5. Notion validée</figcaption></figure>
+  <figure class="m"><img src="../captures/4x-j8-certificat.png"><figcaption>6. Certificat</figcaption></figure>
+</div>
+<figure class="d"><img src="../captures/4x-e3-lecteur-reprise.png" style="height:84mm"><figcaption>Lecteur sur ordinateur : le plan du cours montre les étapes validées, l'étape en cours et les étapes encore fermées</figcaption></figure>
+
+<h3>Enseignant·e</h3>
+<ol>
+  <li>« Mes cours » : le cours à reprendre en grand, avec la prochaine étape (« Leçon 3 sur 4 »).</li>
+  <li>Sa formation certifiante : les 6 cours dans l'ordre, chacun ouvert quand le précédent est validé et quand le calendrier de sa classe le permet.</li>
+  <li>Sa classe : rang, points, visio de la classe.</li>
+  <li>Exercice pratique envoyé au conseiller (texte ou vidéo de classe) : sa validation donne la certification d'expertise.</li>
+</ol>
 
 <h3>Conseiller·ère pédagogique</h3>
 <ol>
@@ -232,15 +246,23 @@
   <tr><td><b>Fiche pratique</b></td><td>Titre, résumé, contenu, fichier, domaine, publics</td><td>8 fiches</td></tr>
 </table>
 
-<h3>5.2 Test d'entrée et recommandations</h3>
-<p>Questions à pictogrammes, chacune lisible à voix haute. Chaque réponse pondère des modules. Le résultat recommande un ordre de modules et oriente vers le programme du public. Les questions sont paramétrables.</p>
-
-<h3>5.3 Leçons et évaluations</h3>
+<h3>5.2 Catalogue, inscription et paiement</h3>
 <ul>
-  <li>Mode focus : une seule tâche à l'écran, navigation précédent / suivant, progression visible.</li>
-  <li>Vidéo : sous-titres, transcription, choix de la vitesse. Audio : lecture en arrière-plan, transcription.</li>
-  <li>Évaluation formative : une question par écran, explication après chaque réponse, bilan final, nouvelle tentative possible.</li>
-  <li>Mise en pratique : une tâche concrète à faire en classe, reprise dans le portfolio.</li>
+  <li><b>Catalogue public</b> : formations certifiantes et cours, recherche, filtres (gratuit / payant, public, domaine). Les contenus du public de l'utilisateur sont mis en avant (« Pour vous »).</li>
+  <li><b>Fiche</b> : objectifs, déroulé en 4 étapes, plan détaillé (leçons, quiz, exercices, évaluation), niveaux de certification, prix.</li>
+  <li><b>Inscription</b> : gratuite en un clic (contenu financé par le programme), payante par Mobile Money (MTN, Moov) ou carte, ou par code de licence institutionnel. S'inscrire à une formation inscrit à tous ses cours. Être ajouté·e à une classe inscrit à sa formation.</li>
+  <li><b>Paiement</b> : simulé dans la démonstration. En production : agrégateur (FedaPay, Kkiapay ou Stripe), inscription confirmée à réception du paiement. Aucune donnée de carte ne transite par la plateforme.</li>
+</ul>
+
+<h3>5.3 Progression linéaire, leçons et quiz</h3>
+<ul>
+  <li><b>Lecteur de cours</b> : le plan est toujours visible. Les étapes validées sont cochées, l'étape en cours est mise en avant, les suivantes portent un cadenas. Une barre de progression indique le pourcentage.</li>
+  <li><b>Après chaque leçon, un quiz de la notion</b>. Il est corrigé sur l'appareil, donc il fonctionne hors connexion, avec une explication pour chaque réponse. Tant qu'il n'est pas réussi, la leçon suivante reste fermée.</li>
+  <li><b>Évaluation finale</b> : ouverte uniquement quand toutes les leçons sont validées. Le serveur le vérifie aussi et refuse une tentative anticipée. Correction expliquée, essais illimités.</li>
+  <li><b>Dans une formation</b> : chaque cours s'ouvre quand le précédent est validé, et quand le calendrier de la classe le permet.</li>
+  <li>Vidéo avec sous-titres, transcription et choix de la vitesse. Audio avec transcription. Texte lisible à voix haute.</li>
+  <li><b>Exercice pratique</b> : une tâche à faire en classe, envoyée au mentor (texte ou vidéo).</li>
+  <li><b>Test d'orientation</b> facultatif : 4 questions à pictogrammes, qui recommandent cours et formation.</li>
 </ul>
 
 <h3>5.4 Certification</h3>
@@ -428,7 +450,7 @@
   <tr><td>4.8</td><td>Tableau de bord analytique</td><td>Tous les indicateurs demandés, filtres, rapport PDF</td><td class="ok">Oui</td></tr>
   <tr><td>4.9</td><td>Droits par zone et par groupe (traitement / contrôle)</td><td>Restrictions par zone et groupe, tirage stratifié</td><td class="ok">Oui</td></tr>
   <tr><td>4.10</td><td>Export en formats ouverts</td><td>CSV, JSON pseudonymisés</td><td class="ok">Oui</td></tr>
-  <tr><td>4.11</td><td>Gratuit, licences institutionnelles, abonnements, paiement</td><td>Modèle de droits prêt ; paiement (Mobile Money, carte) en version complète</td><td class="no">Non</td></tr>
+  <tr><td>4.11</td><td>Gratuit, licences institutionnelles, abonnements, paiement</td><td>Prix par cours et par formation ; gratuit, Mobile Money, carte, code de licence ; agrégateur réel et abonnements en version complète</td><td class="part">Partiel</td></tr>
 </table>
 <h3>Exigences techniques (section 5)</h3>
 <table>
@@ -466,22 +488,28 @@
   <tr><td><code>conseillere2@demo.local</code></td><td>Conseillère (Fatou, Atacora)</td><td>Promo pilote terminée avec son podium, promo à venir (groupe contrôle).</td></tr>
   <tr><td><code>direction@demo.local</code></td><td>Direction d'école</td><td>« Mon école » : équipe, actifs, progression, décrocheurs.</td></tr>
   <tr><td><code>parent@demo.local</code></td><td>Parent</td><td>Parcours court, classement anonyme, fiches pratiques.</td></tr>
-  <tr><td><code>jeune@demo.local</code></td><td>Jeune déscolarisé·e</td><td>Parcours « Rebondir ».</td></tr>
+  <tr><td><code>jeune@demo.local</code></td><td>Jeune déscolarisé·e</td><td>Aucune inscription au départ : idéal pour tester catalogue, inscription, paiement et cours complet.</td></tr>
   <tr><td><code>social@demo.local</code></td><td>Travailleuse sociale</td><td>Parcours « Accompagner les familles ».</td></tr>
   <tr><td><code>apprenant001@demo.local</code> à <code>apprenant074@demo.local</code></td><td>Apprenant·es simulé·es</td><td>Membres des 4 classes, avec une activité réaliste.</td></tr>
 </table>
 <p class="small muted">Le compte administrateur n'est pas publié dans ce document. Il est communiqué sur demande. Le compte <code>formateur@</code> donne accès à tout le paramétrage.</p>
-<p class="small">Les apprenant·es peuvent aussi créer leur propre compte depuis la page d'inscription. Les dates des classes sont calculées à partir du jour de mise en ligne : la classe « en cours » l'est toujours au moment du test.</p>
+<p class="small">Code de licence de démonstration pour les contenus payants : <code>GDP-2027</code>. Les apprenant·es peuvent aussi créer leur propre compte depuis la page d'inscription. Les dates des classes sont calculées à partir du jour de mise en ligne : la classe « en cours » l'est toujours au moment du test.</p>
 
 <h3>Scénarios de test recommandés (environ 30 minutes)</h3>
-<div class="scen"><h4>A. Parcours d'une enseignante, sur téléphone (10 min) <span class="tag">enseignant@</span></h4>
+<div class="scen"><h4>A. Du catalogue au certificat, sur téléphone (10 min) <span class="tag">sans compte</span> <span class="tag">jeune@</span></h4>
 <ol>
-  <li>Ouvrir l'adresse sur un téléphone, se connecter avec le bouton « Enseignante ».</li>
-  <li>Accueil : prochaine leçon, rang dans la classe, fiches. Ouvrir <i>Parcours</i> : la frise montre un module verrouillé avec sa date d'ouverture.</li>
-  <li>Ouvrir une leçon vidéo : sous-titres, transcription, vitesse. Écouter une leçon audio.</li>
-  <li>Passer l'évaluation : explication après chaque réponse, bilan final.</li>
-  <li>Ouvrir l'assistant IA et poser une question sur la leçon.</li>
-  <li><i>Certificats</i> : télécharger un PDF, scanner son QR code, essayer « Ajouter à LinkedIn ».</li>
+  <li>Sans se connecter, ouvrir l'adresse : accueil public, puis <i>Catalogue</i>. Ouvrir le cours « Premiers pas avec le téléphone » et lire son plan.</li>
+  <li>Cliquer sur « S'inscrire gratuitement » : la plateforme demande un compte. Choisir <i>Se connecter</i>, puis le bouton « Jeune ». On revient directement sur l'inscription : la confirmer.</li>
+  <li>Leçon 1, puis « Passer au quiz ». Répondre faux exprès : « Leçon suivante » reste grisé. Réessayer et réussir : la leçon 2 s'ouvre.</li>
+  <li>Essayer de sauter : dans le plan, l'évaluation finale porte un cadenas.</li>
+  <li>Finir les leçons, passer l'évaluation finale, puis « Voir mon certificat » : PDF, QR code, LinkedIn.</li>
+  <li>Cours payant : ouvrir « Trouver sa voie » (2 000 FCFA), choisir Mobile Money et saisir un numéro fictif. Le paiement est simulé. Autre option : le code de licence <code>GDP-2027</code>.</li>
+</ol></div>
+<div class="scen"><h4>A bis. Reprise d'une enseignante en classe (5 min) <span class="tag">enseignant@</span></h4>
+<ol>
+  <li>« Mes cours » : le cours à reprendre (« Leçon 3 sur 4 ») et la formation certifiante avec la classe et le rang.</li>
+  <li>Ouvrir la formation : les cours suivants sont verrouillés (« Validez d'abord… »).</li>
+  <li>« Continuer » : le lecteur reprend exactement à la leçon 3. Ouvrir l'assistant IA et poser une question sur la leçon.</li>
 </ol></div>
 <div class="scen"><h4>B. Hors connexion (5 min) <span class="tag">enseignant@</span></h4>
 <ol>

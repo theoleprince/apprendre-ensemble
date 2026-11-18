@@ -66,6 +66,9 @@ public class Course {
     /** Certification d'expertise : portfolio valide par un mentor. */
     private boolean expertiseEnabled = true;
 
+    /** Prix d'inscription (FCFA). 0 = gratuit (finance par un programme). */
+    private int price;
+
     private boolean published = true;
 
     /** Incremente a chaque modification : le client hors ligne sait s'il doit retelecharger. */

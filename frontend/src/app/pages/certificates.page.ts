@@ -66,7 +66,7 @@ import { MedalComponent } from '../shared/visuals';
       } @empty {
         @if (!loading()) {
           <div class="empty"><app-medal level="ATTESTATION" [earned]="false" [size]="64" /><br />Pas encore de certificat.<br />Terminez les leçons d'un module pour obtenir votre première attestation.
-            <p><a class="btn primary" routerLink="/modules">Voir les modules</a></p></div>
+            <p><a class="btn primary" routerLink="/catalogue">Parcourir le catalogue</a></p></div>
         }
       }
     </div>

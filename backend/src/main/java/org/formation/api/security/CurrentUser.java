@@ -25,6 +25,15 @@ public class CurrentUser {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
     }
 
+    /** Utilisateur connecte, s'il y en a un (pages publiques consultables sans compte). */
+    public java.util.Optional<AppUser> find() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Jwt jwt) {
+            return users.findById(Long.valueOf(jwt.getSubject()));
+        }
+        return java.util.Optional.empty();
+    }
+
     public AppUser get() {
         return users.findById(id()).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
     }

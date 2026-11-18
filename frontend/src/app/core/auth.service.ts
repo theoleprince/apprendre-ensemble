@@ -43,7 +43,7 @@ export class AuthService {
   homeUrl(): string {
     if (this.isStaff()) return '/admin';
     if (this.user()?.role === 'CONSEILLER_PEDAGOGIQUE') return '/mentorat';
-    return this.needsPlacement() ? '/bienvenue' : '/accueil';
+    return '/accueil';
   }
 
   async login(email: string, password: string): Promise<void> {

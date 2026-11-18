@@ -69,6 +69,17 @@ interface NavItem {
           <app-assistant-panel />
         }
       </div>
+    } @else if (publicChrome()) {
+      <div class="pub">
+        <header class="pub-top">
+          <a class="brand" routerLink="/"><span class="brand-mark"><app-icon name="sprout" [size]="22" /></span><span class="brand-name">Apprendre Ensemble</span></a>
+          <nav class="pub-nav"><a routerLink="/catalogue" routerLinkActive="active">Catalogue</a></nav>
+          <span class="spacer"></span>
+          <a class="btn ghost" routerLink="/login" [queryParams]="{ redirect: url() }">Se connecter</a>
+          <a class="btn primary" routerLink="/inscription" [queryParams]="{ redirect: url() }">Créer un compte</a>
+        </header>
+        <main class="pub-main"><router-outlet /></main>
+      </div>
     } @else {
       <router-outlet />
     }
@@ -99,7 +110,7 @@ export class App {
   private router = inject(Router);
   private media = inject(MediaCacheService);
 
-  private url = signal(location.pathname);
+  protected url = signal(location.pathname);
   protected readonly confetti = Array.from({ length: 60 }, (_, i) => ({
     x: Math.random() * 100,
     delay: Math.random() * 0.8,
@@ -125,13 +136,12 @@ export class App {
       ];
     }
     const items: NavItem[] = [
-      { path: '/accueil', icon: 'home', key: 'nav.home' },
-      { path: '/parcours', icon: 'graduation', key: 'Parcours' },
-      { path: '/communaute', icon: 'users', key: 'nav.community' },
+      { path: '/accueil', icon: 'home', key: 'Mes cours' },
+      { path: '/catalogue', icon: 'search', key: 'Catalogue' },
       { path: '/certificats', icon: 'award', key: 'nav.certificates' },
+      { path: '/communaute', icon: 'users', key: 'nav.community' },
       { path: '/profil', icon: 'user', key: 'nav.profile' },
       { path: '/fiches', icon: 'file', key: 'Fiches pratiques' },
-      { path: '/modules', icon: 'book', key: 'Tous les modules' },
     ];
     if (u.role === 'DIRECTION_ECOLE') items.splice(1, 0, { path: '/mon-ecole', icon: 'school', key: 'Mon école' });
     if (this.auth.isMentor()) items.splice(1, 0, { path: '/mentorat', icon: 'eye', key: 'nav.mentor' });
@@ -139,9 +149,11 @@ export class App {
   });
 
   /** Mode focus (lecon, evaluation) : pas de menus, toute l'attention sur l'apprentissage. */
-  protected focus = computed(() => /^\/modules\/\d+\/(lecon|evaluation)/.test(this.url()));
+  protected focus = computed(() => /^\/apprendre\//.test(this.url()));
 
   protected showShell = computed(() => this.auth.isLoggedIn() && !this.routeIsBare());
+  /** Visiteur sans compte sur une page publique : en-tete simple (catalogue, connexion, inscription). */
+  protected publicChrome = computed(() => !this.auth.isLoggedIn() && /^\/(catalogue|cours|formations|verifier)?(\/|$|\?)/.test(this.url()));
   private routeIsBare = () => /^\/(login|inscription|verifier|bienvenue)/.test(this.currentUrl());
   private currentUrl = () => this.url();
 
@@ -161,7 +173,7 @@ export class App {
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe((e) => {
       this.url.set((e as NavigationEnd).urlAfterRedirects);
       // le contexte de l'assistant est fixe par les pages de module / lecon
-      if (!/^\/modules\/\d+/.test(this.url())) this.assistant.setContext({});
+      if (!/^\/apprendre\//.test(this.url())) this.assistant.setContext({});
     });
     effect(() => {
       if (this.auth.user()) {

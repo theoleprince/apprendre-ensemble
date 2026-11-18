@@ -4,6 +4,7 @@ import org.formation.api.domain.*;
 import org.formation.api.repository.*;
 import org.formation.api.service.CertificationService;
 import org.formation.api.service.ClassroomLocks;
+import org.formation.api.service.EnrollmentService;
 import org.formation.api.service.ProgramService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +61,7 @@ public class DataInitializer implements ApplicationRunner {
     private final ResourceRepository resources;
     private final CertificationService certification;
     private final ProgramService programService;
+    private final EnrollmentService enrollments;
     private final PasswordEncoder encoder;
     private final boolean demoData;
     private final String adminPassword;
@@ -73,7 +75,8 @@ public class DataInitializer implements ApplicationRunner {
                            CourseFeedbackRepository feedbacks, ActivityEventRepository activity,
                            PortfolioItemRepository portfolios, DomainRepository domains, ProgramRepository programs,
                            SchoolRepository schools, ClassroomRepository classrooms, ResourceRepository resources,
-                           CertificationService certification, ProgramService programService, PasswordEncoder encoder,
+                           CertificationService certification, ProgramService programService, EnrollmentService enrollments,
+                           PasswordEncoder encoder,
                            @Value("${app.seed.demo-data:true}") boolean demoData,
                            @Value("${app.seed.admin-password}") String adminPassword,
                            @Value("${app.media.dir:./data/media}") String mediaDir) {
@@ -96,6 +99,7 @@ public class DataInitializer implements ApplicationRunner {
         this.resources = resources;
         this.certification = certification;
         this.programService = programService;
+        this.enrollments = enrollments;
         this.encoder = encoder;
         this.demoData = demoData;
         this.adminPassword = adminPassword;
@@ -153,7 +157,7 @@ public class DataInitializer implements ApplicationRunner {
         AppUser rachida = user("enseignant@demo.local", DEMO_PASSWORD, "Rachida Enseignante", Role.ENSEIGNANT, "BJ", "Borgou", "TRAITEMENT", sParakou);
         AppUser parent = user("parent@demo.local", DEMO_PASSWORD, "Bio Parent", Role.PARENT, "BJ", "Borgou", null, null);
         user("jeune@demo.local", DEMO_PASSWORD, "Sani Jeune", Role.JEUNE, "BJ", "Alibori", null, null);
-        user("direction@demo.local", DEMO_PASSWORD, "Directrice Démo", Role.DIRECTION_ECOLE, "BJ", "Borgou", "TRAITEMENT", sParakou);
+        AppUser direction = user("direction@demo.local", DEMO_PASSWORD, "Directrice Démo", Role.DIRECTION_ECOLE, "BJ", "Borgou", "TRAITEMENT", sParakou);
         user("social@demo.local", DEMO_PASSWORD, "Awa Assistante sociale", Role.TRAVAILLEUR_SOCIAL, "BJ", "Borgou", null, null);
 
         Set<Role> teachers = Set.of(Role.ENSEIGNANT, Role.CONSEILLER_PEDAGOGIQUE, Role.DIRECTION_ECOLE);
@@ -417,6 +421,9 @@ public class DataInitializer implements ApplicationRunner {
                 """, "Organisez un temps de formation collectif et notez le nombre de participant·es.", 6);
         question(m10, "Un·e enseignant·e est « Ralenti » quand :",
                 List.of("Il ou elle n'a pas eu d'activité depuis 7 jours", "Il ou elle a échoué au quiz", "Il ou elle est absent·e de l'école"), 0, null);
+        check(m10, 2, "Combien de temps proposer chaque semaine pour se former ensemble ?",
+                List.of("30 minutes pendant le temps de concertation", "Une journée entière", "Rien : chacun se forme seul"), 0,
+                "Un temps court et régulier, pendant la concertation, suffit pour suivre une leçon ensemble.");
         courses.save(m10);
 
         // ---- 11. Accompagner son enfant sans violence (parents)
@@ -437,6 +444,9 @@ public class DataInitializer implements ApplicationRunner {
                 List.of("De le faire taire", "Qu'il se sente compris", "De gagner du temps"), 1, null);
         question(m11, "Une limite efficace est :",
                 List.of("Changeante selon l'humeur", "Claire, expliquée et constante", "Toujours accompagnée d'une punition physique"), 1, null);
+        check(m11, 1, "Face à une bêtise de son enfant, le premier réflexe est :",
+                List.of("Crier pour se faire entendre", "Respirer et se calmer avant de parler", "Punir tout de suite"), 1,
+                "Un parent calme aide l'enfant à se calmer : on respire d'abord, on parle ensuite.");
         courses.save(m11);
 
         // ---- 12. Les emotions de mon enfant (parents)
@@ -455,6 +465,9 @@ public class DataInitializer implements ApplicationRunner {
                 """, "Essayez la météo des émotions avec votre enfant pendant trois soirs.", 4);
         question(m12, "Une colère chez un enfant de 4 ans est le plus souvent :",
                 List.of("Un caprice contre le parent", "Une émotion trop grande pour lui", "Une maladie"), 1, null);
+        check(m12, 2, "Le soir, pour aider son enfant à dire ce qu'il ressent, on peut lui demander :",
+                List.of("S'il a été sage", "S'il a été plutôt soleil, nuage, pluie ou orage", "Pourquoi il a encore pleuré"), 1,
+                "La météo des émotions aide l'enfant à mettre un mot sur ce qu'il ressent, sans être jugé.");
         courses.save(m12);
 
         // ---- 13. Jouer et apprendre en famille (parents, pratique)
@@ -469,6 +482,9 @@ public class DataInitializer implements ApplicationRunner {
                 - raconter une histoire chacun son tour ;
                 - le jeu du miroir : l'enfant imite vos gestes.
                 """, "Jouez 10 minutes par jour avec votre enfant pendant une semaine. Qu'avez-vous remarqué ?", 5);
+        check(m13, 1, "En jouant avec son parent, l'enfant apprend aussi à :",
+                List.of("Attendre son tour, perdre et compter", "Seulement s'amuser", "Gagner à tout prix"), 0,
+                "Le jeu est un moment d'apprentissage : tour de rôle, règles, calcul.");
         courses.save(m13);
 
         // ---- 14. Premiers pas avec le telephone (jeunes)
@@ -485,6 +501,9 @@ public class DataInitializer implements ApplicationRunner {
                 """, null, 4);
         question(m14, "Un inconnu vous demande une photo en ligne. Que faire ?",
                 List.of("Envoyer la photo", "Bloquer et en parler à un adulte de confiance", "Répondre pour savoir qui c'est"), 1, null);
+        check(m14, 2, "Pour apprendre sans connexion, il faut d'abord :",
+                List.of("Télécharger le cours quand on a du réseau", "Acheter un nouveau téléphone", "Rester connecté tout le temps"), 0,
+                "Une fois téléchargé, le cours fonctionne partout ; la progression part au retour du réseau.");
         courses.save(m14);
 
         // ---- 15. Lire, ecrire, compter au quotidien (jeunes)
@@ -527,6 +546,9 @@ public class DataInitializer implements ApplicationRunner {
                 """, null, 5);
         question(m16, "Pour découvrir un métier, le plus utile est de :",
                 List.of("Rencontrer quelqu'un qui l'exerce", "Attendre qu'on vous appelle", "Ne rien demander"), 0, null);
+        check(m16, 2, "Une bonne présentation de 30 secondes dit :",
+                List.of("Qui je suis, ce que je sais faire, ce que je cherche", "Tout mon parcours scolaire en détail", "Uniquement mes diplômes"), 0,
+                "Court et concret : qui vous êtes, vos savoir-faire, ce que vous cherchez.");
         courses.save(m16);
 
         // ---- 17. Reperer et orienter (travailleurs sociaux)
@@ -561,19 +583,27 @@ public class DataInitializer implements ApplicationRunner {
                 "6 modules · 8 semaines", Set.of(Role.ENSEIGNANT), CertificateLevel.BADGE, m1, m2, m3, m4, m5, m6);
         Program pCons = program("Accompagner les enseignant·es", "compass",
                 "Pour les conseiller·ères pédagogiques : observer, donner un retour utile, animer une communauté de pratique et accompagner la prévention des conflits.",
-                "3 modules · 4 semaines", Set.of(Role.CONSEILLER_PEDAGOGIQUE), CertificateLevel.ATTESTATION, m7, m8, m4);
+                "3 modules · 4 semaines", Set.of(Role.CONSEILLER_PEDAGOGIQUE), CertificateLevel.BADGE, m7, m8, m4);
         Program pDir = program("Diriger une école bienveillante", "school",
                 "Pour les directions d'école : piloter le climat scolaire, soutenir la formation de l'équipe et mettre en place la discipline positive.",
-                "3 modules · 4 semaines", Set.of(Role.DIRECTION_ECOLE), CertificateLevel.ATTESTATION, m9, m10, m5);
+                "3 modules · 4 semaines", Set.of(Role.DIRECTION_ECOLE), CertificateLevel.BADGE, m9, m10, m5);
         Program pPar = program("Grandir ensemble · Parents", "family",
                 "Des leçons courtes à écouter pour accompagner son enfant sans violence, comprendre ses émotions et apprendre en jouant.",
-                "3 modules · 3 semaines", Set.of(Role.PARENT), CertificateLevel.ATTESTATION, m11, m12, m13);
+                "3 modules · 3 semaines", Set.of(Role.PARENT), CertificateLevel.BADGE, m11, m12, m13);
         Program pYouth = program("Rebondir · Jeunes", "sprout",
                 "Initiation numérique, remise à niveau en lecture-calcul et découverte des métiers pour construire son projet.",
-                "3 modules · 6 semaines", Set.of(Role.JEUNE), CertificateLevel.ATTESTATION, m14, m15, m16);
+                "3 modules · 6 semaines", Set.of(Role.JEUNE), CertificateLevel.BADGE, m14, m15, m16);
         Program pSoc = program("Accompagner les familles · Travail social", "heart",
                 "Repérer et orienter un enfant en danger, accompagner les parents, prévenir les conflits.",
-                "3 modules · 4 semaines", Set.of(Role.TRAVAILLEUR_SOCIAL), CertificateLevel.ATTESTATION, m17, m11, m4);
+                "3 modules · 4 semaines", Set.of(Role.TRAVAILLEUR_SOCIAL), CertificateLevel.BADGE, m17, m11, m4);
+
+        // =================== TESTS PAR LECON, PRIX ===================
+        for (Course c : List.of(m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15, m16, m17)) attachChecks(c);
+        // la plupart des contenus sont gratuits (finances par le programme) ; quelques exemples payants
+        for (Course c : List.of(m7, m8, m9, m10)) c.setPrice(5000);
+        m16.setPrice(2000);
+        pCons.setPrice(12000);
+        pDir.setPrice(12000);
 
         // =================== RESSOURCES ===================
         res("La météo des émotions · fiche activité", "cloud-sun", dSel, Set.of(Role.ENSEIGNANT, Role.PARENT, Role.CONSEILLER_PEDAGOGIQUE),
@@ -683,6 +713,18 @@ public class DataInitializer implements ApplicationRunner {
         Classroom cD = classroom("Groupe parents · Parakou", pPar, moussa, today.minusDays(10), today.plusDays(25),
                 Classroom.UnlockMode.ALL, 7, Classroom.LeaderboardMode.ANONYMOUS, null, parents);
 
+        enrollments.enrollFree(direction, pDir);
+        for (int i = 0; i < 2; i++) {
+            LessonProgress lp = new LessonProgress();
+            lp.setUser(rachida);
+            lp.setLesson(m1.getLessons().get(i));
+            lp.setCompletedAt(Instant.now().minus(Duration.ofDays(2 - i)).minus(Duration.ofHours(3)));
+            lp.setTimeSpentSeconds(m1.getLessons().get(i).getDurationMinutes() * 60 + 90);
+            progress.save(lp);
+        }
+        rachida.setLastActiveAt(Instant.now().minus(Duration.ofDays(1)));
+        users.save(rachida);
+
         // =================== COMMUNAUTE ===================
         ForumThread live = thread(moussa, "Séance en direct : la météo des émotions en classe",
                 "Rejoignez la visioconférence de la promo. Venez avec vos questions et vos réussites !", m1.getId(),
@@ -749,13 +791,14 @@ public class DataInitializer implements ApplicationRunner {
                     t = t.plus(Duration.ofHours(4 + rnd.nextInt(30)));
                 }
                 boolean allDone = nLessons == m.getLessons().size() && !t.isAfter(limit.plus(Duration.ofDays(3)));
+                int best = -1;
                 if (allDone && !m.getQuestions().isEmpty() && rnd.nextDouble() < 0.9) {
                     Instant at = t.isAfter(limit) ? limit : t;
-                    int score = quiz(u, m, mods.getFirst() == m, at, engagement);
+                    best = quiz(u, m, mods.getFirst() == m, at, engagement);
                     // un apprenant engage relit la lecon et retente l'evaluation
-                    if (score < m.getPassScore() && engagement > 0.4) {
+                    if (best < m.getPassScore() && engagement > 0.4) {
                         Instant retry = at.plus(Duration.ofDays(1));
-                        quiz(u, m, false, retry.isAfter(Instant.now()) ? Instant.now() : retry, 1.0);
+                        best = Math.max(best, quiz(u, m, false, retry.isAfter(Instant.now()) ? Instant.now() : retry, 1.0));
                     }
                 }
                 if (allDone && m.getType() == CourseType.PRATIQUE && rnd.nextDouble() < 0.45) {
@@ -786,6 +829,8 @@ public class DataInitializer implements ApplicationRunner {
                     feedbacks.save(f);
                 }
                 certification.evaluate(u, m);
+                // progression stricte : le cours suivant n'ouvre qu'une fois celui-ci valide
+                if (!allDone || (!m.getQuestions().isEmpty() && best < m.getPassScore())) break;
             }
             if (!discussion.isEmpty() && engagement > 0.5 && rnd.nextDouble() < 0.6) {
                 String[] replies = {"Merci pour le partage, je vais essayer !", "Chez nous, le jeu de la rivière marche très bien.",
@@ -938,6 +983,7 @@ public class DataInitializer implements ApplicationRunner {
         c.setMeetingUrl(meeting);
         c.setInviteCode(programService.code(6).replace("-", ""));
         c.getMembers().addAll(members);
+        members.forEach(m -> enrollments.enrollFree(m, p));
         return classrooms.save(c);
     }
 
@@ -993,6 +1039,59 @@ public class DataInitializer implements ApplicationRunner {
         q.setCorrectIndex(correct);
         q.setExplanation(explanation);
         c.getQuestions().add(q);
+    }
+
+    /** Question de test de comprehension rattachee a une lecon (position a partir de 1). */
+    private void check(Course c, int lessonPos, String text, List<String> options, int correct, String explanation) {
+        question(c, text, options, correct, explanation);
+        c.getQuestions().getLast().setLesson(c.getLessons().get(lessonPos - 1));
+    }
+
+    /**
+     * Rattache chaque question a la lecon qui en parle (mots communs), pour qu'apres chaque notion
+     * l'apprenant ait son test. Les questions en trop restent dans l'evaluation finale seulement.
+     */
+    private void attachChecks(Course c) {
+        List<QuizQuestion> free = new ArrayList<>(c.getQuestions().stream().filter(q -> q.getLesson() == null).toList());
+        Set<Lesson> covered = new HashSet<>();
+        c.getQuestions().stream().filter(q -> q.getLesson() != null).forEach(q -> covered.add(q.getLesson()));
+        record Match(QuizQuestion q, Lesson l, long score) {}
+        List<Match> matches = new ArrayList<>();
+        for (QuizQuestion q : free) {
+            Set<String> qt = words(q.getQuestion() + " " + String.join(" ", q.getOptions()) + " " + Objects.toString(q.getExplanation(), ""));
+            for (Lesson l : c.getLessons()) {
+                if (covered.contains(l)) continue;
+                Set<String> lt = words(l.getTitle() + " " + l.getTitle() + " " + Objects.toString(l.getContent(), ""));
+                long sc = qt.stream().filter(lt::contains).count();
+                if (sc > 0) matches.add(new Match(q, l, sc));
+            }
+        }
+        matches.sort(Comparator.comparingLong(Match::score).reversed());
+        for (Match m : matches) {
+            if (m.q().getLesson() != null || covered.contains(m.l())) continue;
+            m.q().setLesson(m.l());
+            covered.add(m.l());
+        }
+        // lecons encore sans test : questions restantes dans l'ordre
+        Iterator<QuizQuestion> rest = free.stream().filter(q -> q.getLesson() == null).toList().iterator();
+        for (Lesson l : c.getLessons()) {
+            if (!covered.contains(l) && rest.hasNext()) {
+                rest.next().setLesson(l);
+                covered.add(l);
+            }
+        }
+    }
+
+    private static final Set<String> STOP = Set.of("pour", "avec", "dans", "plus", "elle", "elles", "leur", "leurs", "sans",
+            "mais", "tout", "tous", "toute", "faut", "quand", "votre", "vous", "nous", "cette", "comme", "sont", "etre", "avant", "apres");
+
+    private static Set<String> words(String s) {
+        String n = java.text.Normalizer.normalize(s.toLowerCase(), java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        Set<String> out = new HashSet<>();
+        for (String w : n.split("[^a-z0-9]+")) {
+            if (w.length() > 3 && !STOP.contains(w)) out.add(w.length() > 6 ? w.substring(0, 6) : w);
+        }
+        return out;
     }
 
     private void placementQ(int pos, String text, Set<Role> roles, PlacementOption... options) {

@@ -17,11 +17,17 @@ public class ProgramController {
     private final ProgramService programs;
     private final ConfigAdminService config;
     private final CurrentUser currentUser;
+    private final org.formation.api.service.EnrollmentService enrollments;
+    private final org.formation.api.repository.ProgramRepository programRepo;
 
-    public ProgramController(ProgramService programs, ConfigAdminService config, CurrentUser currentUser) {
+    public ProgramController(ProgramService programs, ConfigAdminService config, CurrentUser currentUser,
+                             org.formation.api.service.EnrollmentService enrollments,
+                             org.formation.api.repository.ProgramRepository programRepo) {
         this.programs = programs;
         this.config = config;
         this.currentUser = currentUser;
+        this.enrollments = enrollments;
+        this.programRepo = programRepo;
     }
 
     @GetMapping("/me/programs")
@@ -41,7 +47,10 @@ public class ProgramController {
 
     @PostMapping("/classrooms/join")
     public ClassroomBrief join(@Valid @RequestBody JoinRequest req) {
-        return programs.join(currentUser.get(), req.code());
+        var u = currentUser.get();
+        ClassroomBrief b = programs.join(u, req.code());
+        programRepo.findById(b.programId()).ifPresent(p -> enrollments.enrollFree(u, p));
+        return b;
     }
 
     @GetMapping("/classrooms/{id}/leaderboard")

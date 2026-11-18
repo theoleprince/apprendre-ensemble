@@ -10,6 +10,8 @@ import java.util.Optional;
 public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> {
     long countByPassedTrue();
 
+    List<QuizAttempt> findByUserId(Long userId);
+
     List<QuizAttempt> findByCourseId(Long courseId);
 
     Optional<QuizAttempt> findTopByUserIdAndCourseIdOrderByScorePercentDesc(Long userId, Long courseId);

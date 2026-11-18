@@ -112,6 +112,16 @@ export interface Lesson {
   content: string;
   practiceTask: string | null;
   durationMinutes: number;
+  /** Test de comprehension apres la lecon (corrige sur l'appareil, fonctionne hors ligne). */
+  checks: CheckQuestion[];
+}
+
+export interface CheckQuestion {
+  id: number;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string | null;
 }
 
 export interface Question {
@@ -322,6 +332,8 @@ export interface QuestionInput {
   options: string[];
   correctIndex: number;
   explanation: string | null;
+  /** Lecon apres laquelle la question sert de quiz (null = evaluation finale seulement). */
+  lessonPosition?: number | null;
 }
 
 export interface CourseInput {
@@ -341,6 +353,7 @@ export interface CourseInput {
   lessons: LessonInput[];
   questions: QuestionInput[];
   domainId: number | null;
+  price?: number;
 }
 
 export interface LearnerRow {
@@ -546,6 +559,7 @@ export interface ProgramAdmin {
   requiredLevel: CertificateLevel;
   published: boolean;
   classroomCount: number;
+  price?: number;
 }
 
 export interface ClassroomAdmin {
@@ -589,4 +603,139 @@ export function ordinal(n: number): string {
 export function frDate(iso: string | null): string {
   if (!iso) return '';
   return new Date(iso.length === 10 ? iso + 'T12:00:00' : iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+}
+
+// ---------- Catalogue, inscriptions, progression ----------
+export interface CatalogCourse {
+  id: number;
+  title: string;
+  description: string;
+  icon: string | null;
+  domainId: number | null;
+  domainName: string | null;
+  type: CourseType;
+  lessonCount: number;
+  totalMinutes: number;
+  questionCount: number;
+  price: number;
+  targetRoles: Role[];
+  hasVideo: boolean;
+  hasAudio: boolean;
+  learners: number;
+}
+
+export interface CatalogProgram {
+  id: number;
+  title: string;
+  description: string;
+  icon: string | null;
+  durationLabel: string | null;
+  courseCount: number;
+  totalMinutes: number;
+  price: number;
+  targetRoles: Role[];
+  requiredLevel: CertificateLevel;
+  domains: string[];
+}
+
+export interface Catalog {
+  programs: CatalogProgram[];
+  courses: CatalogCourse[];
+  domains: Domain[];
+}
+
+export interface SyllabusItem {
+  id: number;
+  position: number;
+  title: string;
+  mediaType: MediaType;
+  minutes: number;
+  checkCount: number;
+  practice: boolean;
+}
+
+export interface CourseDetail {
+  course: CatalogCourse;
+  syllabus: SyllabusItem[];
+  passScore: number;
+  masteryScore: number;
+  expertiseEnabled: boolean;
+  programs: { id: number; title: string }[];
+}
+
+export interface ProgramPublicDetail {
+  program: CatalogProgram;
+  courses: CatalogCourse[];
+}
+
+export type PayMethod = 'GRATUIT' | 'MOBILE_MONEY' | 'CARTE' | 'CODE';
+
+export interface EnrollResult {
+  courseId: number | null;
+  programId: number | null;
+  amount: number;
+  paymentRef: string | null;
+  message: string;
+}
+
+export interface MyCourse {
+  courseId: number;
+  title: string;
+  icon: string | null;
+  domainName: string | null;
+  lessonCount: number;
+  doneLessons: number;
+  questionCount: number;
+  bestScore: number;
+  examPassed: boolean;
+  passScore: number;
+  levels: CertificateLevel[];
+  programId: number | null;
+  programTitle: string | null;
+  lockReason: string | null;
+  enrolledAt: string;
+  contentVersion: number;
+  totalMinutes: number;
+}
+
+export interface MyProgram {
+  programId: number;
+  title: string;
+  icon: string | null;
+  durationLabel: string | null;
+  courseIds: number[];
+  doneCourses: number;
+  percent: number;
+  requiredLevel: CertificateLevel;
+  certificate: ProgramCert | null;
+  classroom: ClassroomBrief | null;
+}
+
+export interface MyLearning {
+  programs: MyProgram[];
+  courses: MyCourse[];
+}
+
+/** Etat d'un cours suivi, pour l'afficher simplement. */
+export function courseStatus(c: MyCourse): { key: 'LOCKED' | 'TODO' | 'IN_PROGRESS' | 'EXAM' | 'DONE'; label: string; next: string; percent: number } {
+  const steps = c.lessonCount + (c.questionCount ? 1 : 0);
+  const done = c.doneLessons + (c.examPassed ? 1 : 0);
+  const percent = steps ? Math.round((done * 100) / steps) : 0;
+  const finished = c.doneLessons >= c.lessonCount && (c.examPassed || !c.questionCount);
+  if (finished) return { key: 'DONE', label: 'Terminé', next: 'Cours validé', percent: 100 };
+  if (c.lockReason) return { key: 'LOCKED', label: 'Verrouillé', next: c.lockReason, percent };
+  if (c.doneLessons >= c.lessonCount) return { key: 'EXAM', label: 'Évaluation finale', next: 'Évaluation finale à passer', percent };
+  if (c.doneLessons === 0) return { key: 'TODO', label: 'À commencer', next: `Leçon 1 sur ${c.lessonCount}`, percent };
+  return { key: 'IN_PROGRESS', label: 'En cours', next: `Leçon ${c.doneLessons + 1} sur ${c.lessonCount}`, percent };
+}
+
+export function priceLabel(p: number): string {
+  return p > 0 ? `${p.toLocaleString('fr-FR')} FCFA` : 'Gratuit';
+}
+
+export function durationLabel(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m ? `${h} h ${String(m).padStart(2, '0')}` : `${h} h`;
 }

@@ -29,10 +29,12 @@ public class ConfigAdminService {
     private final CourseRepository courses;
     private final AppUserRepository users;
     private final ProgramService programService;
+    private final EnrollmentService enrollments;
 
     public ConfigAdminService(DomainRepository domains, ProgramRepository programs, SchoolRepository schools,
                               ClassroomRepository classrooms, ResourceRepository resources, CourseRepository courses,
-                              AppUserRepository users, ProgramService programService) {
+                              AppUserRepository users, ProgramService programService,
+                              EnrollmentService enrollments) {
         this.domains = domains;
         this.programs = programs;
         this.schools = schools;
@@ -41,6 +43,7 @@ public class ConfigAdminService {
         this.courses = courses;
         this.users = users;
         this.programService = programService;
+        this.enrollments = enrollments;
     }
 
     private static <T> T found(Optional<T> o) {
@@ -99,6 +102,7 @@ public class ConfigAdminService {
         for (Long cid : in.courseIds()) p.getCourses().add(found(courses.findById(cid)));
         p.setRequiredLevel(in.requiredLevel());
         p.setPublished(in.published());
+        p.setPrice(Math.max(0, in.price()));
         return toAdmin(programs.save(p));
     }
 
@@ -113,7 +117,7 @@ public class ConfigAdminService {
         long n = classrooms.findAll().stream().filter(c -> c.getProgram().getId().equals(p.getId())).count();
         return new ProgramAdmin(p.getId(), p.getTitle(), p.getDescription(), p.getIcon(), p.getDurationLabel(), p.getCountryCode(),
                 p.getTargetRoles(), p.getCourses().stream().map(Course::getId).toList(),
-                p.getCourses().stream().map(Course::getTitle).toList(), p.getRequiredLevel(), p.isPublished(), n);
+                p.getCourses().stream().map(Course::getTitle).toList(), p.getRequiredLevel(), p.isPublished(), n, p.getPrice());
     }
 
     // ---------- Etablissements ----------
@@ -186,7 +190,11 @@ public class ConfigAdminService {
                     .filter(u -> blank(in.cohort()) == null || in.cohort().equals(u.getCohort()))
                     .toList();
         }
-        add.stream().filter(u -> !STAFF.contains(u.getRole())).forEach(c.getMembers()::add);
+        // membre d'une classe = inscrit a la formation (prise en charge par le programme)
+        add.stream().filter(u -> !STAFF.contains(u.getRole())).forEach(u -> {
+            c.getMembers().add(u);
+            enrollments.enrollFree(u, c.getProgram());
+        });
         return toAdmin(classrooms.save(c));
     }
 

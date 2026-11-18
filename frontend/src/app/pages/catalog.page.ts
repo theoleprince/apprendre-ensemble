@@ -1,161 +1,181 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../core/auth.service';
 import { errorMessage } from '../core/auth.interceptor';
-import { TranslatePipe } from '../core/i18n';
-import { LearningService } from '../core/learning.service';
-import { CourseSummary, LEVELS, formatBytes } from '../core/models';
-import { ToastService } from '../core/toast.service';
+import { CatalogApi } from '../core/catalog.service';
+import { Catalog, CatalogCourse, CatalogProgram, ROLE_LABELS, Role, courseStatus, durationLabel, priceLabel } from '../core/models';
 import { IconComponent } from '../shared/icon.component';
 import { CoverComponent } from '../shared/visuals';
 
-type Filter = 'all' | 'reco' | 'progress' | 'done' | 'offline';
+type Tab = 'formations' | 'cours';
+type PriceFilter = 'all' | 'free' | 'paid';
 
+/** Catalogue consultable sans compte : on cherche, on filtre, on ouvre la fiche, on s'inscrit. */
 @Component({
   selector: 'app-catalog',
-  imports: [RouterLink, IconComponent, TranslatePipe, CoverComponent],
+  imports: [FormsModule, RouterLink, IconComponent, CoverComponent],
   template: `
-    <h1>Tous les modules</h1>
-    <div class="chips" role="tablist">
-      @for (f of filters; track f.key) {
-        <button [class.active]="filter() === f.key" (click)="filter.set(f.key)">{{ f.label }}</button>
-      }
-    </div>
-    @if (domains().length > 1) {
-      <div class="chips" style="margin-top:.5rem">
-        <button [class.active]="!domain()" (click)="domain.set(null)">Tous les domaines</button>
-        @for (d of domains(); track d) { <button [class.active]="domain() === d" (click)="domain.set(d)">{{ d }}</button> }
+    <section class="cat-head">
+      <h1>Catalogue</h1>
+      <p class="muted">Des formations certifiantes et des cours courts, à suivre à votre rythme, même sans connexion.</p>
+      <div class="search">
+        <app-icon name="search" [size]="20" />
+        <input type="search" [(ngModel)]="q" name="q" placeholder="Rechercher un cours, une compétence…" aria-label="Rechercher" />
       </div>
-    }
-    @if (fromCache()) { <p class="notice section"><app-icon name="wifi-off" /> Liste enregistrée sur l'appareil.</p> }
+    </section>
+
     @if (error()) { <p class="error">{{ error() }}</p> }
 
-    <div class="grid cols-3 section">
-      @for (c of shown(); track c.id) {
-        <article class="card course-card">
-          <app-cover class="card-cover" [icon]="c.icon" [seed]="c.id" [height]="104" [label]="c.title" />
-          <div class="row" style="align-items:flex-start">
-            <div class="grow">
-              <div class="tags">
-                <span class="tag" [class.sun]="c.type === 'PRATIQUE'">{{ c.type === 'PRATIQUE' ? 'Pratique (LXP)' : 'Théorique (LMS)' }}</span>
-                @if (c.recommended) { <span class="tag violet"><app-icon name="sparkles" [size]="12" /> Pour vous</span> }
-              </div>
-              <h3><a [routerLink]="['/modules', c.id]" [queryParams]="{ v: c.contentVersion }">{{ c.title }}</a></h3>
-              @if (c.domainName) { <div class="xs muted">{{ c.domainName }}</div> }
-            </div>
-          </div>
-          <p class="small muted" style="margin:0">{{ c.description }}</p>
-          <div class="meta">
-            <span><app-icon name="book" [size]="14" /> {{ c.lessonCount }} leçons</span>
-            <span><app-icon name="clock" [size]="14" /> {{ c.totalMinutes }} min</span>
-            @if (c.mediaBytes) { <span><app-icon name="download" [size]="14" /> {{ size(c.mediaBytes) }}</span> }
-          </div>
-          <div class="progress"><div [style.width.%]="pct(c)"></div></div>
-          @if (c.levels.length) {
-            <div class="tags">@for (l of c.levels; track l) { <span class="tag sun"><app-icon [name]="levelIcon(l)" [size]="12" /> {{ medal(l) }}</span> }</div>
-          }
-          <div class="foot">
-            <a class="btn primary" [routerLink]="['/modules', c.id, 'reprendre']">
-              {{ (done(c) > 0 ? 'action.continue' : 'action.start') | t }}
-            </a>
-            @if (learning.downloaded().has(c.id)) {
-              <span class="tag"><app-icon name="check" [size]="12" /> {{ 'action.downloaded' | t }}</span>
-              <button class="ghost icon-btn" title="Retirer de l'appareil" (click)="learning.removeDownload(c.id)"><app-icon name="trash" [size]="18" /></button>
-            } @else {
-              <button class="dl-bar" [style.--dl.%]="(busy()[c.id] ?? 0) * 100" (click)="download(c)" [disabled]="busy()[c.id] !== undefined || !learning.online()">
-                <app-icon name="download" [size]="18" />
-                {{ busy()[c.id] !== undefined ? Math.round((busy()[c.id] ?? 0) * 100) + ' %' : ('action.download' | t) }}
-              </button>
-            }
-          </div>
-        </article>
-      } @empty {
-        @if (loading()) { <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div> }
-        @else { <div class="empty"><div class="empty-icon"><app-icon name="search" [size]="30" /></div>Aucun module dans cette catégorie.</div> }
+    <nav class="tabs">
+      <button [class.active]="tab() === 'formations'" (click)="tab.set('formations')"><app-icon name="graduation" [size]="18" /> Formations ({{ programs().length }})</button>
+      <button [class.active]="tab() === 'cours'" (click)="tab.set('cours')"><app-icon name="book-open" [size]="18" /> Cours ({{ courses().length }})</button>
+    </nav>
+
+    <div class="filters">
+      <div class="chips">
+        <button [class.active]="price() === 'all'" (click)="price.set('all')">Tous</button>
+        <button [class.active]="price() === 'free'" (click)="price.set('free')">Gratuits</button>
+        <button [class.active]="price() === 'paid'" (click)="price.set('paid')">Payants</button>
+      </div>
+      <select [(ngModel)]="role" name="role" aria-label="Public">
+        <option value="">Tous les publics</option>
+        @for (r of roleList; track r) { <option [value]="r">{{ labels[r] }}</option> }
+      </select>
+      @if (tab() === 'cours') {
+        <select [(ngModel)]="domain" name="domain" aria-label="Domaine">
+          <option [ngValue]="0">Tous les domaines</option>
+          @for (d of cat()?.domains ?? []; track d.id) { <option [ngValue]="d.id">{{ d.name }}</option> }
+        </select>
       }
     </div>
+
+    @if (auth.isLoggedIn() && !auth.isStaff()) {
+      <a class="card flat orient" routerLink="/bienvenue">
+        <app-icon name="compass" [size]="26" />
+        <div style="flex:1"><strong>Vous ne savez pas par où commencer ?</strong><div class="small muted">Répondez à 4 questions : nous vous conseillons un parcours.</div></div>
+        <app-icon name="arrow" />
+      </a>
+    }
+
+    @if (!cat()) {
+      <div class="grid cols-3">@for (i of [1, 2, 3]; track i) {<div class="skeleton" style="height:260px"></div>}</div>
+    } @else if (tab() === 'formations') {
+      <div class="grid cols-3 section">
+        @for (p of programs(); track p.id) {
+          <a class="card course-card cat-card" [routerLink]="['/formations', p.id]">
+            <app-cover class="card-cover" [icon]="p.icon" [seed]="p.id + 3" [height]="110" [label]="p.title" />
+            <div class="row" style="justify-content:space-between">
+              <span class="tag sun">Formation</span>
+              @if (forMe(p.targetRoles)) { <span class="tag">Pour vous</span> }
+            </div>
+            <h3>{{ p.title }}</h3>
+            <p class="small muted clamp">{{ p.description }}</p>
+            <div class="meta"><span><app-icon name="book" [size]="14" /> {{ p.courseCount }} cours</span><span><app-icon name="clock" [size]="14" /> {{ dur(p.totalMinutes) }}</span><span><app-icon name="award" [size]="14" /> Certifiante</span></div>
+            <div class="cat-foot">
+              @if (enrolledProgram(p.id); as me) {
+                <span class="small"><strong>{{ me.percent }} %</strong> · inscrit·e</span>
+              } @else {
+                <span class="price-tag" [class.free]="!p.price">{{ priceLabel(p.price) }}</span>
+              }
+              <span class="link small">Voir <app-icon name="arrow" [size]="14" /></span>
+            </div>
+          </a>
+        } @empty { <p class="muted">Aucune formation ne correspond à votre recherche.</p> }
+      </div>
+    } @else {
+      <div class="grid cols-3 section">
+        @for (c of courses(); track c.id) {
+          <a class="card course-card cat-card" [routerLink]="['/cours', c.id]">
+            <app-cover class="card-cover" [icon]="c.icon" [seed]="c.id" [height]="96" [label]="c.title" />
+            <div class="row" style="justify-content:space-between">
+              <span class="xs muted">{{ c.domainName }}</span>
+              @if (forMe(c.targetRoles)) { <span class="tag">Pour vous</span> }
+            </div>
+            <h3>{{ c.title }}</h3>
+            <div class="meta"><span><app-icon name="book-open" [size]="14" /> {{ c.lessonCount }} leçons</span><span><app-icon name="clock" [size]="14" /> {{ dur(c.totalMinutes) }}</span>
+              @if (c.hasVideo) {<span><app-icon name="video" [size]="14" /></span>} @if (c.hasAudio) {<span><app-icon name="headphones" [size]="14" /></span>}</div>
+            <div class="cat-foot">
+              @if (enrolledCourse(c.id); as me) {
+                @let st = status(me);
+                <span class="small"><strong>{{ st.percent }} %</strong> · {{ st.label }}</span>
+              } @else {
+                <span class="price-tag" [class.free]="!c.price">{{ priceLabel(c.price) }}</span>
+              }
+              <span class="link small">Voir <app-icon name="arrow" [size]="14" /></span>
+            </div>
+          </a>
+        } @empty { <p class="muted">Aucun cours ne correspond à votre recherche.</p> }
+      </div>
+    }
   `,
 })
 export class CatalogPage implements OnInit {
-  protected learning = inject(LearningService);
-  private toast = inject(ToastService);
-  protected Math = Math;
+  protected auth = inject(AuthService);
+  private api = inject(CatalogApi);
 
-  filters: { key: Filter; label: string }[] = [
-    { key: 'all', label: 'Tous' },
-    { key: 'reco', label: 'Recommandés' },
-    { key: 'progress', label: 'En cours' },
-    { key: 'done', label: 'Terminés' },
-    { key: 'offline', label: 'Hors ligne' },
-  ];
-  filter = signal<Filter>('all');
-  courses = signal<CourseSummary[]>([]);
-  fromCache = signal(false);
-  loading = signal(true);
+  cat = signal<Catalog | null>(null);
   error = signal('');
-  busy = signal<Record<number, number>>({});
+  tab = signal<Tab>('formations');
+  price = signal<PriceFilter>('all');
+  private qs = signal('');
+  private roleS = signal('');
+  private domainS = signal(0);
+  labels = ROLE_LABELS;
+  roleList: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_ECOLE', 'PARENT', 'TRAVAILLEUR_SOCIAL', 'JEUNE'];
 
-  domain = signal<string | null>(null);
-  domains = computed(() => [...new Set(this.courses().map((c) => c.domainName).filter((d): d is string => !!d))]);
-  shown = computed(() => {
-    const f = this.filter();
-    return this.courses().filter((c) => !this.domain() || c.domainName === this.domain()).filter((c) => {
-      const d = this.done(c);
-      switch (f) {
-        case 'reco': return c.recommended;
-        case 'progress': return d > 0 && d < c.lessonCount;
-        case 'done': return c.lessonCount > 0 && d >= c.lessonCount;
-        case 'offline': return this.learning.downloaded().has(c.id);
-        default: return true;
-      }
-    });
-  });
+  get q(): string { return this.qs(); }
+  set q(v: string) { this.qs.set(v); }
+  get role(): string { return this.roleS(); }
+  set role(v: string) { this.roleS.set(v); }
+  get domain(): number { return this.domainS(); }
+  set domain(v: number) { this.domainS.set(Number(v)); }
+
+  programs = computed(() => this.sorted((this.cat()?.programs ?? []).filter((p) => this.keep(p.title + ' ' + p.description + ' ' + p.domains.join(' '), p.price, p.targetRoles))));
+  courses = computed(() => this.sorted((this.cat()?.courses ?? []).filter((c) =>
+    this.keep(c.title + ' ' + c.description + ' ' + (c.domainName ?? ''), c.price, c.targetRoles) && (!this.domainS() || c.domainId === this.domainS()))));
 
   async ngOnInit(): Promise<void> {
     try {
-      const { list, fromCache } = await this.learning.courses();
-      this.courses.set(list);
-      this.fromCache.set(fromCache);
+      this.cat.set((await this.api.catalog()).data);
+      if (this.auth.isLoggedIn()) await this.api.myLearning().catch(() => undefined);
     } catch (e) {
       this.error.set(errorMessage(e));
-    } finally {
-      this.loading.set(false);
     }
   }
 
-  done(c: CourseSummary): number {
-    return Math.max(c.completedLessons, this.learning.localDoneCount(c.id));
+  private keep(text: string, price: number, roles: Role[]): boolean {
+    const q = norm(this.qs());
+    if (q && !q.split(/\s+/).every((w) => norm(text).includes(w))) return false;
+    if (this.price() === 'free' && price > 0) return false;
+    if (this.price() === 'paid' && price === 0) return false;
+    if (this.roleS() && roles.length && !roles.includes(this.roleS() as Role)) return false;
+    return true;
   }
 
-  pct(c: CourseSummary): number {
-    return c.lessonCount ? Math.round((this.done(c) * 100) / c.lessonCount) : 0;
+  /** Les contenus pour le public de l'utilisateur d'abord. */
+  private sorted<T extends CatalogCourse | CatalogProgram>(list: T[]): T[] {
+    return [...list].sort((a, b) => Number(this.forMe(b.targetRoles)) - Number(this.forMe(a.targetRoles)));
   }
 
-  size(b: number): string {
-    return formatBytes(b);
+  forMe(roles: Role[]): boolean {
+    const r = this.auth.user()?.role;
+    return !!r && roles.includes(r);
   }
 
-  medal(l: string): string {
-    const x = LEVELS.find((v) => v.key === l);
-    return x ? x.short : l;
+  enrolledCourse(id: number) {
+    return this.api.mine()?.courses.find((c) => c.courseId === id) ?? null;
   }
 
-  levelIcon(l: string): string {
-    return LEVELS.find((v) => v.key === l)?.icon ?? 'award';
+  enrolledProgram(id: number) {
+    return this.api.mine()?.programs.find((p) => p.programId === id) ?? null;
   }
 
-  async download(c: CourseSummary): Promise<void> {
-    this.busy.update((b) => ({ ...b, [c.id]: 0 }));
-    try {
-      await this.learning.download(c.id, (r) => this.busy.update((b) => ({ ...b, [c.id]: r })));
-      this.toast.show({ icon: 'download', title: 'Disponible hors ligne', text: c.title });
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.busy.update((b) => {
-        const n = { ...b };
-        delete n[c.id];
-        return n;
-      });
-    }
-  }
+  status = courseStatus;
+  priceLabel = priceLabel;
+  dur = durationLabel;
+}
+
+function norm(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').trim();
 }

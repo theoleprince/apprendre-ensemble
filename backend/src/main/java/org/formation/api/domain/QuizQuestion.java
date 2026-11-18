@@ -20,6 +20,10 @@ public class QuizQuestion {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Course course;
 
+    /** Lecon dont cette question sert de test de comprehension (null = evaluation finale seulement). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Lesson lesson;
+
     @Column(nullable = false, length = 1000)
     private String question;
 

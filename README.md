@@ -22,6 +22,7 @@ Analyse des plateformes comparables (Kolibri, Moodle, Coursera, Duolingo, 360Lea
 | Tableau de bord | Complétion, scores, connexions / semaine, abandons, usage hors ligne, temps moyen / médian, satisfaction ; filtres pays / zone / groupe ; **rapport PDF** |
 | Droits par zone et groupe RCT | Modules restreints par groupe et zone ; tirage aléatoire stratifié reproductible |
 | Export ouvert | CSV et JSON pseudonymisés (apprenants, progression, quiz, retours, certificats) |
+| Parcours apprenant linéaire | Catalogue public → fiche du cours → inscription (gratuite, Mobile Money, carte ou code de licence, paiement simulé en démo) → leçon, exercice, quiz de la notion (bloquant) → évaluation finale (ouverte quand toutes les leçons sont validées) → certificat ; dans une formation, chaque cours s'ouvre quand le précédent est validé |
 | Paramétrage sans développement | Domaines de compétences, programmes (parcours ordonnés), établissements, classes, fiches pratiques : tout se configure dans *Pilotage* |
 | Classes (sessions) | Programme lancé pour un groupe : dates, animateur·rice, ouverture progressive des modules, code d'invitation, ajout de membres en masse (zone, école, groupe RCT) |
 | Points et classement | Barème par classe (leçons, quiz, portfolio, messages) ; classement public, anonyme ou désactivé (groupe contrôle J-PAL) ; podium final et certificat de parcours avec mention « Lauréat·e » à la clôture |
@@ -127,6 +128,7 @@ Créés au premier démarrage si `APP_SEED_DEMO=true` (boutons « en un clic » 
 | enseignant@demo.local, parent@demo.local, jeune@demo.local, direction@demo.local / Demo1234! | Apprenants |
 | conseillere2@demo.local / Demo1234! | Mentor (Atacora) : promo pilote terminée et promo à venir |
 | social@demo.local / Demo1234! | Travailleuse sociale |
+| Code de licence démo | `GDP-2027` (contenus payants) |
 | apprenantNNN@demo.local / Demo1234! | ~74 apprenant·es simulés dans 4 classes (en cours, terminée avec podium, à venir, parents) |
 
 Mettre `APP_SEED_DEMO=false` hors démonstration.

@@ -24,10 +24,9 @@ public class AccessPolicy {
         if (isStaff(u)) {
             return true;
         }
+        // le public cible est une recommandation (catalogue ouvert) ; zone, pays, langue et groupe RCT restent des droits
         return c.isPublished()
-                && c.getTargetRoles().contains(u.getRole())
                 && (c.getCountryCode() == null || c.getCountryCode().equals(u.getCountryCode()))
-                && (c.getLanguageCode() == null || c.getLanguageCode().equals(u.getLanguageCode()))
                 && (c.getAllowedRegions().isEmpty() || c.getAllowedRegions().contains(u.getRegion()))
                 && (c.getAllowedCohorts().isEmpty() || c.getAllowedCohorts().contains(u.getCohort()));
     }

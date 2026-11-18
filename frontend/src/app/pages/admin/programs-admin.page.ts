@@ -71,6 +71,7 @@ export class ProgramsAdminPage implements OnInit {
         <label>Description <textarea name="desc" rows="2" [(ngModel)]="p.description"></textarea></label>
         <div class="field-row">
           <label>Durée affichée <input name="dur" [(ngModel)]="p.durationLabel" placeholder="ex. 6 modules · 8 semaines" /></label>
+          <label>Prix de la formation (FCFA, 0 = gratuite) <input type="number" name="price" min="0" step="500" [(ngModel)]="p.price" /></label>
           <label>Pays <select name="cc" [(ngModel)]="p.countryCode"><option [ngValue]="null">Tous</option><option value="BJ">Bénin</option><option value="CI">Côte d'Ivoire</option><option value="CH">Suisse</option></select></label>
           <label>Certificat de parcours : niveau requis dans chaque module
             <select name="lvl" [(ngModel)]="p.requiredLevel">@for (l of levels; track l.key) {<option [value]="l.key">{{ l.label }}</option>}</select></label>
@@ -124,7 +125,7 @@ export class ProgramEditorPage implements OnInit {
   toAdd: number | null = null;
   p = {
     title: '', description: '', icon: 'graduation', durationLabel: '', countryCode: 'BJ' as string | null,
-    targetRoles: ['ENSEIGNANT'] as Role[], courseIds: [] as number[], requiredLevel: 'ATTESTATION' as CertificateLevel, published: true,
+    targetRoles: ['ENSEIGNANT'] as Role[], courseIds: [] as number[], requiredLevel: 'BADGE' as CertificateLevel, published: true, price: 0,
   };
   available = computed(() => this.courses().filter((c) => !this.p.courseIds.includes(c.id)));
 
@@ -135,7 +136,7 @@ export class ProgramEditorPage implements OnInit {
       if (!this.isNew()) {
         const x = await firstValueFrom(this.http.get<ProgramAdmin>(`/api/admin/programs/${this.id()}`));
         this.p = { title: x.title, description: x.description, icon: x.icon ?? 'graduation', durationLabel: x.durationLabel ?? '', countryCode: x.countryCode,
-          targetRoles: [...x.targetRoles], courseIds: [...x.courseIds], requiredLevel: x.requiredLevel, published: x.published };
+          targetRoles: [...x.targetRoles], courseIds: [...x.courseIds], requiredLevel: x.requiredLevel, published: x.published, price: x.price ?? 0 };
       }
     } catch (e) {
       this.error.set(errorMessage(e));
