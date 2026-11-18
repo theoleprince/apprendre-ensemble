@@ -5,7 +5,8 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { errorMessage } from '../core/auth.interceptor';
 import { LearningService } from '../core/learning.service';
-import { Certificate, LEVELS } from '../core/models';
+import { Certificate, LEVELS, ProgramCert, ordinal } from '../core/models';
+import { ProgramApi } from '../core/program.service';
 import { IconComponent } from '../shared/icon.component';
 import { MedalComponent } from '../shared/visuals';
 
@@ -27,10 +28,30 @@ import { MedalComponent } from '../shared/visuals';
       }
     </section>
 
+    @if (programCerts().length) {
+      <h2 class="section">Certificats de parcours</h2>
+      <div class="stack">
+        @for (c of programCerts(); track c.code) {
+          <article class="card cert-card" [class.laureate]="!!c.rank">
+            <app-medal [level]="c.rank ? 'EXPERTISE' : 'MAITRISE'" [size]="64" />
+            <div class="grow" style="flex:1;min-width:0">
+              <div class="xs muted" style="text-transform:uppercase;letter-spacing:.05em">Certificat de parcours @if (c.rank) {· Lauréat·e}</div>
+              <h3 style="margin:.1rem 0">{{ c.programTitle }}</h3>
+              <div class="small muted">@if (c.rank) {{{ rankLabel(c.rank) }} sur {{ c.classSize }} · {{ c.points }} points · }@if (c.classroomName) {{{ c.classroomName }} · }code <span class="kbd">{{ c.code }}</span></div>
+              <div class="row" style="margin-top:.6rem">
+                <a class="btn primary" [href]="'/api/public/certificates/' + c.code + '/pdf'" target="_blank" rel="noopener"><app-icon name="download" /> PDF</a>
+                <a class="btn" [href]="linkedInProgram(c.programTitle, c.code, c.issuedAt)" target="_blank" rel="noopener"><app-icon name="linkedin" /> LinkedIn</a>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+      <h2 class="section">Certificats de module</h2>
+    }
     <div class="stack">
       @for (c of sorted(); track c.code) {
         <article class="card cert-card">
-          <app-medal [level]="c.level" [size]="60" />
+          <app-medal [level]="c.level || 'MAITRISE'" [size]="60" />
           <div class="grow" style="flex:1;min-width:0">
             <div class="xs muted" style="text-transform:uppercase;letter-spacing:.05em">{{ c.levelLabel }}</div>
             <h3 style="margin:.1rem 0">{{ c.courseTitle }}</h3>
@@ -54,6 +75,7 @@ import { MedalComponent } from '../shared/visuals';
 export class CertificatesPage implements OnInit {
   protected learning = inject(LearningService);
   private http = inject(HttpClient);
+  private programs = inject(ProgramApi);
 
   levels = LEVELS;
   list = signal<Certificate[]>([]);
@@ -65,7 +87,21 @@ export class CertificatesPage implements OnInit {
     [...this.list()].sort((a, b) => LEVELS.findIndex((l) => l.key === b.level) - LEVELS.findIndex((l) => l.key === a.level)),
   );
 
+  programCerts = signal<ProgramCert[]>([]);
+
+  rankLabel(n: number): string {
+    return ordinal(n);
+  }
+
+  linkedInProgram(title: string, code: string, issuedAt: string): string {
+    const d = new Date(issuedAt);
+    const p = new URLSearchParams({ startTask: 'CERTIFICATION_NAME', name: 'Certificat de parcours - ' + title, issueYear: String(d.getFullYear()),
+      issueMonth: String(d.getMonth() + 1), certId: code, certUrl: `${location.origin}/verifier/${code}` });
+    return `https://www.linkedin.com/profile/add?${p.toString()}`;
+  }
+
   async ngOnInit(): Promise<void> {
+    void this.programs.programCertificates().then((r) => this.programCerts.set(r.data)).catch(() => undefined);
     try {
       const { list, fromCache } = await this.learning.certificates();
       this.list.set(list);

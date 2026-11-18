@@ -14,10 +14,10 @@ import { MedalComponent } from '../shared/visuals';
     <section class="card narrow center" style="max-width:520px">
       <div class="brand" style="justify-content:center;margin-bottom:1rem"><span class="brand-mark"><app-icon name="sprout" [size]="22" /></span> Apprendre Ensemble</div>
       @if (cert(); as c) {
-        <app-medal [level]="c.level" [size]="84" />
+        <app-medal [level]="c.level || 'EXPERTISE'" [size]="84" />
         <p class="pill" style="margin:0 auto"><app-icon name="check-circle" [size]="16" /> Certificat authentique</p>
         <h1 style="margin-top:1rem">{{ c.learnerName }}</h1>
-        <p>a obtenu la <strong>{{ c.levelLabel.toLowerCase() }}</strong> du module</p>
+        <p>a obtenu le / la <strong>{{ c.levelLabel.toLowerCase() }}</strong> @if (c.level) {du module} @else {du parcours}</p>
         <h2>« {{ c.courseTitle }} »</h2>
         <p class="muted">le {{ c.issuedAt | date: 'dd/MM/yyyy' }} @if (c.level !== 'ATTESTATION') {· score {{ c.scorePercent }} %}</p>
         <p class="small muted">Code <span class="kbd">{{ c.code }}</span></p>

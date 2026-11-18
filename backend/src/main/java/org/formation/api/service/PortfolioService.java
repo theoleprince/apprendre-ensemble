@@ -22,14 +22,16 @@ public class PortfolioService {
     private final LearningService learning;
     private final CertificationService certification;
     private final AccessPolicy policy;
+    private final ProgramService programs;
 
     public PortfolioService(PortfolioItemRepository items, LessonRepository lessons, LearningService learning,
-                            CertificationService certification, AccessPolicy policy) {
+                            CertificationService certification, AccessPolicy policy, ProgramService programs) {
         this.items = items;
         this.lessons = lessons;
         this.learning = learning;
         this.certification = certification;
         this.policy = policy;
+        this.programs = programs;
     }
 
     public PortfolioDto submit(AppUser user, PortfolioInput in) {
@@ -80,6 +82,7 @@ public class PortfolioService {
         items.save(p);
         if (in.status() == PortfolioItem.Status.VALIDE) {
             certification.evaluate(p.getUser(), p.getCourse());
+            programs.evaluatePrograms(p.getUser());
         }
         return toDto(p);
     }

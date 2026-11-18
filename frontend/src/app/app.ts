@@ -113,21 +113,27 @@ export class App {
     if (this.auth.isStaff()) {
       return [
         { path: '/admin', icon: 'chart', key: 'nav.admin' },
+        { path: '/admin/classes', icon: 'users', key: 'Classes' },
+        { path: '/admin/programmes', icon: 'graduation', key: 'Programmes' },
         { path: '/admin/modules', icon: 'book', key: 'nav.courses' },
+        { path: '/admin/referentiels', icon: 'settings', key: 'Référentiels' },
         { path: '/admin/apprenants', icon: 'shuffle', key: 'Groupes RCT' },
         { path: '/mentorat', icon: 'eye', key: 'nav.mentor' },
         { path: '/admin/ia', icon: 'shield', key: 'Supervision IA' },
-        { path: '/communaute', icon: 'users', key: 'nav.community' },
+        { path: '/communaute', icon: 'message-heart', key: 'nav.community' },
         { path: '/profil', icon: 'user', key: 'nav.profile' },
       ];
     }
     const items: NavItem[] = [
       { path: '/accueil', icon: 'home', key: 'nav.home' },
-      { path: '/modules', icon: 'book', key: 'nav.courses' },
+      { path: '/parcours', icon: 'graduation', key: 'Parcours' },
       { path: '/communaute', icon: 'users', key: 'nav.community' },
       { path: '/certificats', icon: 'award', key: 'nav.certificates' },
       { path: '/profil', icon: 'user', key: 'nav.profile' },
+      { path: '/fiches', icon: 'file', key: 'Fiches pratiques' },
+      { path: '/modules', icon: 'book', key: 'Tous les modules' },
     ];
+    if (u.role === 'DIRECTION_ECOLE') items.splice(1, 0, { path: '/mon-ecole', icon: 'school', key: 'Mon école' });
     if (this.auth.isMentor()) items.splice(1, 0, { path: '/mentorat', icon: 'eye', key: 'nav.mentor' });
     return items;
   });

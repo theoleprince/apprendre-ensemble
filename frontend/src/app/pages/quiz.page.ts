@@ -88,7 +88,7 @@ type Step = 'intro' | 'questions' | 'bilan';
                 <div class="earned">
                   @for (c of r.newCertificates; track c.code) {
                     <div class="earned-item">
-                      <app-medal [level]="c.level" [size]="64" />
+                      <app-medal [level]="c.level || 'MAITRISE'" [size]="64" />
                       <strong>{{ c.levelLabel }}</strong>
                       <div class="row" style="justify-content:center">
                         <a class="btn" [href]="'/api/public/certificates/' + c.code + '/pdf'" target="_blank" rel="noopener"><app-icon name="download" [size]="16" /> PDF</a>

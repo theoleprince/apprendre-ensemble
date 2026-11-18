@@ -11,4 +11,6 @@ public interface ForumPostRepository extends JpaRepository<ForumPost, Long> {
     List<ForumPost> findForThread(Long threadId);
 
     long countByThreadId(Long threadId);
+
+    long countByAuthorIdAndCreatedAtBetween(Long authorId, java.time.Instant from, java.time.Instant to);
 }

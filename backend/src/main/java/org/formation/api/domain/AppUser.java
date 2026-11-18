@@ -39,6 +39,10 @@ public class AppUser {
     /** Groupe du protocole d'evaluation (ex. TRAITEMENT / CONTROLE) ou groupe libre. */
     private String cohort;
 
+    /** Etablissement de rattachement (enseignant·es, directions). */
+    @ManyToOne(fetch = FetchType.EAGER)
+    private School school;
+
     /** Consentement explicite au traitement des donnees (RGPD / nLPD). */
     private boolean dataConsent;
 

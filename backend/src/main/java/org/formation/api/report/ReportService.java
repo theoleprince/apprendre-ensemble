@@ -16,6 +16,7 @@ import net.sf.jasperreports.pdf.SimplePdfReportConfiguration;
 import net.sf.jasperreports.pdf.JRPdfExporter;
 import org.formation.api.domain.*;
 import org.formation.api.repository.CertificateRepository;
+import org.formation.api.repository.ProgramCertificateRepository;
 import org.formation.api.repository.QuizAttemptRepository;
 import org.formation.api.service.AnalyticsService;
 import org.formation.api.service.LearningService;
@@ -48,6 +49,7 @@ public class ReportService {
 
     private final Map<String, JasperReport> compiled = new ConcurrentHashMap<>();
     private final CertificateRepository certificates;
+    private final ProgramCertificateRepository programCerts;
     private final QuizAttemptRepository attempts;
     private final LearningService learning;
     private final AnalyticsService analytics;
@@ -58,7 +60,7 @@ public class ReportService {
     private final String signatory2;
     private final String signatory2Role;
 
-    public ReportService(CertificateRepository certificates, QuizAttemptRepository attempts, LearningService learning, AnalyticsService analytics,
+    public ReportService(CertificateRepository certificates, ProgramCertificateRepository programCerts, QuizAttemptRepository attempts, LearningService learning, AnalyticsService analytics,
                          @Value("${app.brand.name:Plateforme de formation}") String platformName,
                          @Value("${app.public-url:http://localhost:4200}") String publicUrl,
                          @Value("${app.brand.signatory1:Responsable pedagogique}") String signatory1,
@@ -66,6 +68,7 @@ public class ReportService {
                          @Value("${app.brand.signatory2:Direction du programme}") String signatory2,
                          @Value("${app.brand.signatory2-role:En partenariat avec le ministere de l'education}") String signatory2Role) {
         this.certificates = certificates;
+        this.programCerts = programCerts;
         this.attempts = attempts;
         this.learning = learning;
         this.analytics = analytics;
@@ -86,8 +89,13 @@ public class ReportService {
     // ---------- Certificat ----------
 
     public byte[] certificatePdf(String code) {
-        Certificate c = certificates.findByCode(code.trim().toUpperCase())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Certificat introuvable"));
+        String k = code.trim().toUpperCase();
+        Optional<Certificate> found = certificates.findByCode(k);
+        if (found.isEmpty()) {
+            return programCerts.findByCode(k).map(this::programCertificatePdf)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Certificat introuvable"));
+        }
+        Certificate c = found.get();
         String verifyUrl = publicUrl + "/verifier/" + c.getCode();
         Map<String, Object> p = new HashMap<>();
         p.put("PLATFORM_NAME", platformName);
@@ -117,6 +125,32 @@ public class ReportService {
         p.put("SIGNATORY_2_ROLE", signatory2Role);
         p.put("QR", qr(verifyUrl));
         return pdf("certificate", p, new JREmptyDataSource(1), "Certificat " + c.getCode());
+    }
+
+    /** Certificat de parcours (programme complet), avec mention de laureat·e pour le podium de la classe. */
+    private byte[] programCertificatePdf(ProgramCertificate pc) {
+        String verifyUrl = publicUrl + "/verifier/" + pc.getCode();
+        Map<String, Object> p = new HashMap<>();
+        p.put("PLATFORM_NAME", platformName);
+        boolean laureate = pc.getRank() != null;
+        p.put("LEVEL_LABEL", laureate ? "Certificat de parcours · Lauréat·e" : "Certificat de parcours");
+        p.put("LEVEL_SHORT", laureate ? (pc.getRank() + (pc.getRank() == 1 ? "ER" : "E") + " / " + pc.getClassSize()) : "PARCOURS");
+        p.put("LEVEL_TEXT", laureate
+                ? "pour avoir terminé le parcours et s'être classé·e " + pc.getRank() + (pc.getRank() == 1 ? "er" : "e") + " de sa classe"
+                : "pour avoir suivi avec succès l'ensemble du parcours de formation");
+        p.put("LEARNER_NAME", pc.getUser().getFullName());
+        p.put("COURSE_TITLE", pc.getProgram().getTitle());
+        p.put("DETAILS", (pc.getClassroom() == null ? "" : pc.getClassroom().getName() + "  ·  ")
+                + (pc.getPoints() > 0 ? pc.getPoints() + " points  ·  " : "") + "Délivré le " + DATE.format(pc.getIssuedAt()));
+        p.put("CODE", pc.getCode());
+        p.put("VERIFY_URL", verifyUrl);
+        p.put("YEAR", String.valueOf(pc.getIssuedAt().atZone(ZoneId.of("UTC")).getYear()));
+        p.put("SIGNATORY_1", signatory1);
+        p.put("SIGNATORY_1_ROLE", signatory1Role);
+        p.put("SIGNATORY_2", signatory2);
+        p.put("SIGNATORY_2_ROLE", signatory2Role);
+        p.put("QR", qr(verifyUrl));
+        return pdf("certificate", p, new JREmptyDataSource(1), "Certificat " + pc.getCode());
     }
 
     // ---------- Releve individuel ----------

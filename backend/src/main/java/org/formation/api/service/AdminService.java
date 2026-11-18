@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import org.formation.api.domain.*;
 import org.formation.api.repository.AppUserRepository;
 import org.formation.api.repository.CourseRepository;
+import org.formation.api.repository.DomainRepository;
 import org.formation.api.web.dto.Dtos.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,11 +23,13 @@ public class AdminService {
 
     private final CourseRepository courses;
     private final AppUserRepository users;
+    private final DomainRepository domains;
     private final EntityManager em;
 
-    public AdminService(CourseRepository courses, AppUserRepository users, EntityManager em) {
+    public AdminService(CourseRepository courses, AppUserRepository users, DomainRepository domains, EntityManager em) {
         this.courses = courses;
         this.users = users;
+        this.domains = domains;
         this.em = em;
     }
 
@@ -47,7 +50,8 @@ public class AdminService {
                         l.getMediaSizeBytes(), l.getSubtitlesUrl(), l.getContent(), l.getPracticeTask(),
                         l.getDurationMinutes())).toList(),
                 c.getQuestions().stream().map(q -> new QuestionInput(q.getQuestion(), List.copyOf(q.getOptions()),
-                        q.getCorrectIndex(), q.getExplanation())).toList());
+                        q.getCorrectIndex(), q.getExplanation())).toList(),
+                c.getDomain() == null ? null : c.getDomain().getId());
     }
 
     public AdminCourse create(CourseInput in) {
@@ -108,6 +112,7 @@ public class AdminService {
         c.setMasteryScore(in.masteryScore());
         c.setExpertiseEnabled(in.expertiseEnabled());
         c.setPublished(in.published());
+        c.setDomain(in.domainId() == null ? null : domains.findById(in.domainId()).orElse(null));
         c.setUpdatedAt(Instant.now());
 
         List<Lesson> ls = c.getLessons();
@@ -164,7 +169,7 @@ public class AdminService {
     private AdminCourse toAdmin(Course c) {
         return new AdminCourse(c.getId(), c.getTitle(), c.getIcon(), c.getType(), c.getCountryCode(), c.getLanguageCode(),
                 c.getTargetRoles(), c.getAllowedCohorts(), c.isPublished(), c.getLessons().size(), c.getQuestions().size(),
-                c.getContentVersion());
+                c.getContentVersion(), c.getDomain() == null ? null : c.getDomain().getName());
     }
 
     // ---------- Apprenants et groupes RCT ----------

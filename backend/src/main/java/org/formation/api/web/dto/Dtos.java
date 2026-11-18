@@ -3,6 +3,7 @@ package org.formation.api.web.dto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import org.formation.api.domain.CertificateLevel;
+import org.formation.api.domain.Classroom;
 import org.formation.api.domain.CourseType;
 import org.formation.api.domain.MediaType;
 import org.formation.api.domain.PortfolioItem;
@@ -61,7 +62,7 @@ public final class Dtos {
     }
 
     // ---------- Modules ----------
-    public record CourseSummary(Long id, String title, String description, String icon, CourseType type,
+    public record CourseSummary(Long id, String title, String description, String icon, CourseType type, String domainName,
                                 String countryCode, String languageCode, int lessonCount, int totalMinutes,
                                 long mediaBytes, int completedLessons, List<CertificateLevel> levels,
                                 int contentVersion, boolean recommended) {
@@ -176,12 +177,13 @@ public final class Dtos {
             boolean expertiseEnabled,
             boolean published,
             @NotNull List<@Valid LessonInput> lessons,
-            @NotNull List<@Valid QuestionInput> questions) {
+            @NotNull List<@Valid QuestionInput> questions,
+            Long domainId) {
     }
 
     public record AdminCourse(Long id, String title, String icon, CourseType type, String countryCode,
                               String languageCode, Set<Role> targetRoles, Set<String> allowedCohorts,
-                              boolean published, int lessonCount, int questionCount, int contentVersion) {
+                              boolean published, int lessonCount, int questionCount, int contentVersion, String domainName) {
     }
 
     public record MediaUpload(String url, long sizeBytes, String contentType) {
@@ -236,5 +238,111 @@ public final class Dtos {
     }
 
     public record AiSuggestions(String summary, List<Suggestion> suggestions, String model) {
+    }
+
+    // =====================================================================
+    // Domaines, programmes, classes, classement, ressources, etablissements
+    // =====================================================================
+    public record DomainDto(Long id, String name, String description, String icon, int position) {
+    }
+
+    public record DomainInput(@NotBlank @Size(max = 120) String name, @Size(max = 1000) String description, String icon, int position) {
+    }
+
+    /** Etat d'un module dans un programme : DONE (niveau requis atteint), IN_PROGRESS, TODO, LOCKED (pas encore ouvert). */
+    public record ProgramModule(Long courseId, String title, String icon, String domainName, CourseType type, int lessonCount,
+                                int totalMinutes, int completedLessons, List<CertificateLevel> levels, String state,
+                                java.time.LocalDate unlockDate) {
+    }
+
+    public record ClassroomBrief(Long id, String name, Long programId, String programTitle, java.time.LocalDate startDate,
+                                 java.time.LocalDate endDate, String status, int week, int totalWeeks, String facilitatorName,
+                                 int memberCount, Integer myRank, Integer myPoints, String leaderboardMode, String meetingUrl,
+                                 String inviteCode) {
+    }
+
+    public record ProgramCertDto(String code, String programTitle, String learnerName, Integer rank, Integer classSize,
+                                 int points, Instant issuedAt, String classroomName) {
+    }
+
+    public record ProgramSummary(Long id, String title, String description, String icon, String durationLabel, int moduleCount,
+                                 int completedModules, int percent, Long nextCourseId, ClassroomBrief classroom,
+                                 ProgramCertDto certificate) {
+    }
+
+    public record ProgramDetail(Long id, String title, String description, String icon, String durationLabel,
+                                CertificateLevel requiredLevel, List<ProgramModule> modules, List<String> domains,
+                                ClassroomBrief classroom, ProgramCertDto certificate) {
+    }
+
+    public record LeaderRow(int rank, String name, int points, int lessons, int quizPoints, int portfolios, int posts,
+                            boolean me, boolean completed) {
+    }
+
+    public record Leaderboard(ClassroomBrief classroom, String mode, List<LeaderRow> rows, LeaderRow myRow) {
+    }
+
+    public record JoinRequest(@NotBlank @Size(max = 40) String code) {
+    }
+
+    public record ResourceDto(Long id, String title, String summary, String icon, String content, String fileUrl,
+                              Long domainId, String domainName, Set<Role> targetRoles) {
+    }
+
+    public record ResourceInput(@NotBlank String title, String summary, String icon, String content, String fileUrl,
+                                Long domainId, Set<Role> targetRoles) {
+    }
+
+    public record SchoolDto(Long id, String name, String countryCode, String region, String commune, long staffCount) {
+    }
+
+    public record SchoolInput(@NotBlank String name, String countryCode, String region, String commune) {
+    }
+
+    /** Suivi d'un apprenant : ACTIF (< 7 j), RALENTI (7-14 j), DECROCHE (> 14 j sans activite). */
+    public record LearnerProgress(Long id, String name, Role role, String schoolName, String region, int programPercent,
+                                  int lessonsDone, int certificates, Instant lastActiveAt, String status, String classroomName,
+                                  Integer rank) {
+    }
+
+    public record SchoolDashboard(SchoolDto school, int staff, int active7d, int avgProgress, int dropouts,
+                                  List<LearnerProgress> rows, List<ClassroomBrief> classrooms) {
+    }
+
+    public record MentorDashboard(List<ClassroomBrief> classrooms, List<LearnerProgress> learners, long portfoliosPending,
+                                  int dropouts) {
+    }
+
+    // ---------- Administration ----------
+    public record ProgramInput(@NotBlank String title, String description, String icon, String durationLabel, String countryCode,
+                               @NotEmpty Set<Role> targetRoles, @NotNull List<Long> courseIds, @NotNull CertificateLevel requiredLevel,
+                               boolean published) {
+    }
+
+    public record ProgramAdmin(Long id, String title, String description, String icon, String durationLabel, String countryCode,
+                               Set<Role> targetRoles, List<Long> courseIds, List<String> courseTitles,
+                               CertificateLevel requiredLevel, boolean published, long classroomCount) {
+    }
+
+    public record ClassroomInput(@NotBlank String name, @NotNull Long programId, Long facilitatorId,
+                                 @NotNull java.time.LocalDate startDate, @NotNull java.time.LocalDate endDate,
+                                 @NotNull Classroom.UnlockMode unlockMode, @Min(1) @Max(60) int unlockIntervalDays,
+                                 @NotNull Classroom.LeaderboardMode leaderboardMode,
+                                 @Min(0) int pointsPerLesson, @Min(0) int pointsPerQuizPercent, @Min(0) int pointsPerPortfolio,
+                                 @Min(0) int pointsPerPost, @Size(max = 500) String meetingUrl) {
+    }
+
+    public record ClassroomAdmin(Long id, String name, Long programId, String programTitle, Long facilitatorId,
+                                 String facilitatorName, java.time.LocalDate startDate, java.time.LocalDate endDate,
+                                 Classroom.UnlockMode unlockMode, int unlockIntervalDays, Classroom.LeaderboardMode leaderboardMode,
+                                 int pointsPerLesson, int pointsPerQuizPercent, int pointsPerPortfolio, int pointsPerPost,
+                                 String meetingUrl, String inviteCode, String status, boolean closed, List<Long> memberIds) {
+    }
+
+    /** Ajout en masse : tous les apprenants correspondant aux filtres, ou une liste explicite. */
+    public record MembersRequest(List<Long> userIds, Role role, String region, Long schoolId, String cohort) {
+    }
+
+    public record UserBrief(Long id, String fullName, Role role, String region, String schoolName, String cohort) {
     }
 }

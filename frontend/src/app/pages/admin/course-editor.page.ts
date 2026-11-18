@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { errorMessage } from '../../core/auth.interceptor';
-import { CourseInput, LessonInput, MediaUpload, ROLE_LABELS, Referentiel, Role, formatBytes } from '../../core/models';
+import { CourseInput, Domain, LessonInput, MediaUpload, ROLE_LABELS, Referentiel, Role, formatBytes } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
 import { IconComponent } from '../../shared/icon.component';
 import { CoverComponent } from '../../shared/visuals';
@@ -30,6 +30,7 @@ const ALL_ROLES: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_EC
             <label>Titre <input name="title" [(ngModel)]="c.title" required /></label>
           </div>
           <label>Description <textarea name="desc" rows="2" [(ngModel)]="c.description"></textarea></label>
+          <label>Domaine de compétences <select name="dom" [(ngModel)]="c.domainId"><option [ngValue]="null">—</option>@for (d of domains(); track d.id) {<option [ngValue]="d.id">{{ d.name }}</option>}</select></label>
           <div class="field-row">
             <label>Parcours <select name="type" [(ngModel)]="c.type"><option value="THEORIQUE">Théorique (LMS)</option><option value="PRATIQUE">Pratique (LXP)</option></select></label>
             <label>Pays <select name="country" [(ngModel)]="c.countryCode"><option [ngValue]="null">Tous</option>@for (x of r.countries; track x.code) {<option [ngValue]="x.code">{{ x.name }}</option>}</select></label>
@@ -130,6 +131,7 @@ export class CourseEditorPage implements OnInit {
     { v: 'VIDEO' as const, l: 'Vidéo', icon: 'video' },
   ];
   ref = signal<Referentiel | null>(null);
+  domains = signal<Domain[]>([]);
   error = signal('');
   saving = signal(false);
   uploading = signal(false);
@@ -138,13 +140,14 @@ export class CourseEditorPage implements OnInit {
   regions = '';
   c: CourseInput = {
     title: '', description: '', icon: 'book-open', type: 'THEORIQUE', countryCode: null, languageCode: 'fr', targetRoles: ['ENSEIGNANT'],
-    allowedCohorts: [], allowedRegions: [], passScore: 70, masteryScore: 85, expertiseEnabled: true, published: false, lessons: [], questions: [],
+    allowedCohorts: [], allowedRegions: [], passScore: 70, masteryScore: 85, expertiseEnabled: true, published: false, lessons: [], questions: [], domainId: null,
   };
 
   async ngOnInit(): Promise<void> {
     this.isNew.set(this.id() === 'nouveau');
     try {
       this.ref.set(await firstValueFrom(this.http.get<Referentiel>('/api/referentiel')));
+      this.domains.set(await firstValueFrom(this.http.get<Domain[]>('/api/admin/domains')));
       if (!this.isNew()) {
         this.c = await firstValueFrom(this.http.get<CourseInput>(`/api/admin/courses/${this.id()}`));
         this.cohorts = (this.c.allowedCohorts ?? []).join(', ');

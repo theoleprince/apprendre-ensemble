@@ -14,12 +14,18 @@ type Filter = 'all' | 'reco' | 'progress' | 'done' | 'offline';
   selector: 'app-catalog',
   imports: [RouterLink, IconComponent, TranslatePipe, CoverComponent],
   template: `
-    <h1>Modules</h1>
+    <h1>Tous les modules</h1>
     <div class="chips" role="tablist">
       @for (f of filters; track f.key) {
         <button [class.active]="filter() === f.key" (click)="filter.set(f.key)">{{ f.label }}</button>
       }
     </div>
+    @if (domains().length > 1) {
+      <div class="chips" style="margin-top:.5rem">
+        <button [class.active]="!domain()" (click)="domain.set(null)">Tous les domaines</button>
+        @for (d of domains(); track d) { <button [class.active]="domain() === d" (click)="domain.set(d)">{{ d }}</button> }
+      </div>
+    }
     @if (fromCache()) { <p class="notice section"><app-icon name="wifi-off" /> Liste enregistrée sur l'appareil.</p> }
     @if (error()) { <p class="error">{{ error() }}</p> }
 
@@ -34,6 +40,7 @@ type Filter = 'all' | 'reco' | 'progress' | 'done' | 'offline';
                 @if (c.recommended) { <span class="tag violet"><app-icon name="sparkles" [size]="12" /> Pour vous</span> }
               </div>
               <h3><a [routerLink]="['/modules', c.id]" [queryParams]="{ v: c.contentVersion }">{{ c.title }}</a></h3>
+              @if (c.domainName) { <div class="xs muted">{{ c.domainName }}</div> }
             </div>
           </div>
           <p class="small muted" style="margin:0">{{ c.description }}</p>
@@ -87,9 +94,11 @@ export class CatalogPage implements OnInit {
   error = signal('');
   busy = signal<Record<number, number>>({});
 
+  domain = signal<string | null>(null);
+  domains = computed(() => [...new Set(this.courses().map((c) => c.domainName).filter((d): d is string => !!d))]);
   shown = computed(() => {
     const f = this.filter();
-    return this.courses().filter((c) => {
+    return this.courses().filter((c) => !this.domain() || c.domainName === this.domain()).filter((c) => {
       const d = this.done(c);
       switch (f) {
         case 'reco': return c.recommended;

@@ -89,6 +89,7 @@ export interface CourseSummary {
   description: string;
   icon: string | null;
   type: CourseType;
+  domainName: string | null;
   countryCode: string | null;
   languageCode: string | null;
   lessonCount: number;
@@ -143,9 +144,9 @@ export interface ProgressItem {
 
 export interface Certificate {
   code: string;
-  level: CertificateLevel;
+  level: CertificateLevel | null;
   levelLabel: string;
-  courseId: number;
+  courseId: number | null;
   courseTitle: string;
   learnerName: string;
   scorePercent: number;
@@ -302,6 +303,7 @@ export interface AdminCourse {
   lessonCount: number;
   questionCount: number;
   contentVersion: number;
+  domainName: string | null;
 }
 
 export interface LessonInput {
@@ -338,6 +340,7 @@ export interface CourseInput {
   published: boolean;
   lessons: LessonInput[];
   questions: QuestionInput[];
+  domainId: number | null;
 }
 
 export interface LearnerRow {
@@ -372,4 +375,218 @@ export function formatBytes(b: number): string {
   if (!b) return '0 Ko';
   if (b < 1024 * 1024) return `${Math.max(1, Math.round(b / 1024))} Ko`;
   return `${(b / 1024 / 1024).toFixed(1).replace('.', ',')} Mo`;
+}
+
+// ---------- Domaines, programmes, classes, classement, fiches, suivi ----------
+export type ModuleState = 'DONE' | 'IN_PROGRESS' | 'TODO' | 'LOCKED';
+export type ClassroomStatus = 'UPCOMING' | 'ACTIVE' | 'CLOSED';
+export type LeaderboardMode = 'PUBLIC' | 'ANONYMOUS' | 'DISABLED';
+
+export interface Domain {
+  id: number;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  position: number;
+}
+
+export interface ClassroomBrief {
+  id: number;
+  name: string;
+  programId: number;
+  programTitle: string;
+  startDate: string;
+  endDate: string;
+  status: ClassroomStatus;
+  week: number;
+  totalWeeks: number;
+  facilitatorName: string | null;
+  memberCount: number;
+  myRank: number | null;
+  myPoints: number | null;
+  leaderboardMode: LeaderboardMode;
+  meetingUrl: string | null;
+  inviteCode: string | null;
+}
+
+export interface ProgramCert {
+  code: string;
+  programTitle: string;
+  learnerName: string;
+  rank: number | null;
+  classSize: number | null;
+  points: number;
+  issuedAt: string;
+  classroomName: string | null;
+}
+
+export interface ProgramSummary {
+  id: number;
+  title: string;
+  description: string;
+  icon: string | null;
+  durationLabel: string | null;
+  moduleCount: number;
+  completedModules: number;
+  percent: number;
+  nextCourseId: number | null;
+  classroom: ClassroomBrief | null;
+  certificate: ProgramCert | null;
+}
+
+export interface ProgramModule {
+  courseId: number;
+  title: string;
+  icon: string | null;
+  domainName: string | null;
+  type: CourseType;
+  lessonCount: number;
+  totalMinutes: number;
+  completedLessons: number;
+  levels: CertificateLevel[];
+  state: ModuleState;
+  unlockDate: string | null;
+}
+
+export interface ProgramDetail {
+  id: number;
+  title: string;
+  description: string;
+  icon: string | null;
+  durationLabel: string | null;
+  requiredLevel: CertificateLevel;
+  modules: ProgramModule[];
+  domains: string[];
+  classroom: ClassroomBrief | null;
+  certificate: ProgramCert | null;
+}
+
+export interface LeaderRow {
+  rank: number;
+  name: string;
+  points: number;
+  lessons: number;
+  quizPoints: number;
+  portfolios: number;
+  posts: number;
+  me: boolean;
+  completed: boolean;
+}
+
+export interface Leaderboard {
+  classroom: ClassroomBrief;
+  mode: LeaderboardMode;
+  rows: LeaderRow[];
+  myRow: LeaderRow | null;
+}
+
+export interface ResourceItem {
+  id: number;
+  title: string;
+  summary: string | null;
+  icon: string | null;
+  content: string | null;
+  fileUrl: string | null;
+  domainId: number | null;
+  domainName: string | null;
+  targetRoles: Role[];
+}
+
+export interface School {
+  id: number;
+  name: string;
+  countryCode: string | null;
+  region: string | null;
+  commune: string | null;
+  staffCount: number;
+}
+
+export interface LearnerProgress {
+  id: number;
+  name: string;
+  role: Role;
+  schoolName: string | null;
+  region: string | null;
+  programPercent: number;
+  lessonsDone: number;
+  certificates: number;
+  lastActiveAt: string | null;
+  status: 'ACTIF' | 'RALENTI' | 'DECROCHE';
+  classroomName: string | null;
+  rank: number | null;
+}
+
+export interface SchoolDashboard {
+  school: School;
+  staff: number;
+  active7d: number;
+  avgProgress: number;
+  dropouts: number;
+  rows: LearnerProgress[];
+  classrooms: ClassroomBrief[];
+}
+
+export interface MentorDashboard {
+  classrooms: ClassroomBrief[];
+  learners: LearnerProgress[];
+  portfoliosPending: number;
+  dropouts: number;
+}
+
+export interface ProgramAdmin {
+  id: number;
+  title: string;
+  description: string;
+  icon: string | null;
+  durationLabel: string | null;
+  countryCode: string | null;
+  targetRoles: Role[];
+  courseIds: number[];
+  courseTitles: string[];
+  requiredLevel: CertificateLevel;
+  published: boolean;
+  classroomCount: number;
+}
+
+export interface ClassroomAdmin {
+  id: number;
+  name: string;
+  programId: number;
+  programTitle: string;
+  facilitatorId: number | null;
+  facilitatorName: string | null;
+  startDate: string;
+  endDate: string;
+  unlockMode: 'ALL' | 'WEEKLY';
+  unlockIntervalDays: number;
+  leaderboardMode: LeaderboardMode;
+  pointsPerLesson: number;
+  pointsPerQuizPercent: number;
+  pointsPerPortfolio: number;
+  pointsPerPost: number;
+  meetingUrl: string | null;
+  inviteCode: string | null;
+  status: ClassroomStatus;
+  closed: boolean;
+  memberIds: number[];
+}
+
+export interface UserBrief {
+  id: number;
+  fullName: string;
+  role: Role;
+  region: string | null;
+  schoolName: string | null;
+  cohort: string | null;
+}
+
+export const STATUS_LABELS: Record<ClassroomStatus, string> = { UPCOMING: 'À venir', ACTIVE: 'En cours', CLOSED: 'Terminée' };
+
+export function ordinal(n: number): string {
+  return n === 1 ? '1er' : `${n}e`;
+}
+
+export function frDate(iso: string | null): string {
+  if (!iso) return '';
+  return new Date(iso.length === 10 ? iso + 'T12:00:00' : iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
 }

@@ -2,6 +2,7 @@ package org.formation.api.service;
 
 import org.formation.api.domain.*;
 import org.formation.api.repository.*;
+import org.formation.api.repository.ProgramCertificateRepository;
 import org.formation.api.web.dto.Dtos.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,11 +27,15 @@ public class LearningService {
     private final AppUserRepository users;
     private final CertificationService certification;
     private final AccessPolicy policy;
+    private final ProgramService programs;
+    private final ClassroomLocks locks;
+    private final ProgramCertificateRepository programCerts;
 
     public LearningService(CourseRepository courses, LessonRepository lessons, LessonProgressRepository progress,
                            QuizAttemptRepository attempts, CertificateRepository certificates,
                            CourseFeedbackRepository feedbacks, ActivityEventRepository activity, AppUserRepository users,
-                           CertificationService certification, AccessPolicy policy) {
+                           CertificationService certification, AccessPolicy policy, ProgramService programs,
+                           ClassroomLocks locks, ProgramCertificateRepository programCerts) {
         this.courses = courses;
         this.lessons = lessons;
         this.progress = progress;
@@ -41,6 +46,9 @@ public class LearningService {
         this.users = users;
         this.certification = certification;
         this.policy = policy;
+        this.programs = programs;
+        this.locks = locks;
+        this.programCerts = programCerts;
     }
 
     @Transactional(readOnly = true)
@@ -73,6 +81,7 @@ public class LearningService {
         long bytes = c.getLessons().stream().mapToLong(Lesson::getMediaSizeBytes).sum();
         List<CertificateLevel> sorted = levels.stream().sorted().toList();
         return new CourseSummary(c.getId(), c.getTitle(), c.getDescription(), c.getIcon(), c.getType(),
+                c.getDomain() == null ? null : c.getDomain().getName(),
                 c.getCountryCode(), c.getLanguageCode(), c.getLessons().size(), minutes, bytes, done, sorted,
                 c.getContentVersion(), recommended);
     }
@@ -80,6 +89,10 @@ public class LearningService {
     @Transactional(readOnly = true)
     public CoursePackage coursePackage(AppUser user, Long courseId) {
         Course c = accessibleCourse(user, courseId);
+        locks.lockedUntil(user, c).ifPresent(d -> {
+            throw new ResponseStatusException(HttpStatus.LOCKED, "Ce module ouvrira le "
+                    + d.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + " pour votre classe");
+        });
         return new CoursePackage(c.getId(), c.getTitle(), c.getDescription(), c.getIcon(), c.getType(),
                 c.getPassScore(), c.getMasteryScore(), c.isExpertiseEnabled(), c.getContentVersion(), c.getUpdatedAt(),
                 c.getLessons().stream().map(LearningService::lessonDto).toList(),
@@ -126,6 +139,7 @@ public class LearningService {
         for (Course c : touched) {
             issued.addAll(certification.evaluate(user, c));
         }
+        if (!touched.isEmpty()) programs.evaluatePrograms(user);
         if (accepted > 0) {
             activity.save(new ActivityEvent(user.getId(), ActivityEvent.Type.SYNC, accepted));
         }
@@ -170,6 +184,7 @@ public class LearningService {
 
         boolean allDone = progress.countByUserIdAndLessonCourseId(user.getId(), c.getId()) >= c.getLessons().size();
         List<CertificateDto> issued = certification.evaluate(user, c);
+        programs.evaluatePrograms(user);
         touch(user);
         return new QuizResult(score, score >= c.getPassScore(), score >= c.getMasteryScore(), allDone, corrections, issued);
     }
@@ -184,7 +199,12 @@ public class LearningService {
 
     @Transactional(readOnly = true)
     public CertificateDto verify(String code) {
-        return certificates.findByCode(code.trim().toUpperCase()).map(CertificationService::toDto)
+        String k = code.trim().toUpperCase();
+        return certificates.findByCode(k).map(CertificationService::toDto)
+                .or(() -> programCerts.findByCode(k).map(pc -> new CertificateDto(pc.getCode(), null,
+                        pc.getRank() == null ? "Certificat de parcours" : "Certificat de parcours · Lauréat·e (" + pc.getRank()
+                                + (pc.getRank() == 1 ? "er" : "e") + " sur " + pc.getClassSize() + ")",
+                        null, pc.getProgram().getTitle(), pc.getUser().getFullName(), 0, pc.getIssuedAt())))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Certificat introuvable"));
     }
 

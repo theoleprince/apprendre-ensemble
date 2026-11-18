@@ -33,6 +33,10 @@ public class Course {
     @Enumerated(EnumType.STRING)
     private CourseType type = CourseType.THEORIQUE;
 
+    /** Domaine de competences du module. */
+    @ManyToOne(fetch = FetchType.EAGER)
+    private Domain domain;
+
     private String countryCode;
     private String languageCode;
 
