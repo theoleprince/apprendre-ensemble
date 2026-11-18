@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Spécification fonctionnelle et technique · Plateforme de formation en ligne et hors connexion</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  :root { --brand: #2e7d4f; --brand-d: #1f5a38; --sun: #c9a227; --ink: #1d2a24; --muted: #5d6b64; --line: #d9e2dc; --tint: #f2f7f3; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", "DejaVu Sans", Arial, sans-serif; color: var(--ink); font-size: 10.2pt; line-height: 1.5; margin: 0; }
+  h1, h2, h3 { font-family: Georgia, "DejaVu Serif", serif; color: var(--brand-d); line-height: 1.2; }
+  h2 { font-size: 17pt; margin: 0 0 8pt; padding-bottom: 4pt; border-bottom: 2px solid var(--sun); page-break-after: avoid; }
+  h3 { font-size: 12pt; margin: 14pt 0 4pt; page-break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 16pt; }
+  li { margin-bottom: 2pt; }
+  section { page-break-before: always; }
+  section.flow { page-break-before: auto; margin-top: 18pt; }
+  table { width: 100%; border-collapse: collapse; margin: 6pt 0 10pt; font-size: 9pt; page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+  th { background: var(--brand); color: #fff; text-align: left; padding: 5pt 6pt; font-weight: 600; }
+  td { padding: 4pt 6pt; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:nth-child(even) td { background: #fafcfa; }
+  code, .mono { font-family: Consolas, "DejaVu Sans Mono", monospace; font-size: 8.8pt; background: var(--tint); padding: 0 3pt; border-radius: 3pt; }
+  .lead { font-size: 11pt; color: var(--ink); }
+  .muted { color: var(--muted); }
+  .small { font-size: 8.8pt; }
+  .callout { border-left: 4px solid var(--brand); background: var(--tint); padding: 8pt 10pt; margin: 8pt 0 10pt; border-radius: 0 6pt 6pt 0; }
+  .callout.sun { border-color: var(--sun); background: #fbf7e8; }
+  .ok { color: var(--brand); font-weight: 600; }
+  .no { color: #a0522d; font-weight: 600; }
+  .part { color: #a07d10; font-weight: 600; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt; }
+  .shots { display: flex; gap: 8pt; justify-content: space-between; margin: 8pt 0; page-break-inside: avoid; }
+  figure { margin: 0; text-align: center; page-break-inside: avoid; }
+  figure img { border: 1px solid var(--line); border-radius: 6pt; object-fit: cover; object-position: top; display: block; margin: 0 auto; }
+  figure.m img { width: 52mm; height: 100mm; }
+  figure.d img { width: 100%; height: 78mm; }
+  figcaption { font-size: 8pt; color: var(--muted); margin-top: 3pt; }
+  .cover { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; }
+  .cover .band { background: var(--brand); color: #fff; padding: 26mm 14mm 18mm; border-radius: 0 0 10pt 10pt; border-bottom: 6px solid var(--sun); }
+  .cover .band h1 { color: #fff; font-size: 30pt; margin: 0 0 8pt; }
+  .cover .band .sub { font-size: 14pt; opacity: .95; }
+  .cover .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8pt; padding: 0 6mm; }
+  .cover .kpi { border: 1px solid var(--line); border-radius: 8pt; padding: 10pt; text-align: center; }
+  .cover .kpi b { display: block; font-size: 20pt; color: var(--brand-d); font-family: Georgia, serif; }
+  .cover .meta { padding: 0 6mm; font-size: 9.5pt; }
+  .cover .meta td { border: none; padding: 2pt 6pt 2pt 0; background: none !important; }
+  .toc { columns: 2; column-gap: 14pt; font-size: 10pt; }
+  .toc div { break-inside: avoid; padding: 3pt 0; border-bottom: 1px dotted var(--line); }
+  .acc { border: 2px solid var(--brand); border-radius: 8pt; padding: 10pt 12pt; margin: 8pt 0; }
+  .acc .url { font-size: 12pt; font-weight: 700; color: var(--brand-d); word-break: break-all; }
+  .step { counter-increment: st; }
+  .scen { border: 1px solid var(--line); border-radius: 8pt; padding: 8pt 10pt; margin: 7pt 0; page-break-inside: avoid; }
+  .scen h4 { margin: 0 0 4pt; font-size: 10.5pt; color: var(--brand-d); }
+  .scen ol { margin-bottom: 2pt; }
+  .tag { display: inline-block; background: var(--tint); color: var(--brand-d); border-radius: 10pt; padding: 0 6pt; font-size: 8pt; font-weight: 600; }
+  svg text { font-family: "Segoe UI", "DejaVu Sans", Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- ============ COUVERTURE ============ -->
+<div class="cover">
+  <div class="band">
+    <div class="small" style="letter-spacing:.12em;text-transform:uppercase;opacity:.85">Réponse à l'appel à propositions du 16 novembre 2026</div>
+    <h1>Spécification fonctionnelle et technique</h1>
+    <div class="sub">Plateforme de formation en ligne et hors connexion<br>Démonstrateur « Apprendre Ensemble »</div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><b>17</b>modules de démonstration (texte, audio, vidéo)</div>
+    <div class="kpi"><b>6</b>programmes, un par public</div>
+    <div class="kpi"><b>4</b>niveaux de certification + certificat de parcours</div>
+    <div class="kpi"><b>~125 Ko</b>au premier chargement, puis hors ligne</div>
+  </div>
+  <div class="meta">
+    <table>
+      <tr><td><b>Destinataire</b></td><td>Fondation Graines de Paix</td></tr>
+      <tr><td><b>Objet</b></td><td>Plateforme unique LMS + LXP, en ligne et hors connexion, avec certification</td></tr>
+      <tr><td><b>Version du document</b></td><td>1.0 du 18/11/2026</td></tr>
+      <tr><td><b>Environnement de test</b></td><td>https://app-production-7165e5b8.up.railway.app (voir section 11)</td></tr>
+      <tr><td><b>Code source</b></td><td>github.com/theoleprince/apprendre-ensemble</td></tr>
+      <tr><td><b>Date limite de dépôt</b></td><td>30/11/2026 (questions jusqu'au 20/11/2026)</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ============ SOMMAIRE ============ -->
+<h2>Sommaire</h2>
+<div class="toc">
+  <div>1. Synthèse</div>
+  <div>2. Périmètre et état de la démonstration</div>
+  <div>3. Publics, rôles et droits</div>
+  <div>4. Parcours utilisateurs par profil</div>
+  <div>5. Spécifications fonctionnelles détaillées</div>
+  <div>6. Hors connexion et faible connectivité</div>
+  <div>7. Architecture technique</div>
+  <div>8. Sécurité, conformité et IA responsable</div>
+  <div>9. Données et évaluation d'impact J-PAL</div>
+  <div>10. Correspondance avec les termes de référence</div>
+  <div>11. Accès à l'environnement de test</div>
+  <div>12. Limites actuelles et feuille de route</div>
+</div>
+
+<section class="flow">
+<h2>1. Synthèse</h2>
+<p class="lead">Le démonstrateur couvre déjà les exigences fonctionnelles des sections 4 et 5 des termes de référence. Il est en ligne, testable profil par profil, et fonctionne hors connexion.</p>
+<p>Il répond à l'appel à propositions du 16/11/2026 pour une plateforme de formation unique, en ligne et hors connexion. Elle combine un parcours théorique (LMS) et un parcours pratique (LXP) avec certification. Le premier déploiement vise le nord du Bénin : 48 925 comptes, avec une évaluation d'impact par essai contrôlé randomisé mené avec J-PAL. D'autres pays suivront, dont la Suisse.</p>
+<div class="grid2">
+  <div class="callout"><b>Hors ligne complet.</b> Leçons, vidéos, audios, quiz et portfolio texte fonctionnent sans réseau. La synchronisation est différée et sans doublon. Environ 125 Ko au premier chargement.</div>
+  <div class="callout"><b>Tout est paramétrable.</b> Domaines, modules, programmes, classes, écoles, publics, zones et langues se configurent dans l'interface, sans développement.</div>
+  <div class="callout"><b>IA encadrée.</b> Un mentor IA accompagne tout le parcours. Garde-fous de protection de l'enfance, supervision humaine, boucle d'amélioration des modules validée par un humain.</div>
+  <div class="callout"><b>Pensé pour J-PAL.</b> Groupes traitement et contrôle, tirage stratifié reproductible, droits d'accès par groupe, exports ouverts pseudonymisés.</div>
+</div>
+</section>
+
+<section class="flow">
+<h2>2. Périmètre et état de la démonstration</h2>
+<p>Le démonstrateur couvre le cœur du MVP 2027. Trois briques restent à livrer : SSO, paiement en ligne et serveurs relais.</p>
+<table>
+  <tr><th style="width:30%">Bloc</th><th>MVP 2027</th><th>Version complète 2028-2029</th><th>Démontré aujourd'hui</th></tr>
+  <tr><td>Modules texte, audio, vidéo, quiz</td><td>6 modules enseignant·es</td><td>12 modules + autres publics</td><td class="ok">Oui, 17 modules</td></tr>
+  <tr><td>Programmes, classes, calendrier</td><td>Oui</td><td>Oui</td><td class="ok">Oui, 6 programmes, 4 classes</td></tr>
+  <tr><td>Test d'entrée et recommandations</td><td>Oui</td><td>Enrichi par l'IA</td><td class="ok">Oui</td></tr>
+  <tr><td>4 niveaux de certification, LinkedIn</td><td>Oui</td><td>Oui</td><td class="ok">Oui, PDF JasperReports + QR code</td></tr>
+  <tr><td>Portfolio, vidéo de pratique, mentorat</td><td>Oui</td><td>Oui</td><td class="ok">Oui</td></tr>
+  <tr><td>Communautés, forums, visioconférence</td><td>Oui</td><td>Oui</td><td class="ok">Oui (Jitsi)</td></tr>
+  <tr><td>Points, classement, lauréat·es</td><td>Oui</td><td>Oui</td><td class="ok">Oui</td></tr>
+  <tr><td>Assistant IA</td><td>Oui</td><td>Oui</td><td class="ok">Oui (mode local sans clé)</td></tr>
+  <tr><td>Boucle d'amélioration des modules</td><td>Analyse des erreurs</td><td>Boucle complète</td><td class="ok">Oui</td></tr>
+  <tr><td>Tableau de bord, exports J-PAL</td><td>Oui</td><td>Oui</td><td class="ok">Oui, CSV, JSON, PDF</td></tr>
+  <tr><td>Hors ligne sur l'appareil</td><td>Oui</td><td>Oui</td><td class="ok">Oui (PWA)</td></tr>
+  <tr><td>Serveurs relais locaux</td><td>Pilote</td><td>Généralisé</td><td class="part">Spécifié (section 6)</td></tr>
+  <tr><td>SSO (OpenID Connect)</td><td>Oui</td><td>Oui</td><td class="no">Non</td></tr>
+  <tr><td>Paiement, licences, abonnements</td><td>Non</td><td>Oui</td><td class="no">Non</td></tr>
+  <tr><td>Langues de l'interface</td><td>Français, anglais</td><td>+ baatonum, dendi, fongbe</td><td class="part">Français, anglais</td></tr>
+</table>
+</section>
+
+<!-- ============ 3. PUBLICS ============ -->
+<section>
+<h2>3. Publics, rôles et droits</h2>
+<p>Chaque public a son propre rôle, son propre accueil et son propre programme. Les droits se combinent avec la zone géographique et le groupe J-PAL de chaque personne.</p>
+<table>
+  <tr><th>Rôle</th><th>Effectif visé (Bénin)</th><th>Usage principal</th><th>Droits dans la plateforme</th></tr>
+  <tr><td><b>Enseignant·e du primaire</b></td><td>12 000</td><td>Formation initiale certifiante, formation continue, communautés</td><td>Suivre son parcours et sa classe, déposer un portfolio, obtenir ses certificats</td></tr>
+  <tr><td><b>Conseiller·ère pédagogique, formateur·rice</b></td><td>120</td><td>Animation, mentorat, suivi</td><td>Animer ses classes, valider les portfolios de sa zone, suivre les décrocheurs, programmer des visios</td></tr>
+  <tr><td><b>Direction d'école, cadre du ministère</b></td><td>2 805</td><td>Formations, suivi des écoles</td><td>Suivre sa propre formation et l'équipe de son école (« Mon école »)</td></tr>
+  <tr><td><b>Parent, éducateur·rice communautaire</b></td><td>33 600</td><td>Sensibilisation, ressources</td><td>Parcours court, fiches pratiques à imprimer ou partager, classement anonyme</td></tr>
+  <tr><td><b>Assistant·e social·e, animateur·rice</b></td><td>141</td><td>Formation et suivi</td><td>Parcours « Accompagner les familles »</td></tr>
+  <tr><td><b>Jeune déscolarisé·e</b></td><td>250</td><td>Remise à niveau, numérique, métiers</td><td>Parcours « Rebondir », interface très visuelle et audio</td></tr>
+  <tr><td><b>Équipe pédagogique (pilotage)</b></td><td>Graines de Paix</td><td>Paramétrage, contenus</td><td>Tout configurer : domaines, modules, programmes, classes, fiches, groupes J-PAL ; tableau de bord ; supervision IA</td></tr>
+  <tr><td><b>Administrateur·rice</b></td><td>Graines de Paix</td><td>Exploitation</td><td>Droits du pilotage + gestion des comptes</td></tr>
+</table>
+<h3>Règles d'accès</h3>
+<ul>
+  <li><b>Par public</b> : un programme ou une fiche cible un ou plusieurs rôles. Aucun rôle coché = tous les publics.</li>
+  <li><b>Par zone</b> : un module peut être limité à des zones (Borgou, Alibori, Atacora, Donga…). Un conseiller ne valide que les portfolios de sa zone.</li>
+  <li><b>Par groupe J-PAL</b> : un module peut être réservé au groupe traitement. Le groupe contrôle ne le voit pas, même hors ligne, et n'a pas de classement.</li>
+  <li><b>Par calendrier</b> : dans une classe en ouverture progressive, un module reste verrouillé jusqu'à sa semaine. Le serveur refuse l'accès (code HTTP 423) avec la date d'ouverture.</li>
+</ul>
+</section>
+
+<!-- ============ 4. PARCOURS ============ -->
+<section>
+<h2>4. Parcours utilisateurs par profil</h2>
+<p>Chaque profil arrive sur un accueil qui lui est propre. La première question n'est jamais « que voulez-vous faire ? » mais « voici la prochaine étape ».</p>
+
+<h3>Enseignant·e</h3>
+<ol>
+  <li>Première connexion : test d'entrée de 4 questions à pictogrammes, lues à voix haute.</li>
+  <li>Recommandation de modules, puis accueil « Mon parcours » avec la prochaine leçon.</li>
+  <li>Le parcours s'affiche en frise : modules terminés, en cours, à faire, verrouillés avec leur date d'ouverture.</li>
+  <li>Leçon en mode focus (texte, audio ou vidéo sous-titrée), mise en pratique, puis évaluation formative avec explications.</li>
+  <li>Dépôt d'un portfolio (texte ou vidéo de pratique de classe), validé par le conseiller.</li>
+  <li>Sa classe : rang, points, « plus que N points pour gagner une place », visio de la classe.</li>
+  <li>Certificats PDF, vérifiables par QR code, à ajouter sur LinkedIn.</li>
+</ol>
+<div class="shots">
+  <figure class="m"><img src="../captures/3x-e1-accueil.png"><figcaption>Accueil enseignante</figcaption></figure>
+  <figure class="m"><img src="../captures/3x-e3-frise.png"><figcaption>Frise du parcours</figcaption></figure>
+  <figure class="m"><img src="../captures/3x-e4-classe.png"><figcaption>Sa classe et son rang</figcaption></figure>
+</div>
+
+<h3>Conseiller·ère pédagogique</h3>
+<ol>
+  <li>Accueil « Mentorat » : ses classes avec code d'invitation, semaine en cours, taux d'activité.</li>
+  <li>Suivi des apprenant·es trié par statut : <b>décroche</b> (inactif depuis plus de 14 jours), <b>ralenti</b> (7 à 14 jours), <b>actif</b>.</li>
+  <li>Onglet portfolios : relecture, commentaire, validation ou demande de reprise.</li>
+  <li>Programmation de visios et animation des discussions de sa communauté.</li>
+</ol>
+
+<h3>Direction d'école</h3>
+<ol>
+  <li>Sa propre formation (« Diriger une école bienveillante »).</li>
+  <li>« Mon école » : équipe enseignante, actifs, progression moyenne, décrocheurs, certificats obtenus.</li>
+</ol>
+
+<h3>Parent, jeune, travailleur·se social·e</h3>
+<ul>
+  <li>Parcours courts, très visuels, avec audio. Fiches pratiques lisibles hors connexion, imprimables et partageables.</li>
+  <li>Classement anonyme chez les parents : le podium et sa propre ligne, sans exposer les autres noms.</li>
+</ul>
+
+<h3>Équipe pédagogique (pilotage)</h3>
+<ol>
+  <li>Crée les domaines, modules, programmes et fiches dans <i>Référentiels</i>, <i>Modules</i>, <i>Programmes</i>.</li>
+  <li>Lance une classe : programme, dates, animateur·rice, ouverture hebdomadaire, barème de points, mode de classement.</li>
+  <li>Ajoute les membres en une fois (par zone, école ou groupe J-PAL) ou diffuse le code d'invitation.</li>
+  <li>Suit le tableau de bord, valide les propositions d'amélioration de l'IA, supervise les conversations signalées.</li>
+  <li>Clôture la classe : le classement est figé, le podium s'affiche, les lauréat·es reçoivent leur certificat.</li>
+</ol>
+<div class="shots">
+  <figure class="d" style="flex:1"><img src="../captures/3x-d2-mon-ecole.png" style="height:62mm"><figcaption>« Mon école » (direction)</figcaption></figure>
+  <figure class="d" style="flex:1"><img src="../captures/3x-c1-mentorat.png" style="height:62mm"><figcaption>Mentorat (conseiller)</figcaption></figure>
+</div>
+</section>
+
+<!-- ============ 5. FONCTIONNEL ============ -->
+<section>
+<h2>5. Spécifications fonctionnelles détaillées</h2>
+
+<h3>5.1 Référentiels paramétrables</h3>
+<table>
+  <tr><th style="width:22%">Objet</th><th>Attributs principaux</th><th style="width:28%">Contenu de démonstration</th></tr>
+  <tr><td><b>Domaine de compétences</b></td><td>Nom, description, pictogramme, ordre</td><td>6 domaines (climat de classe, relations, protection de l'enfance, famille, numérique et métiers…)</td></tr>
+  <tr><td><b>Module</b></td><td>Titre, domaine, pictogramme, leçons, évaluation, seuils de réussite et de maîtrise, zones et groupes autorisés, version</td><td>17 modules</td></tr>
+  <tr><td><b>Leçon</b></td><td>Type (texte, audio, vidéo), média, sous-titres WebVTT, transcription, mise en pratique</td><td>Modules 1 et 11 avec vidéo et audio</td></tr>
+  <tr><td><b>Programme</b></td><td>Modules ordonnés, publics cibles, niveau requis pour le certificat de parcours</td><td>6 programmes</td></tr>
+  <tr><td><b>Établissement</b></td><td>Nom, commune, zone, pays</td><td>6 écoles du nord Bénin</td></tr>
+  <tr><td><b>Classe</b></td><td>Programme, dates, animateur·rice, visio, ouverture (hebdomadaire ou totale), barème, classement, code d'invitation, membres</td><td>4 classes</td></tr>
+  <tr><td><b>Fiche pratique</b></td><td>Titre, résumé, contenu, fichier, domaine, publics</td><td>8 fiches</td></tr>
+</table>
+
+<h3>5.2 Test d'entrée et recommandations</h3>
+<p>Questions à pictogrammes, chacune lisible à voix haute. Chaque réponse pondère des modules. Le résultat recommande un ordre de modules et oriente vers le programme du public. Les questions sont paramétrables.</p>
+
+<h3>5.3 Leçons et évaluations</h3>
+<ul>
+  <li>Mode focus : une seule tâche à l'écran, navigation précédent / suivant, progression visible.</li>
+  <li>Vidéo : sous-titres, transcription, choix de la vitesse. Audio : lecture en arrière-plan, transcription.</li>
+  <li>Évaluation formative : une question par écran, explication après chaque réponse, bilan final, nouvelle tentative possible.</li>
+  <li>Mise en pratique : une tâche concrète à faire en classe, reprise dans le portfolio.</li>
+</ul>
+
+<h3>5.4 Certification</h3>
+<table>
+  <tr><th>Niveau</th><th>Critère par défaut (paramétrable par module)</th></tr>
+  <tr><td><b>Attestation de participation</b></td><td>Toutes les leçons du module terminées</td></tr>
+  <tr><td><b>Badge de micro-certification</b></td><td>Évaluation réussie (seuil de réussite, 70 % par défaut)</td></tr>
+  <tr><td><b>Certification de maîtrise</b></td><td>Seuil de maîtrise atteint (85 % par défaut)</td></tr>
+  <tr><td><b>Certification d'expertise</b></td><td>Maîtrise + portfolio validé par un conseiller</td></tr>
+  <tr><td><b>Certificat de parcours</b></td><td>Tous les modules du programme au niveau requis. À la clôture d'une classe, mention « Lauréat·e, 1er sur N » pour le podium qui a terminé le parcours</td></tr>
+</table>
+<p>Chaque certificat est un PDF généré par JasperReports. Il comporte un code unique, un QR code et une page publique de vérification. Un bouton « Ajouter à LinkedIn » pré-remplit le profil. Le relevé de formation et le rapport de suivi sont aussi produits en PDF.</p>
+
+<h3>5.5 Portfolio et mentorat</h3>
+<p>Dépôt texte (mis en file d'attente hors connexion) ou vidéo de pratique de classe. Statuts : soumis, à reprendre, validé. Le conseiller de la même zone commente et valide. La validation déclenche le niveau Expertise et les points de la classe.</p>
+
+<h3>5.6 Classes, points et classement</h3>
+<ul>
+  <li><b>Barème par classe</b> : points par leçon, par point de score d'évaluation (meilleure tentative), par portfolio validé, par message dans la communauté.</li>
+  <li><b>Mode de classement</b> : public, anonyme (podium + sa ligne) ou désactivé (groupe contrôle J-PAL).</li>
+  <li><b>Clôture</b> : manuelle ou automatique à la date de fin. Le classement est figé et le podium final s'affiche. Les trois premiers qui ont terminé le parcours reçoivent un certificat de parcours avec mention.</li>
+</ul>
+<div class="shots">
+  <figure class="d" style="flex:1"><img src="../captures/3x-a2-podium.png" style="height:62mm"><figcaption>Podium d'une classe clôturée</figcaption></figure>
+  <figure class="d" style="flex:1"><img src="../captures/3x-a3-classe-editeur.png" style="height:62mm"><figcaption>Paramétrage d'une classe</figcaption></figure>
+</div>
+
+<h3>5.7 Communautés</h3>
+<p>Discussions par pays et par module, réponses, séances de visioconférence (Jitsi) programmées par les animateur·rices et rattachées à une classe.</p>
+
+<h3>5.8 Assistant IA</h3>
+<ul>
+  <li>Mentor disponible sur chaque écran, en réponse progressive (streaming). Il connaît le profil, la leçon ouverte et le parcours.</li>
+  <li>Garde-fous : détection des situations de danger pour un enfant, redirection vers un adulte référent, refus hors sujet, conversations signalées visibles en supervision.</li>
+  <li>Sans clé d'API ou sans réseau : réponses locales à partir du contenu des leçons.</li>
+</ul>
+
+<h3>5.9 Boucle d'amélioration des modules</h3>
+<ol>
+  <li>Analyse des erreurs par question et des retours des apprenant·es.</li>
+  <li>L'IA propose des ajustements structurés : reformulation, explication, exemple, nouvelle question.</li>
+  <li>Un humain accepte ou rejette chaque proposition.</li>
+  <li>Une nouvelle version du module est publiée et propagée aux appareils, même hors connexion, à la synchronisation suivante.</li>
+</ol>
+
+<h3>5.10 Tableau de bord</h3>
+<p>Complétion, scores, connexions par semaine, abandons, usage hors connexion, temps moyen et médian par module, satisfaction et commentaires. Filtres par pays, zone et groupe J-PAL. Rapport PDF et exports CSV / JSON.</p>
+</section>
+
+<!-- ============ 6. HORS LIGNE ============ -->
+<section>
+<h2>6. Hors connexion et faible connectivité</h2>
+<p>L'appareil est la source de travail ; le serveur est la source de vérité. Tout ce que fait l'apprenant·e est enregistré localement puis envoyé par lots.</p>
+<table>
+  <tr><th style="width:24%">Mécanisme</th><th>Fonctionnement</th></tr>
+  <tr><td><b>Application installable</b></td><td>Progressive Web App : s'installe depuis le navigateur, sans magasin d'applications. Environ 125 Ko au premier chargement, mis en cache par un service worker.</td></tr>
+  <tr><td><b>Paquet de module</b></td><td>Un module se télécharge en une fois (leçons, questions, médias). Taille affichée avant téléchargement. Stockage IndexedDB et Cache API.</td></tr>
+  <tr><td><b>File de synchronisation</b></td><td>Leçons terminées, réponses, portfolios texte, retours : mis en file locale et envoyés dès que le réseau revient.</td></tr>
+  <tr><td><b>Idempotence</b></td><td>Chaque événement porte un identifiant unique. Un renvoi ne crée jamais de doublon.</td></tr>
+  <tr><td><b>Conflits</b></td><td>Progression : union (une leçon terminée le reste). Score : meilleure tentative conservée. Contenu : la version serveur prime ; l'appareil est averti d'une nouvelle version.</td></tr>
+  <tr><td><b>Économie de données</b></td><td>Mode « données limitées » : vidéos remplacées par l'audio ou le texte, pas de préchargement.</td></tr>
+</table>
+<h3>Serveurs relais locaux (à confirmer au cadrage)</h3>
+<table>
+  <tr><th style="width:24%">Élément</th><th>Proposition</th></tr>
+  <tr><td><b>Matériel</b></td><td>Mini-PC basse consommation (4 cœurs, 8 Go de RAM, SSD 256 Go) ou Raspberry Pi 5 8 Go, onduleur ou batterie, point d'accès Wi-Fi.</td></tr>
+  <tr><td><b>Logiciel</b></td><td>La même image Docker que le serveur central, en mode relais. Sert l'application et les médias en Wi-Fi local, sans Internet.</td></tr>
+  <tr><td><b>Capacité</b></td><td>200 à 300 utilisateurs simultanés en Wi-Fi local ; 256 Go = plus de 300 heures de vidéo 480p.</td></tr>
+  <tr><td><b>Bande passante</b></td><td>Seuls les deltas remontent (quelques Mo par jour) ; les contenus descendent par lots, la nuit de préférence, en 3G/4G.</td></tr>
+  <tr><td><b>Maintenance</b></td><td>Supervision à distance, mise à jour par image, formation d'un référent local par lieu relais.</td></tr>
+</table>
+</section>
+
+<!-- ============ 7. ARCHITECTURE ============ -->
+<section>
+<h2>7. Architecture technique</h2>
+<p>Une seule application, un seul code, déployable en central, en relais local ou chez un pays partenaire. Composants open source, standards ouverts.</p>
+
+<svg viewBox="0 0 760 330" width="100%" role="img" aria-label="Architecture">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5d6b64"/></marker></defs>
+  <g font-size="11.5">
+    <!-- appareil -->
+    <rect x="16" y="20" width="220" height="290" rx="10" fill="#f2f7f3" stroke="#2e7d4f" stroke-width="1.5"/>
+    <text x="126" y="44" text-anchor="middle" font-weight="700" font-size="13" fill="#1f5a38">Téléphone / ordinateur</text>
+    <rect x="32" y="60" width="188" height="48" rx="7" fill="#fff" stroke="#9fb5a8"/><text x="126" y="80" text-anchor="middle" font-weight="600" fill="#1d2a24">Angular 22 (PWA)</text><text x="126" y="97" text-anchor="middle" fill="#5d6b64">écrans par profil, mode focus</text>
+    <rect x="32" y="118" width="188" height="48" rx="7" fill="#fff" stroke="#9fb5a8"/><text x="126" y="138" text-anchor="middle" font-weight="600" fill="#1d2a24">Service worker</text><text x="126" y="155" text-anchor="middle" fill="#5d6b64">application en cache</text>
+    <rect x="32" y="176" width="188" height="48" rx="7" fill="#fff" stroke="#9fb5a8"/><text x="126" y="196" text-anchor="middle" font-weight="600" fill="#1d2a24">IndexedDB + Cache API</text><text x="126" y="213" text-anchor="middle" fill="#5d6b64">modules, médias, file de synchro</text>
+    <rect x="32" y="234" width="188" height="56" rx="7" fill="#fff" stroke="#9fb5a8"/><text x="126" y="256" text-anchor="middle" font-weight="600" fill="#1d2a24">Synthèse vocale locale</text><text x="126" y="273" text-anchor="middle" fill="#5d6b64">lecture à voix haute</text>
+    <!-- relais -->
+    <rect x="270" y="20" width="160" height="110" rx="10" fill="#fbf7e8" stroke="#c9a227" stroke-width="1.5"/>
+    <text x="350" y="44" text-anchor="middle" font-weight="700" font-size="13" fill="#7a5f0c">Serveur relais</text>
+    <text x="350" y="66" text-anchor="middle" fill="#1d2a24">même image Docker</text>
+    <text x="350" y="84" text-anchor="middle" fill="#1d2a24">Wi-Fi local, sans Internet</text>
+    <text x="350" y="102" text-anchor="middle" fill="#5d6b64">synchro différée</text>
+    <text x="350" y="118" text-anchor="middle" fill="#5d6b64">vers le central</text>
+    <!-- central -->
+    <rect x="464" y="20" width="280" height="290" rx="10" fill="#fff" stroke="#2e7d4f" stroke-width="1.5"/>
+    <text x="604" y="44" text-anchor="middle" font-weight="700" font-size="13" fill="#1f5a38">Serveur central (UE ou Suisse)</text>
+    <rect x="480" y="60" width="248" height="62" rx="7" fill="#f2f7f3" stroke="#9fb5a8"/><text x="604" y="80" text-anchor="middle" font-weight="600" fill="#1d2a24">Spring Boot 4 · Java 21</text><text x="604" y="96" text-anchor="middle" fill="#5d6b64">API REST, JWT, règles de certification,</text><text x="604" y="111" text-anchor="middle" fill="#5d6b64">classes, synchro idempotente, SSE</text>
+    <rect x="480" y="132" width="120" height="52" rx="7" fill="#f2f7f3" stroke="#9fb5a8"/><text x="540" y="154" text-anchor="middle" font-weight="600" fill="#1d2a24">JasperReports</text><text x="540" y="171" text-anchor="middle" fill="#5d6b64">PDF + QR code</text>
+    <rect x="608" y="132" width="120" height="52" rx="7" fill="#f2f7f3" stroke="#9fb5a8"/><text x="668" y="154" text-anchor="middle" font-weight="600" fill="#1d2a24">PostgreSQL</text><text x="668" y="171" text-anchor="middle" fill="#5d6b64">données</text>
+    <rect x="480" y="194" width="120" height="52" rx="7" fill="#f2f7f3" stroke="#9fb5a8"/><text x="540" y="216" text-anchor="middle" font-weight="600" fill="#1d2a24">Stockage médias</text><text x="540" y="233" text-anchor="middle" fill="#5d6b64">vidéo, audio, VTT</text>
+    <rect x="608" y="194" width="120" height="52" rx="7" fill="#f2f7f3" stroke="#9fb5a8"/><text x="668" y="216" text-anchor="middle" font-weight="600" fill="#1d2a24">Exports</text><text x="668" y="233" text-anchor="middle" fill="#5d6b64">CSV, JSON</text>
+    <rect x="480" y="256" width="248" height="40" rx="7" fill="#fbf7e8" stroke="#c9a227"/><text x="604" y="281" text-anchor="middle" font-weight="600" fill="#1d2a24">API Claude (assistant, amélioration)</text>
+  </g>
+  <g fill="none" stroke="#5d6b64" stroke-width="1.3">
+    <path d="M236 80 H270" marker-end="url(#ar)"/>
+    <path d="M430 75 H464" marker-end="url(#ar)"/>
+    <path d="M236 200 H450 V100 H464" marker-end="url(#ar)"/>
+  </g>
+  <text x="246" y="193" font-size="10" fill="#5d6b64">HTTPS direct si le réseau le permet</text>
+</svg>
+
+<h3>Stack logicielle</h3>
+<table>
+  <tr><th style="width:24%">Couche</th><th>Choix</th><th style="width:34%">Raison</th></tr>
+  <tr><td>Interface</td><td>Angular 22, composants autonomes, signaux, PWA (service worker), IndexedDB</td><td>Hors ligne natif, pas de magasin d'applications, un seul code mobile et bureau</td></tr>
+  <tr><td>Serveur</td><td>Spring Boot 4.1, Java 21 (threads virtuels), Spring Security 7, JPA / Hibernate</td><td>Standard du marché, maintenable par les équipes locales</td></tr>
+  <tr><td>Base de données</td><td>PostgreSQL (production), H2 (développement)</td><td>Open source, réplicable par pays</td></tr>
+  <tr><td>États PDF</td><td>JasperReports 7.1, ZXing pour les QR codes, polices DejaVu</td><td>Mise en page professionnelle, modèles modifiables (JRXML)</td></tr>
+  <tr><td>IA</td><td>Anthropic Java SDK, modèle configurable (<code>APP_AI_MODEL</code>), sorties structurées</td><td>Qualité en français, coût maîtrisé, repli local sans clé</td></tr>
+  <tr><td>Déploiement</td><td>Docker (image unique), docker-compose, Railway pour la démonstration</td><td>Même image en central, en relais et chez un partenaire</td></tr>
+</table>
+
+<h3>Modèle de données (principales entités)</h3>
+<p class="small"><code>AppUser</code> (rôle, zone, école, groupe J-PAL) · <code>Domain</code> · <code>Course</code> (module) · <code>Lesson</code> · <code>QuizQuestion</code> · <code>Program</code> (modules ordonnés) · <code>School</code> · <code>Classroom</code> (membres, barème, classement, clôture) · <code>LessonProgress</code> · <code>QuizAttempt</code> · <code>Certificate</code> · <code>ProgramCertificate</code> (rang, points) · <code>PortfolioItem</code> · <code>ForumThread</code> / <code>ForumPost</code> · <code>Resource</code> (fiche) · <code>CourseFeedback</code> · <code>ActivityEvent</code> · <code>AssistantLog</code> · <code>PlacementQuestion</code>.</p>
+
+<div style="page-break-inside:avoid"><h3>API (extrait)</h3>
+<table>
+  <tr><th>Méthode</th><th>Route</th><th>Accès</th></tr>
+  <tr><td>POST</td><td><code>/api/auth/login</code>, <code>/api/auth/register</code></td><td>public</td></tr>
+  <tr><td>GET</td><td><code>/api/courses/{id}/package</code></td><td>apprenant (paquet hors ligne)</td></tr>
+  <tr><td>POST</td><td><code>/api/sync/progress</code></td><td>apprenant (synchro en lot, idempotente)</td></tr>
+  <tr><td>GET</td><td><code>/api/me/programs</code>, <code>/api/me/classrooms</code>, <code>/api/classrooms/{id}/leaderboard</code></td><td>apprenant</td></tr>
+  <tr><td>POST</td><td><code>/api/classrooms/join</code></td><td>apprenant (code d'invitation)</td></tr>
+  <tr><td>GET</td><td><code>/api/school/dashboard</code>, <code>/api/mentor/dashboard</code></td><td>direction, conseiller</td></tr>
+  <tr><td>GET</td><td><code>/api/public/certificates/{code}</code> (+ <code>/pdf</code>)</td><td>public (vérification)</td></tr>
+  <tr><td>CRUD</td><td><code>/api/admin/{courses, domains, programs, schools, classrooms, resources}</code></td><td>pilotage</td></tr>
+  <tr><td>GET</td><td><code>/api/admin/export/*.csv</code>, <code>/api/admin/stats</code></td><td>pilotage</td></tr>
+</table></div>
+</section>
+
+<!-- ============ 8. SÉCURITÉ ============ -->
+<section>
+<h2>8. Sécurité, conformité et IA responsable</h2>
+<table>
+  <tr><th style="width:26%">Exigence</th><th>Mesure</th></tr>
+  <tr><td><b>Authentification</b></td><td>Jeton JWT signé (HS256), mots de passe hachés (BCrypt). SSO OpenID Connect prévu au MVP (Keycloak ou fournisseur du ministère).</td></tr>
+  <tr><td><b>Autorisations</b></td><td>Contrôle par rôle, zone et groupe J-PAL côté serveur, sur chaque requête. L'interface ne fait que refléter ces droits.</td></tr>
+  <tr><td><b>Transport</b></td><td>HTTPS uniquement, en-têtes de sécurité, CORS restreint au domaine.</td></tr>
+  <tr><td><b>Hébergement</b></td><td>Union européenne pour la démonstration (Pays-Bas, europe-west4). Production en Suisse ou dans l'UE au choix de Graines de Paix.</td></tr>
+  <tr><td><b>RGPD / nLPD</b></td><td>Minimisation (pas de date de naissance, pas de téléphone obligatoire), exports pseudonymisés, droit d'accès et d'effacement, registre des traitements, restitution puis suppression en fin de contrat.</td></tr>
+  <tr><td><b>Protection de l'enfance</b></td><td>Aucune donnée d'enfant collectée. Vidéos de pratique visibles seulement par l'auteur·e et son conseiller. Le certificat ne contient que le nom du ou de la titulaire.</td></tr>
+  <tr><td><b>IA : garde-fous</b></td><td>Détection des situations de danger, redirection vers un adulte référent, refus hors sujet, aucune donnée personnelle envoyée au modèle au-delà du prénom et du rôle.</td></tr>
+  <tr><td><b>IA : supervision humaine</b></td><td>Écran de supervision des conversations signalées. Toute modification de module proposée par l'IA est validée par un humain.</td></tr>
+  <tr><td><b>IA : coûts</b></td><td>Modèle configurable, effort de raisonnement bas par défaut, réponses courtes, repli local gratuit. Coût suivi par conversation.</td></tr>
+</table>
+</section>
+
+<!-- ============ 9. J-PAL ============ -->
+<section class="flow">
+<h2>9. Données et évaluation d'impact J-PAL</h2>
+<ul>
+  <li><b>Groupes</b> : chaque compte appartient au groupe traitement, contrôle ou non assigné.</li>
+  <li><b>Tirage</b> : aléatoire stratifié par zone et par école, reproductible grâce à une graine enregistrée.</li>
+  <li><b>Étanchéité</b> : un module réservé au traitement n'est jamais servi au contrôle, ni en ligne ni dans un paquet hors ligne. Pas de classement pour le groupe contrôle.</li>
+  <li><b>Exports</b> : CSV et JSON pseudonymisés (identifiant stable, sans nom ni courriel) pour apprenants, progression, tentatives, retours, certificats.</li>
+  <li><b>Indicateurs</b> : complétion, scores, temps passé, fréquence de connexion, abandons, usage hors connexion, satisfaction.</li>
+</ul>
+</section>
+
+<!-- ============ 10. TDR ============ -->
+<section>
+<h2>10. Correspondance avec les termes de référence</h2>
+<h3>Exigences fonctionnelles (section 4)</h3>
+<table>
+  <tr><th style="width:6%">N°</th><th style="width:34%">Exigence</th><th>Réponse</th><th style="width:12%">Démo</th></tr>
+  <tr><td>4.1</td><td>Test d'entrée orientant vers le parcours adapté</td><td>Test à pictogrammes et audio, recommandation de modules et de programme</td><td class="ok">Oui</td></tr>
+  <tr><td>4.2</td><td>Assistant IA sur tout le parcours</td><td>Mentor IA contextuel sur chaque écran, garde-fous, repli local</td><td class="ok">Oui</td></tr>
+  <tr><td>4.3</td><td>Modules courts, mises en situation, études de cas, évaluations formatives</td><td>Leçons texte / audio / vidéo, mise en pratique, quiz avec explications</td><td class="ok">Oui</td></tr>
+  <tr><td>4.4</td><td>4 niveaux de certification, LinkedIn, critères paramétrables</td><td>Attestation, badge, maîtrise, expertise ; seuils par module ; PDF + QR ; LinkedIn</td><td class="ok">Oui</td></tr>
+  <tr><td>4.5</td><td>Portfolios et vidéos de pratique, suivi du mentorat</td><td>Dépôt texte et vidéo, validation par zone, suivi des décrocheurs</td><td class="ok">Oui</td></tr>
+  <tr><td>4.6</td><td>Communautés, forums, visioconférences</td><td>Discussions par pays et module, visios Jitsi</td><td class="ok">Oui</td></tr>
+  <tr><td>4.7</td><td>Recommandations IA et ajustements issus des erreurs</td><td>Boucle d'amélioration avec validation humaine et versions</td><td class="ok">Oui</td></tr>
+  <tr><td>4.8</td><td>Tableau de bord analytique</td><td>Tous les indicateurs demandés, filtres, rapport PDF</td><td class="ok">Oui</td></tr>
+  <tr><td>4.9</td><td>Droits par zone et par groupe (traitement / contrôle)</td><td>Restrictions par zone et groupe, tirage stratifié</td><td class="ok">Oui</td></tr>
+  <tr><td>4.10</td><td>Export en formats ouverts</td><td>CSV, JSON pseudonymisés</td><td class="ok">Oui</td></tr>
+  <tr><td>4.11</td><td>Gratuit, licences institutionnelles, abonnements, paiement</td><td>Modèle de droits prêt ; paiement (Mobile Money, carte) en version complète</td><td class="no">Non</td></tr>
+</table>
+<h3>Exigences techniques (section 5)</h3>
+<table>
+  <tr><th style="width:6%">N°</th><th style="width:34%">Exigence</th><th>Réponse</th><th style="width:12%">Démo</th></tr>
+  <tr><td>5.1</td><td>Hors connexion, synchro différée, serveurs relais</td><td>PWA hors ligne, synchro idempotente ; relais spécifié (section 6)</td><td class="part">Partiel</td></tr>
+  <tr><td>5.2</td><td>Téléphone d'entrée de gamme, faible littératie</td><td>~125 Ko, audio, pictogrammes, sous-titres, transcriptions, clavier, contraste, taille du texte</td><td class="ok">Oui</td></tr>
+  <tr><td>5.3</td><td>Multilinguisme</td><td>Interface FR / EN, contenus par langue ; langues locales au cadrage</td><td class="part">Partiel</td></tr>
+  <tr><td>5.4</td><td>Standards ouverts, portabilité</td><td>Exports ouverts, PostgreSQL, Docker, API REST documentée</td><td class="ok">Oui</td></tr>
+  <tr><td>5.5</td><td>SSO et sécurité des connexions</td><td>JWT + HTTPS ; SSO OpenID Connect au MVP</td><td class="part">Partiel</td></tr>
+  <tr><td>5.6</td><td>Hébergement RGPD / nLPD, protection de l'enfance</td><td>UE (démo), Suisse ou UE en production ; protection dès la conception</td><td class="ok">Oui</td></tr>
+  <tr><td>5.7</td><td>Montée en charge sans plafond</td><td>Serveur sans état, mise à l'échelle horizontale, médias sur stockage objet</td><td class="ok">Oui</td></tr>
+  <tr><td>5.8</td><td>Charte graphique, nom de domaine</td><td>Thème paramétrable (couleurs, nom, logo), domaine personnalisé</td><td class="ok">Oui</td></tr>
+  <tr><td>5.9</td><td>Migration, bien public numérique</td><td>Code documenté, une seule image Docker, licence ouverte proposée</td><td class="ok">Oui</td></tr>
+</table>
+</section>
+
+<!-- ============ 11. ACCÈS ============ -->
+<section>
+<h2>11. Accès à l'environnement de test</h2>
+<p class="lead">La démonstration est en ligne. Aucune installation n'est nécessaire : un navigateur récent suffit, sur téléphone ou sur ordinateur.</p>
+<div class="acc">
+  <div class="small muted">Adresse de l'environnement de test</div>
+  <div class="url">https://app-production-7165e5b8.up.railway.app</div>
+  <div class="small" style="margin-top:4pt">Hébergement : Railway, région europe-west4 (Pays-Bas). Données fictives uniquement.</div>
+</div>
+<div class="callout sun"><b>Connexion rapide.</b> La page de connexion propose un bouton par profil de démonstration. Un clic suffit, sans saisir d'identifiant. Pour changer de profil : menu <i>Profil</i>, puis <i>Se déconnecter</i>.</div>
+
+<h3>Comptes de démonstration</h3>
+<p>Mot de passe commun : <code>Demo1234!</code></p>
+<table>
+  <tr><th style="width:30%">Identifiant</th><th style="width:22%">Profil</th><th>Ce que vous verrez</th></tr>
+  <tr><td><code>formateur@demo.local</code></td><td>Équipe pédagogique (pilotage)</td><td>Tableau de bord, classes, programmes, modules, référentiels, groupes J-PAL, supervision IA. Tous les droits de paramétrage.</td></tr>
+  <tr><td><code>enseignant@demo.local</code></td><td>Enseignante (Rachida, Parakou)</td><td>Son parcours en frise, sa classe en cours (semaine 5 sur 8), son rang, un module verrouillé jusqu'à sa date, ses fiches.</td></tr>
+  <tr><td><code>conseiller@demo.local</code></td><td>Conseiller (Moussa, Borgou)</td><td>Classe en cours, suivi des décrocheurs, portfolios à valider.</td></tr>
+  <tr><td><code>conseillere2@demo.local</code></td><td>Conseillère (Fatou, Atacora)</td><td>Promo pilote terminée avec son podium, promo à venir (groupe contrôle).</td></tr>
+  <tr><td><code>direction@demo.local</code></td><td>Direction d'école</td><td>« Mon école » : équipe, actifs, progression, décrocheurs.</td></tr>
+  <tr><td><code>parent@demo.local</code></td><td>Parent</td><td>Parcours court, classement anonyme, fiches pratiques.</td></tr>
+  <tr><td><code>jeune@demo.local</code></td><td>Jeune déscolarisé·e</td><td>Parcours « Rebondir ».</td></tr>
+  <tr><td><code>social@demo.local</code></td><td>Travailleuse sociale</td><td>Parcours « Accompagner les familles ».</td></tr>
+  <tr><td><code>apprenant001@demo.local</code> à <code>apprenant074@demo.local</code></td><td>Apprenant·es simulé·es</td><td>Membres des 4 classes, avec une activité réaliste.</td></tr>
+</table>
+<p class="small muted">Le compte administrateur n'est pas publié dans ce document. Il est communiqué sur demande. Le compte <code>formateur@</code> donne accès à tout le paramétrage.</p>
+<p class="small">Les apprenant·es peuvent aussi créer leur propre compte depuis la page d'inscription. Les dates des classes sont calculées à partir du jour de mise en ligne : la classe « en cours » l'est toujours au moment du test.</p>
+
+<h3>Scénarios de test recommandés (environ 30 minutes)</h3>
+<div class="scen"><h4>A. Parcours d'une enseignante, sur téléphone (10 min) <span class="tag">enseignant@</span></h4>
+<ol>
+  <li>Ouvrir l'adresse sur un téléphone, se connecter avec le bouton « Enseignante ».</li>
+  <li>Accueil : prochaine leçon, rang dans la classe, fiches. Ouvrir <i>Parcours</i> : la frise montre un module verrouillé avec sa date d'ouverture.</li>
+  <li>Ouvrir une leçon vidéo : sous-titres, transcription, vitesse. Écouter une leçon audio.</li>
+  <li>Passer l'évaluation : explication après chaque réponse, bilan final.</li>
+  <li>Ouvrir l'assistant IA et poser une question sur la leçon.</li>
+  <li><i>Certificats</i> : télécharger un PDF, scanner son QR code, essayer « Ajouter à LinkedIn ».</li>
+</ol></div>
+<div class="scen"><h4>B. Hors connexion (5 min) <span class="tag">enseignant@</span></h4>
+<ol>
+  <li>Ouvrir un module et cliquer sur « Télécharger pour hors ligne ».</li>
+  <li>Couper le réseau (mode avion). Recharger la page : l'application s'ouvre.</li>
+  <li>Lire une leçon, la terminer, répondre au quiz. Le compteur « à synchroniser » augmente.</li>
+  <li>Rétablir le réseau : la synchronisation part toute seule, sans doublon.</li>
+</ol></div>
+<div class="scen"><h4>C. Suivi par le conseiller et la direction (5 min) <span class="tag">conseiller@</span> <span class="tag">direction@</span></h4>
+<ol>
+  <li>Conseiller : <i>Mentorat</i>, filtre « Décrochent », puis onglet portfolios : valider un portfolio.</li>
+  <li>Direction : <i>Mon école</i>, équipe enseignante et progression moyenne.</li>
+</ol></div>
+<div class="scen"><h4>D. Classe terminée et lauréat·es (3 min) <span class="tag">conseillere2@</span></h4>
+<ol>
+  <li>Ouvrir la promo pilote Atacora-Donga : podium final et classement.</li>
+  <li>Vérifier qu'un lauréat qui n'a pas terminé le parcours n'a pas de mention.</li>
+</ol></div>
+<div class="scen"><h4>E. Paramétrage sans développement (7 min) <span class="tag">formateur@</span></h4>
+<ol>
+  <li><i>Référentiels</i> : créer un domaine de compétences et une fiche pratique ciblant les parents.</li>
+  <li><i>Programmes</i> : créer un programme à partir de modules existants, dans l'ordre voulu.</li>
+  <li><i>Classes</i> : lancer une classe sur ce programme, ouverture hebdomadaire, classement anonyme ; ajouter les membres par zone.</li>
+  <li><i>Pilotage</i> : tableau de bord, filtre par groupe J-PAL, rapport PDF, export CSV.</li>
+  <li><i>Modules</i> : ouvrir l'analyse des erreurs et une proposition d'amélioration de l'IA.</li>
+</ol></div>
+
+<h3>Exécution locale (optionnelle)</h3>
+<p>Avec Docker : <code>git clone</code> du dépôt, puis <code>docker compose up -d --build</code>. L'application est servie sur <code>http://localhost:8088</code> avec les mêmes comptes.</p>
+<p class="small muted">Assistant IA : sans clé d'API, il répond en mode local à partir du contenu des leçons. Avec une clé (<code>ANTHROPIC_API_KEY</code>), il utilise le modèle configuré.</p>
+</section>
+
+<!-- ============ 12. FEUILLE DE ROUTE ============ -->
+<section class="flow">
+<h2>12. Limites actuelles et feuille de route</h2>
+<table>
+  <tr><th style="width:22%">Période</th><th>Lot</th><th>Contenu</th></tr>
+  <tr><td>Déc. 2026 – janv. 2027</td><td>Cadrage</td><td>Ateliers avec les équipes au Bénin, choix des lieux relais, charte graphique, maquette validée à partir de ce démonstrateur.</td></tr>
+  <tr><td>T1 – T2 2027</td><td>MVP</td><td>SSO OpenID Connect, 6 modules enseignant·es intégrés, serveurs relais pilotes, tests utilisateurs sur téléphones d'entrée de gamme, recette.</td></tr>
+  <tr><td>2027</td><td>Mise en service</td><td>Déploiement pilote nord Bénin, formation des conseillers, support local, collecte J-PAL.</td></tr>
+  <tr><td>2028 – 2029</td><td>Version complète</td><td>12 modules et tous les publics, paiement et abonnements, langues locales (baatonum, dendi, fongbe), généralisation des relais, nouveaux pays.</td></tr>
+</table>
+<h3>Limites connues du démonstrateur</h3>
+<ul>
+  <li>Pas encore de SSO ni de paiement en ligne.</li>
+  <li>Serveur relais spécifié mais non déployé physiquement.</li>
+  <li>Contenus pédagogiques rédigés pour la démonstration : à remplacer par les contenus de Graines de Paix.</li>
+  <li>Hébergement de démonstration sur une offre mutualisée : la production sera dimensionnée au cadrage.</li>
+</ul>
+</section>
+
+</body>
+</html>

@@ -127,7 +127,7 @@ Créés au premier démarrage si `APP_SEED_DEMO=true` (boutons « en un clic » 
 | enseignant@demo.local, parent@demo.local, jeune@demo.local, direction@demo.local / Demo1234! | Apprenants |
 | conseillere2@demo.local / Demo1234! | Mentor (Atacora) : promo pilote terminée et promo à venir |
 | social@demo.local / Demo1234! | Travailleuse sociale |
-| apprenantNNN@demo.local / Demo1234! | ~75 apprenant·es simulés dans 4 classes (en cours, terminée avec podium, à venir, parents) |
+| apprenantNNN@demo.local / Demo1234! | ~74 apprenant·es simulés dans 4 classes (en cours, terminée avec podium, à venir, parents) |
 
 Mettre `APP_SEED_DEMO=false` hors démonstration.
 
