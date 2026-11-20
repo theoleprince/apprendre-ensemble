@@ -423,6 +423,14 @@ public final class Dtos {
                               List<ReviewDto> testimonials) {
     }
 
+    // ---------- Identite visuelle ----------
+    public record BrandingDto(@NotBlank @Size(max = 255) String name, @Size(max = 255) String organization,
+                              @Size(max = 300) String tagline, String logoUrl, String primaryColor, String accentColor,
+                              @Size(max = 255) String supportEmail, @Size(max = 255) String footerNote,
+                              @Size(max = 255) String signatory1, @Size(max = 255) String signatory1Role,
+                              @Size(max = 255) String signatory2, @Size(max = 255) String signatory2Role) {
+    }
+
     // ---------- Notes de lecon ----------
     public record NoteInput(@Size(max = 4000) String text, boolean bookmarked) {
     }

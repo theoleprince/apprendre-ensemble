@@ -31,7 +31,6 @@ export class PrefsService {
     effect(() => {
       const dark = this.isDark();
       document.documentElement.classList.toggle('dark', dark);
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0f1712' : '#2f7d4f');
     });
     effect(() => {
       const p = this.prefs();

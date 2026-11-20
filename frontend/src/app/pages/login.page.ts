@@ -1,3 +1,4 @@
+import { BrandMarkComponent } from '../shared/brand-mark.component';
 import { HttpClient } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
@@ -21,11 +22,11 @@ const DEMO = [
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, RouterLink, IconComponent, HeroArtComponent],
+  imports: [BrandMarkComponent, FormsModule, RouterLink, IconComponent, HeroArtComponent],
   template: `
     <div class="auth-wrap">
       <aside class="auth-art">
-        <div class="brand" style="color:#fff"><span class="brand-mark" style="background:rgba(255,255,255,.15)"><app-icon name="sprout" [size]="22" /></span> Apprendre Ensemble</div>
+        <div class="brand" style="color:#fff"><app-brand-mark [onDark]="true" /></div>
         <h1>Se former partout,<br />même sans réseau.</h1>
         <app-hero-art />
         <ul>

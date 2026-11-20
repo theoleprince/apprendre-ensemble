@@ -133,6 +133,8 @@ const DATASETS = [
               <tr><td>{{ ds.label }}</td>
                 <td class="num" style="white-space:nowrap"><button class="ghost" (click)="exp(ds.key, 'csv')">CSV</button><button class="ghost" (click)="exp(ds.key, 'json')">JSON</button></td></tr>
             }
+            <tr><td>Traces d'apprentissage <span class="xs muted">(standard xAPI 1.0.3, importable dans un LRS)</span></td>
+              <td class="num"><button class="ghost" (click)="xapi()">xAPI</button></td></tr>
           </table>
         </section>
       </div>
@@ -173,6 +175,10 @@ export class DashboardPage implements OnInit {
 
   pdf(): void {
     void this.files.open('/api/admin/report.pdf' + this.q());
+  }
+
+  xapi(): void {
+    void this.files.download('/api/admin/export/xapi-statements.json', 'xapi-statements.json');
   }
 
   exp(ds: string, fmt: string): void {

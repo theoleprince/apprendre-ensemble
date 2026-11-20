@@ -53,31 +53,19 @@ public class ReportService {
     private final QuizAttemptRepository attempts;
     private final LearningService learning;
     private final AnalyticsService analytics;
-    private final String platformName;
+    private final org.formation.api.service.BrandingService branding;
     private final String publicUrl;
-    private final String signatory1;
-    private final String signatory1Role;
-    private final String signatory2;
-    private final String signatory2Role;
 
     public ReportService(CertificateRepository certificates, ProgramCertificateRepository programCerts, QuizAttemptRepository attempts, LearningService learning, AnalyticsService analytics,
-                         @Value("${app.brand.name:Plateforme de formation}") String platformName,
-                         @Value("${app.public-url:http://localhost:4200}") String publicUrl,
-                         @Value("${app.brand.signatory1:Responsable pedagogique}") String signatory1,
-                         @Value("${app.brand.signatory1-role:Coordination pedagogique}") String signatory1Role,
-                         @Value("${app.brand.signatory2:Direction du programme}") String signatory2,
-                         @Value("${app.brand.signatory2-role:En partenariat avec le ministere de l'education}") String signatory2Role) {
+                         org.formation.api.service.BrandingService branding,
+                         @Value("${app.public-url:http://localhost:4200}") String publicUrl) {
         this.certificates = certificates;
         this.programCerts = programCerts;
         this.attempts = attempts;
         this.learning = learning;
         this.analytics = analytics;
-        this.platformName = platformName;
+        this.branding = branding;
         this.publicUrl = publicUrl.replaceAll("/+$", "");
-        this.signatory1 = signatory1;
-        this.signatory1Role = signatory1Role;
-        this.signatory2 = signatory2;
-        this.signatory2Role = signatory2Role;
     }
 
     /** Compile les gabarits au demarrage (en arriere-plan) : le premier PDF est servi sans attente. */
@@ -99,7 +87,7 @@ public class ReportService {
         if (c.isRevoked()) throw new ResponseStatusException(HttpStatus.GONE, "Certificat révoqué : " + c.getRevokedReason());
         String verifyUrl = publicUrl + "/verifier/" + c.getCode();
         Map<String, Object> p = new HashMap<>();
-        p.put("PLATFORM_NAME", platformName);
+        p.put("PLATFORM_NAME", branding.current().name());
         p.put("LEVEL_LABEL", c.getLevel().label());
         p.put("LEVEL_SHORT", switch (c.getLevel()) {
             case ATTESTATION -> "PARTICIPATION";
@@ -120,10 +108,10 @@ public class ReportService {
         p.put("CODE", c.getCode());
         p.put("VERIFY_URL", verifyUrl);
         p.put("YEAR", String.valueOf(c.getIssuedAt().atZone(ZoneId.of("UTC")).getYear()));
-        p.put("SIGNATORY_1", signatory1);
-        p.put("SIGNATORY_1_ROLE", signatory1Role);
-        p.put("SIGNATORY_2", signatory2);
-        p.put("SIGNATORY_2_ROLE", signatory2Role);
+        p.put("SIGNATORY_1", nz(branding.current().signatory1()));
+        p.put("SIGNATORY_1_ROLE", nz(branding.current().signatory1Role()));
+        p.put("SIGNATORY_2", nz(branding.current().signatory2()));
+        p.put("SIGNATORY_2_ROLE", nz(branding.current().signatory2Role()));
         p.put("QR", qr(verifyUrl));
         return pdf("certificate", p, new JREmptyDataSource(1), "Certificat " + c.getCode());
     }
@@ -133,7 +121,7 @@ public class ReportService {
         if (pc.isRevoked()) throw new ResponseStatusException(HttpStatus.GONE, "Certificat révoqué : " + pc.getRevokedReason());
         String verifyUrl = publicUrl + "/verifier/" + pc.getCode();
         Map<String, Object> p = new HashMap<>();
-        p.put("PLATFORM_NAME", platformName);
+        p.put("PLATFORM_NAME", branding.current().name());
         boolean laureate = pc.getRank() != null;
         p.put("LEVEL_LABEL", laureate ? "Certificat de parcours · Lauréat·e" : "Certificat de parcours");
         p.put("LEVEL_SHORT", laureate ? (pc.getRank() + (pc.getRank() == 1 ? "ER" : "E") + " / " + pc.getClassSize()) : "PARCOURS");
@@ -147,10 +135,10 @@ public class ReportService {
         p.put("CODE", pc.getCode());
         p.put("VERIFY_URL", verifyUrl);
         p.put("YEAR", String.valueOf(pc.getIssuedAt().atZone(ZoneId.of("UTC")).getYear()));
-        p.put("SIGNATORY_1", signatory1);
-        p.put("SIGNATORY_1_ROLE", signatory1Role);
-        p.put("SIGNATORY_2", signatory2);
-        p.put("SIGNATORY_2_ROLE", signatory2Role);
+        p.put("SIGNATORY_1", nz(branding.current().signatory1()));
+        p.put("SIGNATORY_1_ROLE", nz(branding.current().signatory1Role()));
+        p.put("SIGNATORY_2", nz(branding.current().signatory2()));
+        p.put("SIGNATORY_2_ROLE", nz(branding.current().signatory2Role()));
         p.put("QR", qr(verifyUrl));
         return pdf("certificate", p, new JREmptyDataSource(1), "Certificat " + pc.getCode());
     }
@@ -183,7 +171,7 @@ public class ReportService {
         }
         long certs = list.stream().mapToLong(c -> c.levels().size()).sum();
         Map<String, Object> p = new HashMap<>();
-        p.put("PLATFORM_NAME", platformName);
+        p.put("PLATFORM_NAME", branding.current().name());
         p.put("LEARNER_NAME", user.getFullName());
         p.put("PROFILE", roleLabel(user.getRole()) + " · " + Objects.requireNonNullElse(user.getCountryCode(), "")
                 + (user.getRegion() == null ? "" : " · " + user.getRegion()));
@@ -210,7 +198,7 @@ public class ReportService {
             return r;
         }).toList();
         Map<String, Object> p = new HashMap<>();
-        p.put("PLATFORM_NAME", platformName);
+        p.put("PLATFORM_NAME", branding.current().name());
         List<String> scope = new ArrayList<>();
         if (f.country() != null && !f.country().isBlank()) scope.add("pays " + f.country());
         if (f.region() != null && !f.region().isBlank()) scope.add("zone " + f.region());
@@ -239,8 +227,8 @@ public class ReportService {
             exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(out));
             SimplePdfExporterConfiguration conf = new SimplePdfExporterConfiguration();
             conf.setMetadataTitle(title);
-            conf.setMetadataAuthor(platformName);
-            conf.setMetadataCreator(platformName);
+            conf.setMetadataAuthor(branding.current().name());
+            conf.setMetadataCreator(branding.current().name());
             exporter.setConfiguration(conf);
             SimplePdfReportConfiguration rc = new SimplePdfReportConfiguration();
             rc.setForceLineBreakPolicy(false);
@@ -252,12 +240,17 @@ public class ReportService {
         }
     }
 
+    /** Couleur de reference des gabarits : remplacee par la couleur principale de la charte. */
+    static final String TEMPLATE_COLOR = "#2F7D4F";
+
     private JasperReport report(String name) {
-        return compiled.computeIfAbsent(name, n -> {
-            try (InputStream in = getClass().getResourceAsStream("/reports/" + n + ".jrxml")) {
-                return JasperCompileManager.compileReport(in);
+        String color = branding.current().primaryColor().toUpperCase(java.util.Locale.ROOT);
+        return compiled.computeIfAbsent(name + color, k -> {
+            try (InputStream in = getClass().getResourceAsStream("/reports/" + name + ".jrxml")) {
+                String xml = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).replace(TEMPLATE_COLOR, color);
+                return JasperCompileManager.compileReport(new java.io.ByteArrayInputStream(xml.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
             } catch (Exception e) {
-                throw new IllegalStateException("Gabarit " + n + " invalide", e);
+                throw new IllegalStateException("Gabarit " + name + " invalide", e);
             }
         });
     }
@@ -288,5 +281,9 @@ public class ReportService {
             case JEUNE -> "Jeune";
             case APPRENANT -> "Apprenant·e";
         };
+    }
+
+    private static String nz(String s) {
+        return s == null ? "" : s;
     }
 }

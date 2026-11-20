@@ -87,6 +87,34 @@ public class MediaStorage {
         return new MediaUpload("/api/media/" + name, file.getSize(), type);
     }
 
+    /**
+     * Enregistre un contenu pedagogique (public) a partir d'octets : import d'un paquet de cours.
+     * Meme controle de la signature du fichier que pour un televersement.
+     */
+    public MediaUpload storeBytes(String originalName, byte[] data, AppUser owner) {
+        String lower = originalName == null ? "" : originalName.toLowerCase();
+        String ext = lower.contains(".") ? lower.substring(lower.lastIndexOf('.') + 1) : "";
+        String type = ALLOWED.entrySet().stream().filter(e -> e.getValue().equals(ext)).map(Map.Entry::getKey).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Format non accepté : " + originalName));
+        if (!matchesSignature(ext, data, Math.min(16, data.length))) {
+            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Le contenu du fichier ne correspond pas à son type : " + originalName);
+        }
+        String name = UUID.randomUUID() + "." + ext;
+        try {
+            Files.write(root.resolve(name), data);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Échec de l'enregistrement du fichier");
+        }
+        MediaFile m = new MediaFile();
+        m.setName(name);
+        m.setOwner(owner);
+        m.setVisibility(MediaFile.Visibility.PUBLIC);
+        m.setContentType(type);
+        m.setSizeBytes(data.length);
+        files.save(m);
+        return new MediaUpload("/api/media/" + name, data.length, type);
+    }
+
     /** Fichiers sans fiche (medias d'origine du jeu de demonstration) : contenus pedagogiques, donc publics. */
     public boolean isPrivate(String name) {
         return files.findById(name).map(m -> m.getVisibility() == MediaFile.Visibility.PRIVATE).orElse(false);

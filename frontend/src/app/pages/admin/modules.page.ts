@@ -1,3 +1,5 @@
+import { AdminFiles } from './admin-api';
+import { ToastService } from '../../core/toast.service';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -14,8 +16,13 @@ import { CoverComponent } from '../../shared/visuals';
   template: `
     <div class="section-head">
       <h1 style="margin:0">Modules</h1>
-      <a class="btn primary" routerLink="/admin/modules/nouveau"><app-icon name="plus" /> Nouveau module</a>
+      <div class="row">
+        <label class="btn" [class.disabled]="importing()"><app-icon name="upload" /> {{ importing() ? 'Import…' : 'Importer un cours' }}
+          <input type="file" accept=".zip,application/zip" hidden (change)="importCourse($event)" [disabled]="importing()" /></label>
+        <a class="btn primary" routerLink="/admin/modules/nouveau"><app-icon name="plus" /> Nouveau module</a>
+      </div>
     </div>
+    <p class="small muted">Un cours s'exporte en paquet ZIP (contenus, exercices, médias) pour être transféré vers une autre instance : un pays, une institution. Un cours importé arrive dépublié.</p>
     <p class="muted">Ajouter un pays, une langue ou un public = paramétrer un module, sans développement.</p>
     @if (error()) { <p class="error">{{ error() }}</p> }
     <div class="grid cols-3 section">
@@ -33,6 +40,7 @@ import { CoverComponent } from '../../shared/visuals';
           <div class="foot">
             <a class="btn" [routerLink]="['/admin/modules', c.id]"><app-icon name="edit" /> Modifier</a>
             <a class="btn ghost" [routerLink]="['/admin/modules', c.id, 'analyse']"><app-icon name="lightbulb" /> Analyse</a>
+            <button class="btn ghost" (click)="exportCourse(c.id)" title="Exporter le cours (ZIP)"><app-icon name="download" /> Exporter</button>
           </div>
         </article>
       }
@@ -44,6 +52,32 @@ export class AdminModulesPage implements OnInit {
   private http = inject(HttpClient);
   courses = signal<AdminCourse[]>([]);
   error = signal('');
+  importing = signal(false);
+  private files = inject(AdminFiles);
+  private toast = inject(ToastService);
+
+  exportCourse(id: number): void {
+    void this.files.download(`/api/admin/courses/${id}/package.zip`, `cours-${id}.zip`);
+  }
+
+  async importCourse(ev: Event): Promise<void> {
+    const input = ev.target as HTMLInputElement;
+    const f = input.files?.[0];
+    if (!f) return;
+    this.importing.set(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', f);
+      const c = await firstValueFrom(this.http.post<AdminCourse>('/api/admin/courses/import', fd));
+      this.toast.show({ icon: 'check-circle', title: 'Cours importé', text: c.title + ' (dépublié, à relire)' }, 3500);
+      await this.ngOnInit();
+    } catch (e) {
+      this.error.set(errorMessage(e));
+    } finally {
+      this.importing.set(false);
+      input.value = '';
+    }
+  }
 
   async ngOnInit(): Promise<void> {
     try {

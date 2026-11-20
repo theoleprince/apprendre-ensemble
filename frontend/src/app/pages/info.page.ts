@@ -1,3 +1,4 @@
+import { BrandingService } from '../core/branding.service';
 import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -27,14 +28,18 @@ export const PLATFORM_FAQ: { id?: string; q: string; a: string }[] = [
         @case ('about') {
           <span class="tag sun">À propos</span>
           <h1>Former celles et ceux qui accompagnent les enfants</h1>
-          <p class="lead">Apprendre Ensemble propose des formations courtes, pratiques et certifiantes aux enseignant·es, directions d'école, parents, jeunes et travailleur·ses sociaux, pour un climat de paix à l'école et à la maison.</p>
+          <p class="lead">{{ brand().name }} propose des formations courtes, pratiques et certifiantes aux enseignant·es, directions d'école, parents, jeunes et travailleur·ses sociaux, pour un climat de paix à l'école et à la maison.</p>
           <div class="info-grid">
             <div><app-icon name="wifi-off" [size]="24" /><strong>Pensée pour le terrain</strong><span class="small muted">Fonctionne sur un téléphone d'entrée de gamme, avec peu ou pas de réseau, et sur des serveurs relais installés dans les écoles.</span></div>
             <div><app-icon name="target" [size]="24" /><strong>Exigeante</strong><span class="small muted">Un quiz après chaque notion, une évaluation finale corrigée par le serveur, des certificats vérifiables.</span></div>
             <div><app-icon name="users" [size]="24" /><strong>Accompagnée</strong><span class="small muted">Classes, mentors, communauté de pratique et mentor IA disponible à chaque étape.</span></div>
           </div>
           <h2 id="contact">Contact</h2>
-          <p>Pour toute question sur une formation, une licence pour votre institution ou un partenariat, écrivez à l'équipe de la plateforme à l'adresse indiquée par votre organisation. Dans cette version de démonstration, aucune adresse réelle n'est publiée.</p>
+          @if (brand().supportEmail; as m) {
+            <p>Pour toute question sur une formation, une licence pour votre institution ou un partenariat : <a [href]="'mailto:' + m">{{ m }}</a>.</p>
+          } @else {
+            <p>Pour toute question sur une formation, une licence pour votre institution ou un partenariat, écrivez à l'équipe de la plateforme à l'adresse indiquée par votre organisation.</p>
+          }
         }
         @case ('help') {
           <span class="tag">Aide</span>
@@ -91,5 +96,6 @@ export class InfoPage {
   protected page = toSignal(this.route.data.pipe(map((d) => d['page'] as Page)), { initialValue: 'about' as Page });
   protected fragment = toSignal(this.route.fragment, { initialValue: null });
   protected faq = PLATFORM_FAQ;
+  protected brand = inject(BrandingService).brand;
   protected title = computed(() => this.page());
 }

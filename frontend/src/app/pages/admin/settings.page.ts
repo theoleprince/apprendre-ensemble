@@ -1,3 +1,5 @@
+import { IntegrationsComponent } from './integrations.component';
+import { BrandingEditorComponent } from './branding-editor.component';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -7,7 +9,7 @@ import { AudienceItem, ROLE_LABELS, Role, priceLabel } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
 import { IconComponent } from '../../shared/icon.component';
 
-type Tab = 'publics' | 'pays' | 'langues' | 'traductions' | 'licences' | 'formules';
+type Tab = 'marque' | 'integrations' | 'publics' | 'pays' | 'langues' | 'traductions' | 'licences' | 'formules';
 interface Pack { lang: string; entries: number; updatedAt: string; updatedBy: string }
 interface Ref { code: string; name: string; active: boolean }
 interface Licence { id: number; code: string; institution: string; seats: number; used: number; validUntil: string | null; programId: number | null; active: boolean }
@@ -21,12 +23,14 @@ const BASE_ROLES: Role[] = ['APPRENANT', 'ENSEIGNANT', 'DIRECTION_ECOLE', 'PAREN
  */
 @Component({
   selector: 'app-settings',
-  imports: [FormsModule, IconComponent],
+  imports: [FormsModule, IconComponent, BrandingEditorComponent, IntegrationsComponent],
   template: `
     <h1>Paramètres</h1>
     <p class="muted">Ajouter un public, un pays ou une langue, gérer les licences et les abonnements : sans développement.</p>
     @if (error()) { <p class="error">{{ error() }}</p> }
     <nav class="tabs">
+      <button [class.active]="tab() === 'marque'" (click)="tab.set('marque')">Marque</button>
+      <button [class.active]="tab() === 'integrations'" (click)="tab.set('integrations')">Intégrations</button>
       <button [class.active]="tab() === 'publics'" (click)="tab.set('publics')">Publics ({{ audiences().length }})</button>
       <button [class.active]="tab() === 'pays'" (click)="tab.set('pays')">Pays ({{ countries().length }})</button>
       <button [class.active]="tab() === 'langues'" (click)="tab.set('langues')">Langues ({{ languages().length }})</button>
@@ -36,6 +40,8 @@ const BASE_ROLES: Role[] = ['APPRENANT', 'ENSEIGNANT', 'DIRECTION_ECOLE', 'PAREN
     </nav>
 
     @switch (tab()) {
+      @case ('marque') { <app-branding-editor /> }
+      @case ('integrations') { <app-integrations /> }
       @case ('publics') {
         <div class="table-wrap card flat"><table>
           <thead><tr><th>Code</th><th>Libellé</th><th>Rôle de base</th><th>Inscription libre</th><th>État</th><th></th></tr></thead>

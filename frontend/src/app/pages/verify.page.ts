@@ -1,3 +1,4 @@
+import { BrandMarkComponent } from '../shared/brand-mark.component';
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, input, signal } from '@angular/core';
 import { errorMessage } from '../core/auth.interceptor';
@@ -9,10 +10,10 @@ import { MedalComponent } from '../shared/visuals';
 /** Page publique : un recruteur ou une autorite verifie l'authenticite d'un certificat (QR code, LinkedIn). */
 @Component({
   selector: 'app-verify',
-  imports: [DatePipe, IconComponent, MedalComponent],
+  imports: [BrandMarkComponent, DatePipe, IconComponent, MedalComponent],
   template: `
     <section class="card narrow center" style="max-width:520px">
-      <div class="brand" style="justify-content:center;margin-bottom:1rem"><span class="brand-mark"><app-icon name="sprout" [size]="22" /></span> Apprendre Ensemble</div>
+      <div class="brand" style="justify-content:center;margin-bottom:1rem"><app-brand-mark /></div>
       @if (cert(); as c) {
         <app-medal [level]="c.level || 'EXPERTISE'" [size]="84" [earned]="!c.revokedAt" />
         @if (c.revokedAt) {
@@ -26,7 +27,8 @@ import { MedalComponent } from '../shared/visuals';
         <h2>« {{ c.courseTitle }} »</h2>
         <p class="muted">le {{ c.issuedAt | date: 'dd/MM/yyyy' }} @if (c.level !== 'ATTESTATION') {· score {{ c.scorePercent }} %}</p>
         <p class="small muted">Code <span class="kbd">{{ c.code }}</span></p>
-        @if (!c.revokedAt) { <a class="btn primary" [href]="'/api/public/certificates/' + c.code + '/pdf'" target="_blank" rel="noopener"><app-icon name="download" /> Télécharger le PDF</a> }
+        @if (!c.revokedAt) { <a class="btn primary" [href]="'/api/public/certificates/' + c.code + '/pdf'" target="_blank" rel="noopener"><app-icon name="download" /> Télécharger le PDF</a>
+          <a class="btn" [href]="'/api/public/certificates/' + c.code + '/badge'" target="_blank" rel="noopener" title="Identifiant vérifiable au standard Open Badges 3.0"><app-icon name="badge-check" /> Badge numérique (Open Badges 3.0)</a> }
       } @else if (error()) {
         <div class="empty-icon clay"><app-icon name="alert" [size]="34" /></div>
         <p class="error">{{ error() }}</p>

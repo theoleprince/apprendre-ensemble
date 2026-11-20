@@ -97,9 +97,15 @@ app:
     # Vide : identifiants lus dans l'environnement (ANTHROPIC_API_KEY...). Sans identifiants : mode local.
     api-key: ${ANTHROPIC_API_KEY:}
     model: ${APP_AI_MODEL:claude-opus-5-5}
+  badges:
+    # Cle RSA privee (JWK JSON) de signature des Open Badges ; vide = generee une fois et conservee en base
+    signing-jwk: ${APP_BADGES_SIGNING_JWK:}
   brand:
     # Nom et signataires imprimes sur les certificats (charte du client)
     name: ${APP_BRAND_NAME:Plateforme de formation - démonstration}
+    organization: ${APP_BRAND_ORGANIZATION:}
+    primary: "${APP_BRAND_PRIMARY:#2f7d4f}"
+    accent: "${APP_BRAND_ACCENT:#f5c400}"
     signatory1: ${APP_SIGNATORY1:Responsable pédagogique}
     signatory1-role: ${APP_SIGNATORY1_ROLE:Coordination pédagogique}
     signatory2: ${APP_SIGNATORY2:Direction du programme}

@@ -314,3 +314,20 @@ html.dark .eng-card.streak { background: linear-gradient(135deg, #3a2a12, #2d200
 .detail-side .card.flat a.row { flex-wrap: nowrap; align-items: flex-start; }
 @media (max-width: 560px) { .pub-top .lang-select { min-width: 58px; flex: none; } }
 @media (min-width: 1200px) { .cp:has(.cp-notes) .cp-nav { padding-right: calc(min(380px, 92vw) + 1rem); } }
+
+/* ---------- charte graphique parametrable ---------- */
+.brand-logo { height: 36px; width: auto; max-width: 180px; object-fit: contain; display: block; }
+.logo-preview { height: 48px; max-width: 200px; object-fit: contain; border: 1px solid var(--border); border-radius: 10px; padding: 4px; background: #fff; }
+.brand-preview { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; max-width: 460px; }
+.bp-top { display: flex; align-items: center; gap: .5rem; padding: .6rem .8rem; background: var(--surface); border-bottom: 1px solid var(--border); }
+.bp-top img { height: 28px; }
+.bp-mark { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; color: #fff; background: var(--pv); }
+.bp-body { padding: 1rem; display: flex; flex-direction: column; gap: .6rem; background: color-mix(in srgb, var(--pv) 10%, white); }
+.bp-btn { padding: .45rem .9rem; border-radius: 10px; font-weight: 700; color: #fff; background: var(--pv); }
+.bp-btn.alt { color: #2b2200; background: var(--pa); }
+/* bandeaux : couleurs derivees de la charte (repli : vert d'origine) */
+.dhero { background: radial-gradient(circle at 85% 0%, rgba(245, 196, 0, .22), transparent 38%), linear-gradient(135deg, #173a26 0%, #10241a 100%);
+  background: radial-gradient(circle at 85% 0%, color-mix(in srgb, var(--sun) 25%, transparent), transparent 38%),
+              linear-gradient(135deg, color-mix(in srgb, var(--brand) 45%, #000) 0%, color-mix(in srgb, var(--brand) 25%, #000) 100%); }
+.cta-band { background: radial-gradient(circle at 90% 10%, color-mix(in srgb, var(--sun) 35%, transparent), transparent 40%), linear-gradient(135deg, var(--brand) 0%, var(--brand-700) 100%); }
+.land-hero h1 .hl { background: linear-gradient(90deg, var(--brand), var(--brand-700)); -webkit-background-clip: text; background-clip: text; }

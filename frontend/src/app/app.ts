@@ -1,3 +1,5 @@
+import { BrandMarkComponent } from './shared/brand-mark.component';
+import { BrandingService } from './core/branding.service';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
@@ -23,12 +25,12 @@ interface NavItem {
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, TranslatePipe, AssistantPanelComponent],
+  imports: [BrandMarkComponent, RouterOutlet, RouterLink, RouterLinkActive, IconComponent, TranslatePipe, AssistantPanelComponent],
   template: `
     @if (showShell()) {
       <div class="shell">
         <header class="topbar">
-          <a class="brand" [routerLink]="auth.homeUrl()"><span class="brand-mark"><app-icon name="sprout" [size]="22" /></span><span class="brand-name">Apprendre Ensemble</span></a>
+          <a class="brand" [routerLink]="auth.homeUrl()" [attr.aria-label]="branding.brand().name + ', accueil'"><app-brand-mark /></a>
           <span class="spacer"></span>
           @if (learning.online()) {
             <span class="pill" [title]="'status.online' | t">
@@ -77,7 +79,7 @@ interface NavItem {
     } @else if (publicChrome()) {
       <div class="pub">
         <header class="pub-top">
-          <a class="brand" routerLink="/" aria-label="Apprendre Ensemble, accueil"><span class="brand-mark"><app-icon name="sprout" [size]="22" /></span><span class="brand-name">Apprendre Ensemble</span></a>
+          <a class="brand" routerLink="/" [attr.aria-label]="branding.brand().name + ', accueil'"><app-brand-mark /></a>
           <nav class="pub-nav"><a routerLink="/catalogue" routerLinkActive="active">Catalogue</a></nav>
           <span class="spacer"></span>
           <button class="icon-btn ghost theme-btn" (click)="toggleTheme()" [attr.aria-label]="dark() ? 'Passer en mode clair' : 'Passer en mode sombre'" [title]="dark() ? 'Mode clair' : 'Mode sombre'"><app-icon [name]="dark() ? 'sun' : 'moon'" [size]="18" /></button>
@@ -120,6 +122,7 @@ export class App {
   private media = inject(MediaCacheService);
   private audiences = inject(AudienceService);
   protected i18n = inject(I18nRuntimeService);
+  protected branding = inject(BrandingService);
   private http = inject(HttpClient);
   protected langs = signal<{ code: string; name: string }[]>([{ code: 'fr', name: 'Français' }, { code: 'en', name: 'English' }]);
 

@@ -43,6 +43,7 @@ import { MedalComponent } from '../shared/visuals';
               } @else {
                 <div class="row" style="margin-top:.6rem">
                   <a class="btn primary" [href]="'/api/public/certificates/' + c.code + '/pdf'" target="_blank" rel="noopener"><app-icon name="download" /> PDF</a>
+                  <a class="btn ghost" [href]="'/api/public/certificates/' + c.code + '/badge.jwt'" title="Badge numérique signé (Open Badges 3.0), à importer dans un portefeuille de certificats"><app-icon name="badge-check" /> Open Badge</a>
                   <a class="btn" [href]="linkedInProgram(c.programTitle, c.code, c.issuedAt)" target="_blank" rel="noopener"><app-icon name="linkedin" /> LinkedIn</a>
                 </div>
               }
@@ -65,6 +66,7 @@ import { MedalComponent } from '../shared/visuals';
             } @else {
               <div class="row" style="margin-top:.6rem">
                 <a class="btn primary" [href]="'/api/public/certificates/' + c.code + '/pdf'" target="_blank" rel="noopener"><app-icon name="download" /> PDF</a>
+                  <a class="btn ghost" [href]="'/api/public/certificates/' + c.code + '/badge.jwt'" title="Badge numérique signé (Open Badges 3.0), à importer dans un portefeuille de certificats"><app-icon name="badge-check" /> Open Badge</a>
                 <a class="btn" [href]="linkedIn(c)" target="_blank" rel="noopener"><app-icon name="linkedin" /> LinkedIn</a>
                 <a class="btn ghost" [routerLink]="['/verifier', c.code]"><app-icon name="shield" /> Vérifier</a>
               </div>
