@@ -56,9 +56,9 @@ public class SecurityConfig {
                         .frameOptions(f -> f.sameOrigin())
                         .contentSecurityPolicy(c -> c.policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
                                 + "img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; "
-                                + "manifest-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"))
+                                + "manifest-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-src 'self' https://meet.jit.si"))
                         .referrerPolicy(r -> r.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
-                        .permissionsPolicyHeader(pp -> pp.policy("camera=(self), microphone=(self), geolocation=(), payment=()")))
+                        .permissionsPolicyHeader(pp -> pp.policy("camera=(self \"https://meet.jit.si\"), microphone=(self \"https://meet.jit.si\"), display-capture=(self \"https://meet.jit.si\"), geolocation=(), payment=()")))
                 .authorizeHttpRequests(a -> a
                         // Le streaming SSE de l'assistant reprend en dispatch ASYNC : deja authentifie a l'entree.
                         .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()

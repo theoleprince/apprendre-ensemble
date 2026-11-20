@@ -331,3 +331,8 @@ html.dark .eng-card.streak { background: linear-gradient(135deg, #3a2a12, #2d200
               linear-gradient(135deg, color-mix(in srgb, var(--brand) 45%, #000) 0%, color-mix(in srgb, var(--brand) 25%, #000) 100%); }
 .cta-band { background: radial-gradient(circle at 90% 10%, color-mix(in srgb, var(--sun) 35%, transparent), transparent 40%), linear-gradient(135deg, var(--brand) 0%, var(--brand-700) 100%); }
 .land-hero h1 .hl { background: linear-gradient(90deg, var(--brand), var(--brand-700)); -webkit-background-clip: text; background-clip: text; }
+
+/* visioconference integree */
+.live-scrim { padding: .5rem; }
+.live-modal { width: min(1100px, 100%); height: min(92vh, 900px); }
+.live-modal iframe { flex: 1; width: 100%; min-height: 360px; border: 0; border-radius: 12px; background: #111; }

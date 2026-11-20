@@ -1,3 +1,4 @@
+import { LiveJoinComponent } from '../shared/live-join.component';
 import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject, input, signal } from '@angular/core';
@@ -12,7 +13,7 @@ import { AvatarComponent } from '../shared/visuals';
 
 @Component({
   selector: 'app-thread',
-  imports: [RouterLink, FormsModule, IconComponent, DatePipe, AvatarComponent],
+  imports: [LiveJoinComponent, RouterLink, FormsModule, IconComponent, DatePipe, AvatarComponent],
   template: `
     <a routerLink="/communaute" class="back"><app-icon name="back" [size]="18" /> Communauté</a>
     @if (error()) { <p class="error">{{ error() }}</p> }
@@ -23,7 +24,7 @@ import { AvatarComponent } from '../shared/visuals';
         <h1 style="margin-top:.8rem">{{ t.title }}</h1>
         @if (t.body) { <p>{{ t.body }}</p> }
         @if (t.meetingUrl) {
-          <div class="row"><a class="btn primary" [href]="t.meetingUrl" target="_blank" rel="noopener"><app-icon name="video" /> Rejoindre la visioconférence</a>
+          <div class="row"><app-live-join [url]="t.meetingUrl" [title]="t.title" label="Rejoindre la visioconférence" />
             <span class="small muted">{{ t.meetingAt | date: 'EEEE d MMMM, HH:mm' }}</span></div>
         }
       </article>

@@ -1,3 +1,4 @@
+import { LiveJoinComponent } from '../shared/live-join.component';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../core/auth.service';
@@ -10,7 +11,7 @@ import { AvatarComponent } from '../shared/visuals';
 /** Une classe : calendrier, animateur·rice, visio, podium et classement (public, anonyme ou desactive). */
 @Component({
   selector: 'app-classroom',
-  imports: [RouterLink, IconComponent, AvatarComponent],
+  imports: [LiveJoinComponent, RouterLink, IconComponent, AvatarComponent],
   template: `
     @if (error()) { <p class="error">{{ error() }}</p> }
     @if (lb(); as lb) {
@@ -28,7 +29,7 @@ import { AvatarComponent } from '../shared/visuals';
         }
         <div class="row" style="margin-top:.6rem">
           <a class="btn sun" [routerLink]="['/formations', c.programId]"><app-icon name="book-open" /> La formation</a>
-          @if (c.meetingUrl && c.status !== 'CLOSED') { <a class="btn ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" [href]="c.meetingUrl" target="_blank" rel="noopener"><app-icon name="video" /> Visio de la classe</a> }
+          @if (c.meetingUrl && c.status !== 'CLOSED') { <app-live-join [url]="c.meetingUrl" [title]="c.name" label="Visio de la classe" /> }
         </div>
       </section>
 

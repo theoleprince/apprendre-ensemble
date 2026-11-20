@@ -1,3 +1,4 @@
+import { LiveJoinComponent } from '../shared/live-join.component';
 import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
@@ -13,7 +14,7 @@ import { AvatarComponent } from '../shared/visuals';
 
 @Component({
   selector: 'app-community',
-  imports: [RouterLink, FormsModule, IconComponent, DatePipe, AvatarComponent],
+  imports: [LiveJoinComponent, RouterLink, FormsModule, IconComponent, DatePipe, AvatarComponent],
   template: `
     <div class="section-head">
       <h1 style="margin:0">Communauté de pratique</h1>
@@ -48,7 +49,7 @@ import { AvatarComponent } from '../shared/visuals';
           <div class="row"><span class="live-dot"></span><strong>{{ t.meetingAt | date: 'EEEE d MMMM, HH:mm' }}</strong><span class="muted small">animée par {{ t.authorName }}</span></div>
           <h3>{{ t.title }}</h3>
           <div class="row">
-            <a class="btn primary" [href]="t.meetingUrl" target="_blank" rel="noopener"><app-icon name="video" /> Rejoindre</a>
+            <app-live-join [url]="t.meetingUrl!" [title]="t.title" />
             <a class="btn" [routerLink]="['/communaute', t.id]">Discussion ({{ t.replies }})</a>
           </div>
         </div>

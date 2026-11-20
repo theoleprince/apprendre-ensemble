@@ -1,3 +1,4 @@
+import { LiveJoinComponent } from '../shared/live-join.component';
 import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
@@ -22,7 +23,7 @@ import { EngagementPanelComponent } from '../shared/engagement-panel.component';
  */
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, IconComponent, DatePipe, CoverComponent, CourseCardComponent, EngagementPanelComponent],
+  imports: [LiveJoinComponent, RouterLink, IconComponent, DatePipe, CoverComponent, CourseCardComponent, EngagementPanelComponent],
   template: `
     <p class="muted" style="margin:0">{{ greeting() }} {{ firstName() }}</p>
     <h1 style="margin-top:.2rem">Mes formations</h1>
@@ -142,7 +143,7 @@ import { EngagementPanelComponent } from '../shared/engagement-panel.component';
         <div class="row"><span class="live-dot"></span><strong>Séance en direct</strong><span class="muted small">{{ t.meetingAt | date: 'EEEE d MMMM, HH:mm' }}</span></div>
         <h3>{{ t.title }}</h3>
         <div class="row">
-          <a class="btn primary" [href]="t.meetingUrl" target="_blank" rel="noopener"><app-icon name="video" /> Rejoindre</a>
+          <app-live-join [url]="t.meetingUrl!" [title]="t.title" />
           <a class="btn" [routerLink]="['/communaute', t.id]">Voir la discussion</a>
         </div>
       </section>
