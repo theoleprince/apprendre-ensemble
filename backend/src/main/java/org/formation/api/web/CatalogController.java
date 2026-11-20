@@ -34,6 +34,12 @@ public class CatalogController {
         return enrollments.programDetail(currentUser.find().orElse(null), id);
     }
 
+    /** Medias publics des cours publies : prechargement par les serveurs relais (lieux sans Internet permanent). */
+    @GetMapping("/public/media-manifest")
+    public java.util.List<java.util.Map<String, Object>> mediaManifest() {
+        return enrollments.mediaManifest();
+    }
+
     @PostMapping("/enrollments")
     public EnrollResult enroll(@Valid @RequestBody EnrollRequest req) {
         return enrollments.enroll(currentUser.get(), req);

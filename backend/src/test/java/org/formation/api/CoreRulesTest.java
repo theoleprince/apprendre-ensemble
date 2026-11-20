@@ -43,23 +43,75 @@ class CoreRulesTest {
         return courses.findAllByOrderByIdAsc().stream().filter(c -> c.getTitle().startsWith("Gérer")).findFirst().orElseThrow();
     }
 
+    /** Bonnes reponses du quiz d'une lecon (ce que l'apprenant a coche pour reussir). */
+    private static List<Integer> rightAnswers(Course c, Lesson l) {
+        return c.getQuestions().stream().filter(q -> q.getLesson() != null && q.getLesson().getId().equals(l.getId()))
+                .map(QuizQuestion::getCorrectIndex).toList();
+    }
+
+    private static ProgressItem done(Course c, Lesson l, Instant at, int seconds, boolean offline) {
+        return new ProgressItem(l.getId(), at, seconds, offline, rightAnswers(c, l));
+    }
+
     @Test
     void offlineSyncIsIdempotentAndResolvesConflicts() {
         AppUser u = teacher();
-        Lesson l = emotions().getLessons().getLast();
+        Course c = emotions();
+        Lesson l = c.getLessons().get(2); // les lecons 1 et 2 sont deja faites dans le jeu de demonstration
         Instant early = Instant.parse("2026-11-01T08:00:00Z");
         Instant late = Instant.parse("2026-11-05T08:00:00Z");
 
-        learning.sync(u, List.of(new ProgressItem(l.getId(), late, 120, false)));
+        learning.sync(u, List.of(done(c, l, late, 120, false)));
         // rejeu depuis un second appareil hors ligne : date plus ancienne, temps plus long
-        SyncResponse r = learning.sync(u, List.of(new ProgressItem(l.getId(), early, 300, true),
-                new ProgressItem(l.getId(), early, 300, true)));
+        SyncResponse r = learning.sync(u, List.of(done(c, l, early, 300, true), done(c, l, early, 300, true)));
 
         List<ProgressItem> forLesson = r.serverState().stream().filter(p -> p.lessonId().equals(l.getId())).toList();
         assertThat(forLesson).hasSize(1);
         assertThat(forLesson.getFirst().completedAt()).isEqualTo(early);
         assertThat(forLesson.getFirst().timeSpentSeconds()).isEqualTo(300);
         assertThat(forLesson.getFirst().offline()).isTrue();
+        assertThat(r.rejected()).isEmpty();
+    }
+
+    @Test
+    void syncRefusesSkippedLessonsAndFailedQuizzes() {
+        AppUser u = teacher();
+        Course c = emotions();
+        Lesson third = c.getLessons().get(2);
+        Lesson fourth = c.getLessons().get(3);
+
+        // saut d'une lecon : la 4e sans la 3e
+        SyncResponse skipped = learning.sync(u, List.of(done(c, fourth, Instant.now(), 60, false)));
+        assertThat(skipped.accepted()).isZero();
+        assertThat(skipped.rejected()).extracting(RejectedItem::lessonId).containsExactly(fourth.getId());
+
+        // quiz de la lecon rate ou absent : refuse
+        List<Integer> wrong = rightAnswers(c, third).stream().map(a -> (a + 1) % 3).toList();
+        SyncResponse failed = learning.sync(u, List.of(
+                new ProgressItem(third.getId(), Instant.now(), 60, false, wrong),
+                new ProgressItem(third.getId(), Instant.now(), 60, false, null)));
+        assertThat(failed.accepted()).isZero();
+        assertThat(failed.rejected()).hasSize(2).allMatch(x -> x.reason().contains("Quiz"));
+
+        // dans l'ordre et avec le quiz reussi : accepte, meme envoye dans le desordre au sein d'un lot
+        SyncResponse ok = learning.sync(u, List.of(done(c, fourth, Instant.now(), 60, true), done(c, third, Instant.now(), 60, true)));
+        assertThat(ok.accepted()).isEqualTo(2);
+        assertThat(ok.rejected()).isEmpty();
+    }
+
+    @Test
+    void finalExamQuestionsAreDistinctFromLessonQuizzesAndNeverSentWithAnswers() {
+        Course c = emotions();
+        List<QuizQuestion> exam = c.examQuestions();
+        assertThat(exam).isNotEmpty().allMatch(q -> q.getLesson() == null);
+        AppUser u = teacher();
+        CoursePackage pkg = learning.coursePackage(u, c.getId());
+        // l'examen envoye au client : uniquement des questions d'examen, sans bonne reponse (QuestionDto n'en a pas)
+        assertThat(pkg.questions()).extracting(QuestionDto::id).containsExactlyElementsOf(exam.stream().map(QuizQuestion::getId).toList());
+        java.util.Set<Long> checkIds = new java.util.HashSet<>();
+        pkg.lessons().forEach(l -> l.checks().forEach(q -> checkIds.add(q.id())));
+        assertThat(pkg.questions()).noneMatch(q -> checkIds.contains(q.id()));
+        assertThat(QuestionDto.class.getRecordComponents()).noneMatch(rc -> rc.getName().toLowerCase().contains("correct"));
     }
 
     @Test
@@ -67,23 +119,26 @@ class CoreRulesTest {
         AppUser u = teacher();
         Course c = emotions();
         List<ProgressItem> all = c.getLessons().stream()
-                .map(l -> new ProgressItem(l.getId(), Instant.now().minusSeconds(60), 60, false)).toList();
+                .map(l -> done(c, l, Instant.now().minusSeconds(60), 60, false)).toList();
 
         SyncResponse s = learning.sync(u, all);
         assertThat(s.newCertificates()).extracting(CertificateDto::level).containsExactly(CertificateLevel.ATTESTATION);
 
-        // 3/4 = 75 % : badge (>= 70) mais pas maitrise (>= 85)
-        QuizResult partial = learning.submitQuiz(u, c.getId(), List.of(1, 0, 1, 1));
-        assertThat(partial.scorePercent()).isEqualTo(75);
-        assertThat(partial.newCertificates()).extracting(CertificateDto::level).containsExactly(CertificateLevel.BADGE);
+        List<Integer> right = c.examQuestions().stream().map(QuizQuestion::getCorrectIndex).toList();
+        List<Integer> wrong = right.stream().map(a -> (a + 1) % 3).toList();
 
-        QuizResult full = learning.submitQuiz(u, c.getId(), List.of(1, 2, 1, 1));
+        QuizResult failed = learning.submitQuiz(u, c.getId(), wrong);
+        assertThat(failed.passed()).isFalse();
+        assertThat(failed.newCertificates()).isEmpty();
+
+        QuizResult full = learning.submitQuiz(u, c.getId(), right);
         assertThat(full.mastery()).isTrue();
-        assertThat(full.newCertificates()).extracting(CertificateDto::level).containsExactly(CertificateLevel.MAITRISE);
+        assertThat(full.newCertificates()).extracting(CertificateDto::level)
+                .containsExactlyInAnyOrder(CertificateLevel.BADGE, CertificateLevel.MAITRISE);
         assertThat(full.corrections()).allMatch(QuestionCorrection::correct);
 
         // aucun doublon en cas de nouvelle reussite
-        assertThat(learning.submitQuiz(u, c.getId(), List.of(1, 2, 1, 1)).newCertificates()).isEmpty();
+        assertThat(learning.submitQuiz(u, c.getId(), right).newCertificates()).isEmpty();
     }
 
     @Test
@@ -100,21 +155,25 @@ class CoreRulesTest {
         assertThat(pkg.lessons()).allMatch(l -> !l.checks().isEmpty());
 
         // l'evaluation finale reste fermee tant que toutes les lecons ne sont pas terminees
-        assertThatThrownBy(() -> learning.submitQuiz(u, c.getId(), List.of(1, 2, 1, 1)))
+        assertThatThrownBy(() -> learning.submitQuiz(u, c.getId(), List.of(0, 0, 0)))
                 .isInstanceOf(ResponseStatusException.class).hasMessageContaining("Terminez");
     }
 
     @Test
-    void paidCourseNeedsPaymentOrLicenceCode() {
+    void paidCourseNeedsLicenceSubscriptionOrRealOnlinePayment() {
         AppUser u = users.findByEmailIgnoreCase("jeune@demo.local").orElseThrow();
         Course paid = courses.findAllByOrderByIdAsc().stream().filter(c -> c.getPrice() > 0).findFirst().orElseThrow();
         assertThatThrownBy(() -> enrollments.enroll(u, new EnrollRequest(paid.getId(), null, Enrollment.Method.GRATUIT, null, null)))
                 .isInstanceOf(ResponseStatusException.class);
         assertThatThrownBy(() -> enrollments.enroll(u, new EnrollRequest(paid.getId(), null, Enrollment.Method.CODE, null, "FAUX")))
                 .isInstanceOf(ResponseStatusException.class);
-        EnrollResult ok = enrollments.enroll(u, new EnrollRequest(paid.getId(), null, Enrollment.Method.MOBILE_MONEY, "+229 97 00 00 00", null));
-        assertThat(ok.amount()).isEqualTo(paid.getPrice());
-        assertThat(ok.paymentRef()).startsWith("SIM-MM-");
+        // plus aucun paiement simule : Mobile Money / carte passent obligatoirement par le prestataire
+        assertThatThrownBy(() -> enrollments.enroll(u, new EnrollRequest(paid.getId(), null, Enrollment.Method.MOBILE_MONEY, "+22997000000", null)))
+                .isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> enrollments.enroll(u, new EnrollRequest(paid.getId(), null, Enrollment.Method.ABONNEMENT, null, null)))
+                .isInstanceOf(ResponseStatusException.class);
+        EnrollResult ok = enrollments.enroll(u, new EnrollRequest(paid.getId(), null, Enrollment.Method.CODE, null, "gdp-2027"));
+        assertThat(ok.paymentRef()).isEqualTo("LIC-GDP-2027");
         assertThat(enrollments.isEnrolled(u, paid)).isTrue();
     }
 

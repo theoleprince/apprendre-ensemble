@@ -38,10 +38,14 @@ import { MedalComponent } from '../shared/visuals';
               <div class="xs muted" style="text-transform:uppercase;letter-spacing:.05em">Certificat de parcours @if (c.rank) {· Lauréat·e}</div>
               <h3 style="margin:.1rem 0">{{ c.programTitle }}</h3>
               <div class="small muted">@if (c.rank) {{{ rankLabel(c.rank) }} sur {{ c.classSize }} · {{ c.points }} points · }@if (c.classroomName) {{{ c.classroomName }} · }code <span class="kbd">{{ c.code }}</span></div>
-              <div class="row" style="margin-top:.6rem">
-                <a class="btn primary" [href]="'/api/public/certificates/' + c.code + '/pdf'" target="_blank" rel="noopener"><app-icon name="download" /> PDF</a>
-                <a class="btn" [href]="linkedInProgram(c.programTitle, c.code, c.issuedAt)" target="_blank" rel="noopener"><app-icon name="linkedin" /> LinkedIn</a>
-              </div>
+              @if (c.revokedAt) {
+                <p class="tag clay" style="margin-top:.5rem">Certificat révoqué</p>
+              } @else {
+                <div class="row" style="margin-top:.6rem">
+                  <a class="btn primary" [href]="'/api/public/certificates/' + c.code + '/pdf'" target="_blank" rel="noopener"><app-icon name="download" /> PDF</a>
+                  <a class="btn" [href]="linkedInProgram(c.programTitle, c.code, c.issuedAt)" target="_blank" rel="noopener"><app-icon name="linkedin" /> LinkedIn</a>
+                </div>
+              }
             </div>
           </article>
         }
@@ -56,11 +60,15 @@ import { MedalComponent } from '../shared/visuals';
             <div class="xs muted" style="text-transform:uppercase;letter-spacing:.05em">{{ c.levelLabel }}</div>
             <h3 style="margin:.1rem 0">{{ c.courseTitle }}</h3>
             <div class="small muted">Délivré le {{ c.issuedAt | date: 'dd/MM/yyyy' }} @if (c.level !== 'ATTESTATION') {· score {{ c.scorePercent }} %} · code <span class="kbd">{{ c.code }}</span></div>
-            <div class="row" style="margin-top:.6rem">
-              <a class="btn primary" [href]="'/api/public/certificates/' + c.code + '/pdf'" target="_blank" rel="noopener"><app-icon name="download" /> PDF</a>
-              <a class="btn" [href]="linkedIn(c)" target="_blank" rel="noopener"><app-icon name="linkedin" /> LinkedIn</a>
-              <a class="btn ghost" [routerLink]="['/verifier', c.code]"><app-icon name="shield" /> Vérifier</a>
-            </div>
+            @if (c.revokedAt) {
+              <p class="tag clay" style="margin-top:.5rem">Certificat révoqué @if (c.revokedReason) {: {{ c.revokedReason }}}</p>
+            } @else {
+              <div class="row" style="margin-top:.6rem">
+                <a class="btn primary" [href]="'/api/public/certificates/' + c.code + '/pdf'" target="_blank" rel="noopener"><app-icon name="download" /> PDF</a>
+                <a class="btn" [href]="linkedIn(c)" target="_blank" rel="noopener"><app-icon name="linkedin" /> LinkedIn</a>
+                <a class="btn ghost" [routerLink]="['/verifier', c.code]"><app-icon name="shield" /> Vérifier</a>
+              </div>
+            }
           </div>
         </article>
       } @empty {

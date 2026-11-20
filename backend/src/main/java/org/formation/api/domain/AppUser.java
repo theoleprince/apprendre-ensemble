@@ -50,6 +50,29 @@ public class AppUser {
     private boolean placementDone;
     private String recommendedCourseIds;
 
+    /** Public (code Audience). Vide : le nom du role (publics historiques). */
+    private String audience;
+
     private Instant createdAt = Instant.now();
     private Instant lastActiveAt;
+
+    /** Compte actif. Desactive : connexion refusee et sessions en cours invalidees. */
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean enabled = true;
+
+    /** Changement d'identifiants (mot de passe, desactivation, "deconnecter partout") : les jetons anterieurs sont refuses. */
+    private Instant credentialsChangedAt;
+
+    /** Version des identifiants, portee par chaque jeton : incrementee a chaque changement, elle invalide les anciens jetons. */
+    @Column(nullable = false, columnDefinition = "integer default 0")
+    private int credentialsVersion;
+
+    /** Invalide toutes les sessions en cours. */
+    public void revokeSessions() {
+        credentialsVersion++;
+        credentialsChangedAt = Instant.now();
+    }
+
+    /** Compte efface a la demande (droit a l'effacement) : donnees personnelles anonymisees. */
+    private Instant deletedAt;
 }

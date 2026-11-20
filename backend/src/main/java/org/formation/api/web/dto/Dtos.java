@@ -27,15 +27,16 @@ public final class Dtos {
             @NotBlank @Email String email,
             @NotBlank @Size(min = 8, max = 100) String password,
             @NotBlank @Size(max = 120) String fullName,
-            @NotNull Role role,
+            Role role,
             @NotBlank String countryCode,
             @NotBlank String languageCode,
             @Size(max = 120) String region,
-            @AssertTrue(message = "Le consentement au traitement des donnees est requis") boolean dataConsent) {
+            @AssertTrue(message = "Le consentement au traitement des donnees est requis") boolean dataConsent,
+            String audience) {
     }
 
     public record UserDto(Long id, String email, String fullName, Role role, String countryCode, String languageCode,
-                          String region, String cohort, boolean placementDone, List<Long> recommendedCourseIds) {
+                          String region, String cohort, boolean placementDone, List<Long> recommendedCourseIds, String audience) {
     }
 
     public record AuthResponse(String token, UserDto user) {
@@ -45,7 +46,7 @@ public final class Dtos {
     public record RefItem(String code, String name) {
     }
 
-    public record Referentiel(List<RefItem> countries, List<RefItem> languages, List<Role> learnerRoles) {
+    public record Referentiel(List<RefItem> countries, List<RefItem> languages, List<Role> learnerRoles, List<AudienceDto> audiences) {
     }
 
     // ---------- Test d'entree ----------
@@ -90,13 +91,19 @@ public final class Dtos {
 
     // ---------- Synchronisation hors ligne ----------
     public record ProgressItem(@NotNull Long lessonId, @NotNull Instant completedAt,
-                               @Min(0) @Max(86400) int timeSpentSeconds, boolean offline) {
+                               @Min(0) @Max(86400) int timeSpentSeconds, boolean offline,
+                               List<Integer> checkAnswers) {
     }
 
     public record SyncRequest(@NotNull @Size(max = 500) List<@Valid ProgressItem> items) {
     }
 
-    public record SyncResponse(int accepted, List<ProgressItem> serverState, List<CertificateDto> newCertificates) {
+    public record SyncResponse(int accepted, List<ProgressItem> serverState, List<CertificateDto> newCertificates,
+                               List<RejectedItem> rejected) {
+    }
+
+    /** Element de progression refuse par le serveur (ordre non respecte, quiz non reussi, cours ferme...). */
+    public record RejectedItem(Long lessonId, String reason) {
     }
 
     // ---------- Evaluation / certificats ----------
@@ -111,7 +118,8 @@ public final class Dtos {
     }
 
     public record CertificateDto(String code, CertificateLevel level, String levelLabel, Long courseId,
-                                 String courseTitle, String learnerName, int scorePercent, Instant issuedAt) {
+                                 String courseTitle, String learnerName, int scorePercent, Instant issuedAt,
+                                 Instant revokedAt, String revokedReason) {
     }
 
     // ---------- Portfolio / mentorat ----------
@@ -173,7 +181,7 @@ public final class Dtos {
             @NotNull CourseType type,
             String countryCode,
             String languageCode,
-            @NotEmpty Set<Role> targetRoles,
+            @NotEmpty Set<String> targetRoles,
             Set<String> allowedCohorts,
             Set<String> allowedRegions,
             @Min(0) @Max(100) int passScore,
@@ -187,7 +195,7 @@ public final class Dtos {
     }
 
     public record AdminCourse(Long id, String title, String icon, CourseType type, String countryCode,
-                              String languageCode, Set<Role> targetRoles, Set<String> allowedCohorts,
+                              String languageCode, Set<String> targetRoles, Set<String> allowedCohorts,
                               boolean published, int lessonCount, int questionCount, int contentVersion, String domainName,
                               int price) {
     }
@@ -268,7 +276,7 @@ public final class Dtos {
     }
 
     public record ProgramCertDto(String code, String programTitle, String learnerName, Integer rank, Integer classSize,
-                                 int points, Instant issuedAt, String classroomName) {
+                                 int points, Instant issuedAt, String classroomName, Instant revokedAt) {
     }
 
     public record ProgramSummary(Long id, String title, String description, String icon, String durationLabel, int moduleCount,
@@ -292,11 +300,11 @@ public final class Dtos {
     }
 
     public record ResourceDto(Long id, String title, String summary, String icon, String content, String fileUrl,
-                              Long domainId, String domainName, Set<Role> targetRoles) {
+                              Long domainId, String domainName, Set<String> targetRoles) {
     }
 
     public record ResourceInput(@NotBlank String title, String summary, String icon, String content, String fileUrl,
-                                Long domainId, Set<Role> targetRoles) {
+                                Long domainId, Set<String> targetRoles) {
     }
 
     public record SchoolDto(Long id, String name, String countryCode, String region, String commune, long staffCount) {
@@ -321,12 +329,12 @@ public final class Dtos {
 
     // ---------- Administration ----------
     public record ProgramInput(@NotBlank String title, String description, String icon, String durationLabel, String countryCode,
-                               @NotEmpty Set<Role> targetRoles, @NotNull List<Long> courseIds, @NotNull CertificateLevel requiredLevel,
+                               @NotEmpty Set<String> targetRoles, @NotNull List<Long> courseIds, @NotNull CertificateLevel requiredLevel,
                                boolean published, @Min(0) int price) {
     }
 
     public record ProgramAdmin(Long id, String title, String description, String icon, String durationLabel, String countryCode,
-                               Set<Role> targetRoles, List<Long> courseIds, List<String> courseTitles,
+                               Set<String> targetRoles, List<Long> courseIds, List<String> courseTitles,
                                CertificateLevel requiredLevel, boolean published, long classroomCount, int price) {
     }
 
@@ -355,11 +363,11 @@ public final class Dtos {
     // ---------- Catalogue public, inscriptions, progression ----------
     public record CatalogCourse(Long id, String title, String description, String icon, Long domainId, String domainName,
                                 CourseType type, int lessonCount, int totalMinutes, int questionCount, int price,
-                                Set<Role> targetRoles, boolean hasVideo, boolean hasAudio, long learners) {
+                                Set<String> targetRoles, boolean hasVideo, boolean hasAudio, long learners) {
     }
 
     public record CatalogProgram(Long id, String title, String description, String icon, String durationLabel, int courseCount,
-                                 int totalMinutes, int price, Set<Role> targetRoles, CertificateLevel requiredLevel,
+                                 int totalMinutes, int price, Set<String> targetRoles, CertificateLevel requiredLevel,
                                  List<String> domains) {
     }
 
@@ -400,5 +408,89 @@ public final class Dtos {
     }
 
     public record MyLearning(List<MyProgram> programs, List<MyCourse> courses) {
+    }
+
+    // ---------- Comptes, mot de passe, donnees personnelles ----------
+    public record ForgotRequest(@NotBlank @Email String email) {
+    }
+
+    public record ResetRequest(@NotBlank String token, @NotBlank @Size(min = 8, max = 100) String password) {
+    }
+
+    public record PasswordConfirm(@NotBlank String password) {
+    }
+
+    public record AdminUser(Long id, String email, String fullName, Role role, String countryCode, String languageCode,
+                            String region, Long schoolId, String schoolName, String cohort, boolean enabled,
+                            Instant createdAt, Instant lastActiveAt) {
+    }
+
+    public record AdminUserInput(@NotBlank @Email String email, @NotBlank @Size(max = 120) String fullName, @NotNull Role role,
+                                 String countryCode, String languageCode, String region, Long schoolId, String cohort,
+                                 String password) {
+    }
+
+    public record UserPage(List<AdminUser> items, long total, int page, int size) {
+    }
+
+    public record ResetLinkDto(String url, Instant expiresAt) {
+    }
+
+    // ---------- Certificats : administration et revocation ----------
+    public record CertificateAdmin(String code, String kind, String title, String levelLabel, String learnerName,
+                                   Long learnerId, Instant issuedAt, Instant revokedAt, String revokedReason, String revokedBy) {
+    }
+
+    public record RevokeRequest(@NotBlank @Size(max = 500) String reason) {
+    }
+
+    // ---------- Paiement en ligne, abonnements, licences ----------
+    public record PaymentConfig(boolean enabled, String environment) {
+    }
+
+    public record PaymentStartRequest(@NotNull org.formation.api.domain.Payment.Kind kind, @NotNull Long targetId) {
+    }
+
+    public record PaymentStart(String reference, String url) {
+    }
+
+    public record PaymentDto(String reference, org.formation.api.domain.Payment.Kind kind, Long targetId, String description,
+                             int amount, String currency, org.formation.api.domain.Payment.Status status, Instant createdAt,
+                             boolean fulfilled) {
+    }
+
+    public record PlanDto(Long id, String name, String description, int price, int durationDays, boolean active) {
+    }
+
+    public record PlanInput(@NotBlank String name, String description, @Min(1) int price, @Min(1) int durationDays, boolean active) {
+    }
+
+    public record MySubscription(boolean active, String planName, Instant endsAt) {
+    }
+
+    public record LicenceDto(Long id, String code, String institution, int seats, int used, java.time.LocalDate validUntil,
+                             Long programId, boolean active) {
+    }
+
+    public record LicenceInput(@NotBlank @Size(min = 4, max = 40) String code, @NotBlank String institution, @Min(0) int seats,
+                               java.time.LocalDate validUntil, Long programId, boolean active) {
+    }
+
+    // ---------- Referentiels parametrables : publics, pays, langues ----------
+    public record AudienceDto(String code, String label, String icon, int position, Role baseRole, boolean selfRegistration,
+                              boolean active) {
+    }
+
+    public record AudienceInput(@NotBlank @Pattern(regexp = "[A-Z0-9_]{2,40}") String code, @NotBlank String label, String icon,
+                                int position, @NotNull Role baseRole, boolean selfRegistration, boolean active) {
+    }
+
+    public record CountryInput(@NotBlank @Pattern(regexp = "[A-Z]{2}") String code, @NotBlank String name, boolean active) {
+    }
+
+    public record LanguageInput(@NotBlank @Pattern(regexp = "[a-z]{2,3}") String code, @NotBlank String name, boolean active) {
+    }
+
+    public record RefAdmin(String code, String name, boolean active) {
     }
 }

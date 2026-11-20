@@ -17,7 +17,8 @@ import java.time.Instant;
 @Setter
 @NoArgsConstructor
 public class Enrollment {
-    public enum Method { GRATUIT, MOBILE_MONEY, CARTE, CODE, FORMATION }
+    /** MOBILE_MONEY / CARTE : paiement en ligne confirme par le prestataire ; CODE : licence ; ABONNEMENT : abonnement actif. */
+    public enum Method { GRATUIT, MOBILE_MONEY, CARTE, CODE, FORMATION, ABONNEMENT }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

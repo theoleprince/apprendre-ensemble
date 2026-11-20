@@ -1,6 +1,9 @@
 package org.formation.api.domain;
 
-/** Publics cibles de la plateforme. */
+/**
+ * Roles = PERMISSIONS (fixes). Les PUBLICS cibles (enseignants, parents, infirmiers...) sont des donnees
+ * parametrables (entite Audience) : un nouveau public s'ajoute sans developpement et s'appuie sur un role de base.
+ */
 public enum Role {
     ADMIN,
     FORMATEUR,
@@ -9,5 +12,7 @@ public enum Role {
     DIRECTION_ECOLE,
     PARENT,
     TRAVAILLEUR_SOCIAL,
-    JEUNE
+    JEUNE,
+    /** Apprenant d'un public ajoute par parametrage. */
+    APPRENANT
 }

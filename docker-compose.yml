@@ -1,5 +1,11 @@
 name: formation
 
+# Services de base : db, backend, frontend, backup (toujours actifs).
+# Profils optionnels :
+#   docker compose --profile mail up -d        -> Mailpit (SMTP de test, e-mails visibles sur http://localhost:8025)
+#   docker compose --profile sso up -d         -> Keycloak (fournisseur d'identite de test, http://keycloak.localhost:8180)
+#   docker compose --profile monitoring up -d  -> Prometheus (9090) + Grafana (3000)
+
 services:
   db:
     image: postgres:16-alpine
@@ -29,7 +35,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?APP_JWT_SECRET manquant dans .env}
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:?APP_ADMIN_PASSWORD manquant dans .env}
-      APP_SEED_DEMO: ${APP_SEED_DEMO:-true}
+      APP_SEED_DEMO: ${APP_SEED_DEMO:-false}
       APP_CORS_ORIGINS: ""
       APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://localhost}
       APP_MEDIA_DIR: /data/media
@@ -37,6 +43,29 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       APP_AI_MODEL: ${APP_AI_MODEL:-claude-opus-5-5}
       APP_BRAND_NAME: ${APP_BRAND_NAME:-Plateforme de formation - démonstration}
+      # Supervision : metriques sur un port interne jamais publie ; journaux JSON
+      MANAGEMENT_SERVER_PORT: "8081"
+      APP_ACTUATOR_EXPOSE: health,prometheus
+      LOG_FORMAT: ${LOG_FORMAT:-ecs}
+      # E-mails (reinitialisation du mot de passe) : SMTP du client, ou Mailpit en test
+      SPRING_MAIL_HOST: ${SMTP_HOST:-}
+      SPRING_MAIL_PORT: ${SMTP_PORT:-1025}
+      SPRING_MAIL_USERNAME: ${SMTP_USER:-}
+      SPRING_MAIL_PASSWORD: ${SMTP_PASSWORD:-}
+      APP_MAIL_FROM: ${MAIL_FROM:-no-reply@formation.local}
+      # SSO OpenID Connect (vide = desactive)
+      SSO_ISSUER_URI: ${SSO_ISSUER_URI:-}
+      SSO_CLIENT_ID: ${SSO_CLIENT_ID:-}
+      SSO_CLIENT_SECRET: ${SSO_CLIENT_SECRET:-}
+      SSO_LABEL: ${SSO_LABEL:-Connexion institutionnelle}
+      # Paiement en ligne FedaPay (vide = desactive, aucune simulation)
+      FEDAPAY_SECRET_KEY: ${FEDAPAY_SECRET_KEY:-}
+      FEDAPAY_ENV: ${FEDAPAY_ENV:-sandbox}
+      FEDAPAY_WEBHOOK_SECRET: ${FEDAPAY_WEBHOOK_SECRET:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      # Keycloak de test : meme URL d'emetteur pour le navigateur (keycloak.localhost -> 127.0.0.1) et le backend
+      - "keycloak.localhost:host-gateway"
     volumes:
       - media:/data/media
 
@@ -47,6 +76,67 @@ services:
       - backend
     ports:
       - "${HTTP_PORT:-80}:80"
+
+  # Sauvegarde quotidienne de la base et des medias, retention 14 jours (ops/backup)
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    # apres le backend : c'est lui qui initialise le volume des medias avec les bons droits
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    environment:
+      DB_HOST: db
+      DB_USER: formation
+      DB_NAME: formation
+      DB_PASSWORD: ${DB_PASSWORD}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    entrypoint: ["sh", "/ops/backup.sh"]
+    volumes:
+      - ./ops/backup:/ops:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+      - media:/backup-media
+
+  mailpit:
+    image: axllent/mailpit:latest
+    profiles: ["mail"]
+    ports:
+      - "8025:8025"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    profiles: ["sso"]
+    command: ["start-dev", "--import-realm", "--http-port=8180"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin-test-local}
+      KC_HOSTNAME: http://keycloak.localhost:8180
+    ports:
+      - "8180:8180"
+    volumes:
+      - ./ops/keycloak:/opt/keycloak/data/import:ro
+
+  prometheus:
+    image: prom/prometheus:latest
+    profiles: ["monitoring"]
+    volumes:
+      - ./ops/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    profiles: ["monitoring"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin-test-local}
+    volumes:
+      - ./ops/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
 
 volumes:
   db-data:

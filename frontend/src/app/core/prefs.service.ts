@@ -1,6 +1,7 @@
 import { Injectable, effect, signal } from '@angular/core';
 
-export type Lang = 'fr' | 'en';
+/** Code de langue ISO (fr, en, bba, fon...) : toute langue active du referentiel. */
+export type Lang = string;
 
 interface Prefs {
   lang: Lang;

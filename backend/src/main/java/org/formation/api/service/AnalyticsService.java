@@ -140,7 +140,8 @@ public class AnalyticsService {
     public CourseInsights insights(Long courseId) {
         Course c = courses.findById(courseId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         List<QuizAttempt> atts = attempts.findByCourseId(courseId);
-        List<QuizQuestion> qs = c.getQuestions();
+        // les tentatives enregistrent les reponses de l'evaluation finale, dans l'ordre de ses questions
+        List<QuizQuestion> qs = c.examQuestions();
         List<QuestionInsight> qi = new ArrayList<>();
         for (int i = 0; i < qs.size(); i++) {
             QuizQuestion q = qs.get(i);

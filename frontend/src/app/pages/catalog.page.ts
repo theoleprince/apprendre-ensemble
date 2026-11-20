@@ -5,6 +5,7 @@ import { AuthService } from '../core/auth.service';
 import { errorMessage } from '../core/auth.interceptor';
 import { CatalogApi } from '../core/catalog.service';
 import { Catalog, CatalogCourse, CatalogProgram, ROLE_LABELS, Role, courseStatus, durationLabel, priceLabel } from '../core/models';
+import { AudienceService } from '../core/audience.service';
 import { IconComponent } from '../shared/icon.component';
 import { CoverComponent } from '../shared/visuals';
 
@@ -40,7 +41,7 @@ type PriceFilter = 'all' | 'free' | 'paid';
       </div>
       <select [(ngModel)]="role" name="role" aria-label="Public">
         <option value="">Tous les publics</option>
-        @for (r of roleList; track r) { <option [value]="r">{{ labels[r] }}</option> }
+        @for (a of aud.list(); track a.code) { <option [value]="a.code">{{ a.label }}</option> }
       </select>
       @if (tab() === 'cours') {
         <select [(ngModel)]="domain" name="domain" aria-label="Domaine">
@@ -121,8 +122,7 @@ export class CatalogPage implements OnInit {
   private qs = signal('');
   private roleS = signal('');
   private domainS = signal(0);
-  labels = ROLE_LABELS;
-  roleList: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_ECOLE', 'PARENT', 'TRAVAILLEUR_SOCIAL', 'JEUNE'];
+  protected aud = inject(AudienceService);
 
   get q(): string { return this.qs(); }
   set q(v: string) { this.qs.set(v); }
@@ -136,6 +136,7 @@ export class CatalogPage implements OnInit {
     this.keep(c.title + ' ' + c.description + ' ' + (c.domainName ?? ''), c.price, c.targetRoles) && (!this.domainS() || c.domainId === this.domainS()))));
 
   async ngOnInit(): Promise<void> {
+    void this.aud.load();
     try {
       this.cat.set((await this.api.catalog()).data);
       if (this.auth.isLoggedIn()) await this.api.myLearning().catch(() => undefined);
@@ -144,12 +145,12 @@ export class CatalogPage implements OnInit {
     }
   }
 
-  private keep(text: string, price: number, roles: Role[]): boolean {
+  private keep(text: string, price: number, roles: string[]): boolean {
     const q = norm(this.qs());
     if (q && !q.split(/\s+/).every((w) => norm(text).includes(w))) return false;
     if (this.price() === 'free' && price > 0) return false;
     if (this.price() === 'paid' && price === 0) return false;
-    if (this.roleS() && roles.length && !roles.includes(this.roleS() as Role)) return false;
+    if (this.roleS() && roles.length && !roles.includes(this.roleS())) return false;
     return true;
   }
 
@@ -158,9 +159,10 @@ export class CatalogPage implements OnInit {
     return [...list].sort((a, b) => Number(this.forMe(b.targetRoles)) - Number(this.forMe(a.targetRoles)));
   }
 
-  forMe(roles: Role[]): boolean {
-    const r = this.auth.user()?.role;
-    return !!r && roles.includes(r);
+  forMe(roles: string[]): boolean {
+    const u = this.auth.user();
+    const me = u?.audience || u?.role;
+    return !!me && roles.includes(me);
   }
 
   enrolledCourse(id: number) {

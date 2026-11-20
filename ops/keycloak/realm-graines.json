@@ -1,0 +1,32 @@
+{
+  "realm": "graines",
+  "enabled": true,
+  "displayName": "Annuaire de test (SSO)",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "clients": [
+    {
+      "clientId": "plateforme-formation",
+      "name": "Plateforme de formation",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "secret-de-test-local-uniquement",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:8088/api/login/oauth2/code/sso"],
+      "webOrigins": ["http://localhost:8088"]
+    }
+  ],
+  "users": [
+    {
+      "username": "enseignant.sso",
+      "email": "enseignant.sso@exemple.test",
+      "emailVerified": true,
+      "firstName": "Adjoa",
+      "lastName": "Annuaire",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Sso-Test-2026", "temporary": false }]
+    }
+  ]
+}

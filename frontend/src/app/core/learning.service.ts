@@ -199,13 +199,14 @@ export class LearningService {
     return this.progress().has(lessonId);
   }
 
-  async completeLesson(lessonId: number, timeSpentSeconds: number): Promise<void> {
+  async completeLesson(lessonId: number, timeSpentSeconds: number, checkAnswers: number[] | null = null): Promise<void> {
     const existing = this.progress().get(lessonId);
     const item: ProgressItem = {
       lessonId,
       completedAt: existing?.completedAt ?? new Date().toISOString(),
       timeSpentSeconds: Math.min(86400, Math.max(existing?.timeSpentSeconds ?? 0, Math.round(timeSpentSeconds))),
       offline: !navigator.onLine || !!existing?.offline,
+      checkAnswers,
     };
     const queue = (await this.store.get<ProgressItem[]>('kv', K_QUEUE)) ?? [];
     queue.push(item);
@@ -229,6 +230,10 @@ export class LearningService {
         const current = (await this.store.get<ProgressItem[]>('kv', K_QUEUE)) ?? [];
         await this.store.set('kv', K_QUEUE, current.slice(sent.length));
         this.celebrate(res.newCertificates);
+        // elements refuses par le serveur : retires de la file (ils seraient refuses a nouveau) et signales
+        if (res.rejected?.length) {
+          this.toast.show({ icon: 'alert', title: 'Progression non validée', text: res.rejected[0].reason }, 6000);
+        }
       } else {
         serverState = await firstValueFrom(this.http.get<ProgressItem[]>('/api/progress'));
       }

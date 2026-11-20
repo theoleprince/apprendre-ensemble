@@ -30,11 +30,18 @@ public class ConfigAdminService {
     private final AppUserRepository users;
     private final ProgramService programService;
     private final EnrollmentService enrollments;
+    private final AudienceRepository audiences;
+    private final CountryRepository countries;
+    private final LanguageRepository languages;
 
     public ConfigAdminService(DomainRepository domains, ProgramRepository programs, SchoolRepository schools,
                               ClassroomRepository classrooms, ResourceRepository resources, CourseRepository courses,
                               AppUserRepository users, ProgramService programService,
-                              EnrollmentService enrollments) {
+                              EnrollmentService enrollments, AudienceRepository audiences, CountryRepository countries,
+                              LanguageRepository languages) {
+        this.audiences = audiences;
+        this.countries = countries;
+        this.languages = languages;
         this.domains = domains;
         this.programs = programs;
         this.schools = schools;
@@ -183,7 +190,7 @@ public class ConfigAdminService {
             add = users.findAllById(in.userIds());
         } else {
             add = users.findByRoleNotIn(STAFF).stream()
-                    .filter(u -> c.getProgram().getTargetRoles().contains(u.getRole()))
+                    .filter(u -> c.getProgram().getTargetRoles().contains(AccessPolicy.audienceOf(u)))
                     .filter(u -> in.role() == null || u.getRole() == in.role())
                     .filter(u -> blank(in.region()) == null || in.region().equals(u.getRegion()))
                     .filter(u -> in.schoolId() == null || (u.getSchool() != null && u.getSchool().getId().equals(in.schoolId())))
@@ -253,7 +260,7 @@ public class ConfigAdminService {
     @Transactional(readOnly = true)
     public List<ResourceDto> resourcesFor(AppUser u) {
         return resources.findAllByOrderByIdAsc().stream()
-                .filter(r -> r.getTargetRoles().isEmpty() || r.getTargetRoles().contains(u.getRole()) || STAFF.contains(u.getRole()))
+                .filter(r -> r.getTargetRoles().isEmpty() || r.getTargetRoles().contains(AccessPolicy.audienceOf(u)) || STAFF.contains(u.getRole()))
                 .map(ConfigAdminService::toDto).toList();
     }
 
@@ -266,5 +273,68 @@ public class ConfigAdminService {
                 .map(u -> new UserBrief(u.getId(), u.getFullName(), u.getRole(), u.getRegion(),
                         u.getSchool() == null ? null : u.getSchool().getName(), u.getCohort()))
                 .toList();
+    }
+
+    // ---------- Publics, pays, langues : ajout par parametrage, sans developpement ----------
+    @Transactional(readOnly = true)
+    public List<AudienceDto> audiences() {
+        return audiences.findAllByOrderByPositionAscLabelAsc().stream().map(ConfigAdminService::toDto).toList();
+    }
+
+    public AudienceDto saveAudience(String code, AudienceInput in) {
+        if (in.baseRole() == Role.ADMIN || in.baseRole() == Role.FORMATEUR) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Un public ne peut pas donner un rôle d'administration");
+        }
+        String c = code == null ? in.code() : code;
+        Audience a = audiences.findById(c).orElseGet(() -> {
+            if (code != null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Public introuvable");
+            Audience n = new Audience();
+            n.setCode(in.code());
+            return n;
+        });
+        if (code == null && audiences.existsById(in.code()) && a.getLabel() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ce code existe déjà");
+        }
+        a.setLabel(in.label().trim());
+        a.setIcon(blank(in.icon()));
+        a.setPosition(in.position());
+        a.setBaseRole(in.baseRole());
+        a.setSelfRegistration(in.selfRegistration());
+        a.setActive(in.active());
+        return toDto(audiences.save(a));
+    }
+
+    @Transactional(readOnly = true)
+    public List<RefAdmin> countries() {
+        return countries.findAll().stream().sorted(Comparator.comparing(Country::getName))
+                .map(c -> new RefAdmin(c.getCode(), c.getName(), c.isActive())).toList();
+    }
+
+    public RefAdmin saveCountry(CountryInput in) {
+        Country c = countries.findById(in.code()).orElseGet(Country::new);
+        c.setCode(in.code());
+        c.setName(in.name().trim());
+        c.setActive(in.active());
+        countries.save(c);
+        return new RefAdmin(c.getCode(), c.getName(), c.isActive());
+    }
+
+    @Transactional(readOnly = true)
+    public List<RefAdmin> languages() {
+        return languages.findAll().stream().sorted(Comparator.comparing(Language::getName))
+                .map(l -> new RefAdmin(l.getCode(), l.getName(), l.isActive())).toList();
+    }
+
+    public RefAdmin saveLanguage(LanguageInput in) {
+        Language l = languages.findById(in.code()).orElseGet(Language::new);
+        l.setCode(in.code());
+        l.setName(in.name().trim());
+        l.setActive(in.active());
+        languages.save(l);
+        return new RefAdmin(l.getCode(), l.getName(), l.isActive());
+    }
+
+    public static AudienceDto toDto(Audience a) {
+        return new AudienceDto(a.getCode(), a.getLabel(), a.getIcon(), a.getPosition(), a.getBaseRole(), a.isSelfRegistration(), a.isActive());
     }
 }

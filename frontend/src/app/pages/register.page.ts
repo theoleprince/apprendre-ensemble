@@ -21,9 +21,9 @@ import { IconComponent } from '../shared/icon.component';
           @if (step() === 1) {
             <p class="muted">Qui êtes-vous ?</p>
             <div class="placement-options" style="margin-bottom:1rem">
-              @for (role of r.learnerRoles; track role) {
-                <button type="button" class="placement-opt" [class.selected]="form.role === role" (click)="form.role = role">
-                  <span class="emoji"><app-icon [name]="icons[role]" [size]="36" [stroke]="1.6" /></span>{{ labels[role] }}
+              @for (a of r.audiences; track a.code) {
+                <button type="button" class="placement-opt" [class.selected]="form.audience === a.code" (click)="form.audience = a.code">
+                  <span class="emoji"><app-icon [name]="a.icon || 'user'" [size]="36" [stroke]="1.6" /></span>{{ a.label }}
                 </button>
               }
             </div>
@@ -82,7 +82,7 @@ export class RegisterPage implements OnInit {
   ref = signal<Referentiel | null>(null);
   loading = signal(false);
   error = signal('');
-  form = { fullName: '', email: '', password: '', role: 'ENSEIGNANT' as Role, countryCode: 'BJ', languageCode: 'fr', region: '', dataConsent: false };
+  form = { fullName: '', email: '', password: '', audience: 'ENSEIGNANT', role: null as Role | null, countryCode: 'BJ', languageCode: 'fr', region: '', dataConsent: false };
 
   async ngOnInit(): Promise<void> {
     try {

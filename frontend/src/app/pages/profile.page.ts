@@ -1,4 +1,8 @@
+import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
+import { errorMessage } from '../core/auth.interceptor';
 import { AuthService } from '../core/auth.service';
 import { TranslatePipe } from '../core/i18n';
 import { LearningService } from '../core/learning.service';
@@ -11,7 +15,7 @@ import { AvatarComponent } from '../shared/visuals';
 
 @Component({
   selector: 'app-profile',
-  imports: [IconComponent, TranslatePipe, AvatarComponent],
+  imports: [IconComponent, TranslatePipe, AvatarComponent, FormsModule],
   template: `
     @if (auth.user(); as u) {
       <section class="card row">
@@ -54,7 +58,20 @@ import { AvatarComponent } from '../shared/visuals';
       <h2><app-icon name="shield" /> Mes données</h2>
       <p class="small">Vos données sont hébergées en Suisse / Union européenne (RGPD, nLPD). Votre progression est utilisée pour votre suivi
         et, sans nom ni email, pour l'évaluation du programme. Les données de cet appareil sont effacées à la déconnexion.</p>
-      <button class="danger" (click)="logout()"><app-icon name="logout" /> {{ 'action.logout' | t }}</button>
+      <div class="row">
+        <button (click)="exportData()"><app-icon name="download" /> Télécharger mes données</button>
+        <button (click)="logoutEverywhere()"><app-icon name="shield" /> Me déconnecter de tous les appareils</button>
+        <button class="danger" (click)="logout()"><app-icon name="logout" /> {{ 'action.logout' | t }}</button>
+      </div>
+      <details class="section">
+        <summary class="small" style="cursor:pointer;min-height:36px">Supprimer mon compte</summary>
+        <p class="small">Vos données personnelles (nom, e-mail, portfolio, vidéos, messages, certificats) seront effacées définitivement.
+          Votre progression est conservée sans aucun moyen de vous identifier, pour les statistiques du programme.</p>
+        <div class="row">
+          <input type="password" [(ngModel)]="deletePwd" name="dp" placeholder="Votre mot de passe" autocomplete="current-password" style="max-width:260px" />
+          <button class="danger" (click)="deleteAccount()" [disabled]="!deletePwd">Supprimer définitivement</button>
+        </div>
+      </details>
     </section>
   `,
 })
@@ -64,6 +81,8 @@ export class ProfilePage implements OnInit {
   protected prefs = inject(PrefsService);
   private media = inject(MediaCacheService);
   private toast = inject(ToastService);
+  private http = inject(HttpClient);
+  deletePwd = '';
 
   labels = ROLE_LABELS;
   icons = ROLE_ICONS;
@@ -84,6 +103,41 @@ export class ProfilePage implements OnInit {
     await this.media.clear();
     await this.ngOnInit();
     this.toast.show({ icon: 'trash', title: 'Vidéos et audios supprimés de l’appareil' }, 3000);
+  }
+
+  async exportData(): Promise<void> {
+    try {
+      const data = await firstValueFrom(this.http.get('/api/me/export'));
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mes-donnees.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      this.toast.show({ icon: 'alert', title: 'Export impossible', text: errorMessage(e) }, 4000);
+    }
+  }
+
+  async logoutEverywhere(): Promise<void> {
+    try {
+      await firstValueFrom(this.http.post('/api/me/logout-everywhere', {}));
+      await this.media.clear();
+      await this.auth.logout();
+    } catch (e) {
+      this.toast.show({ icon: 'alert', title: 'Action impossible', text: errorMessage(e) }, 4000);
+    }
+  }
+
+  async deleteAccount(): Promise<void> {
+    if (!window.confirm('Supprimer définitivement votre compte et vos données personnelles ?')) return;
+    try {
+      await firstValueFrom(this.http.post('/api/me/delete', { password: this.deletePwd }));
+      await this.media.clear();
+      await this.auth.logout();
+    } catch (e) {
+      this.toast.show({ icon: 'alert', title: 'Suppression refusée', text: errorMessage(e) }, 5000);
+    }
   }
 
   async logout(): Promise<void> {

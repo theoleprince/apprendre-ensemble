@@ -1,15 +1,15 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { errorMessage } from '../../core/auth.interceptor';
 import { Domain, ROLE_LABELS, ResourceItem, Role, School } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
+import { AudienceService } from '../../core/audience.service';
 import { IconComponent } from '../../shared/icon.component';
 
 type Tab = 'domaines' | 'ecoles' | 'fiches';
 const ICONS = ['cloud-sun', 'handshake', 'shield', 'family', 'smartphone', 'compass', 'heart', 'book-open', 'target', 'users', 'sprout', 'wind', 'message-heart', 'alert', 'file'];
-const ROLES: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_ECOLE', 'PARENT', 'TRAVAILLEUR_SOCIAL', 'JEUNE'];
 
 /** Referentiels parametrables : domaines de competences, etablissements, fiches pratiques. */
 @Component({
@@ -85,7 +85,7 @@ const ROLES: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_ECOLE'
           <label>Résumé <input name="fs" [(ngModel)]="fiche.summary" /></label>
           <label>Contenu (texte, **gras**, listes « - » ou « 1. ») <textarea name="fc" rows="6" [(ngModel)]="fiche.content"></textarea></label>
           <fieldset><legend>Publics (aucun = tous)</legend>
-            @for (r of roles; track r) { <label class="check inline"><input type="checkbox" [checked]="fiche.targetRoles.includes(r)" (change)="toggleRole(r)" /> {{ labels[r] }}</label> }
+            @for (r of roles(); track r) { <label class="check inline"><input type="checkbox" [checked]="fiche.targetRoles.includes(r)" (change)="toggleRole(r)" /> {{ aud.label(r) }}</label> }
           </fieldset>
           <button class="primary" type="submit" [disabled]="!fiche.title.trim()">Enregistrer</button>
         </form>
@@ -97,8 +97,8 @@ export class ReferentialsPage implements OnInit {
   private http = inject(HttpClient);
   private toast = inject(ToastService);
   icons = ICONS;
-  roles = ROLES;
-  labels = ROLE_LABELS;
+  protected aud = inject(AudienceService);
+  roles = computed(() => this.aud.list().filter((a) => a.active).map((a) => a.code));
   tab = signal<Tab>('domaines');
   domains = signal<Domain[]>([]);
   schools = signal<School[]>([]);
@@ -106,7 +106,7 @@ export class ReferentialsPage implements OnInit {
   error = signal('');
   dom = { id: null as number | null, name: '', description: '', icon: 'book-open', position: 10 };
   sch = { name: '', commune: '', region: '', countryCode: 'BJ' };
-  fiche = { id: null as number | null, title: '', summary: '', icon: 'file', content: '', fileUrl: null as string | null, domainId: null as number | null, targetRoles: [] as Role[] };
+  fiche = { id: null as number | null, title: '', summary: '', icon: 'file', content: '', fileUrl: null as string | null, domainId: null as number | null, targetRoles: [] as string[] };
 
   async ngOnInit(): Promise<void> {
     try {
@@ -141,7 +141,7 @@ export class ReferentialsPage implements OnInit {
     this.fiche = { id: r.id, title: r.title, summary: r.summary ?? '', icon: r.icon ?? 'file', content: r.content ?? '', fileUrl: r.fileUrl, domainId: r.domainId, targetRoles: [...r.targetRoles] };
   }
 
-  toggleRole(r: Role): void {
+  toggleRole(r: string): void {
     this.fiche.targetRoles = this.fiche.targetRoles.includes(r) ? this.fiche.targetRoles.filter((x) => x !== r) : [...this.fiche.targetRoles, r];
   }
 
@@ -155,8 +155,8 @@ export class ReferentialsPage implements OnInit {
     await this.run(() => firstValueFrom(this.http.delete(`/api/admin/resources/${r.id}`)));
   }
 
-  rolesLabel(roles: Role[]): string {
-    return roles.length ? roles.map((r) => ROLE_LABELS[r]).join(', ') : 'Tous les publics';
+  rolesLabel(roles: string[]): string {
+    return roles.length ? this.aud.labels(roles) : 'Tous les publics';
   }
 
   private async run(fn: () => Promise<unknown>): Promise<void> {

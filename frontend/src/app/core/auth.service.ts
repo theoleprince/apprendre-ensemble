@@ -55,7 +55,8 @@ export class AuthService {
     email: string;
     password: string;
     fullName: string;
-    role: Role;
+    role: Role | null;
+    audience?: string;
     countryCode: string;
     languageCode: string;
     region: string;
@@ -63,6 +64,12 @@ export class AuthService {
   }): Promise<void> {
     const res = await firstValueFrom(this.http.post<AuthResponse>('/api/auth/register', payload));
     await this.setSession(res);
+  }
+
+  /** Retour du SSO : le jeton emis par le serveur arrive dans le fragment d'URL. */
+  async loginWithToken(token: string): Promise<void> {
+    const user = await firstValueFrom(this.http.get<User>('/api/me', { headers: { Authorization: `Bearer ${token}` } }));
+    await this.setSession({ token, user });
   }
 
   async logout(): Promise<void> {

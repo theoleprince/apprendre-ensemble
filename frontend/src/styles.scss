@@ -687,3 +687,5 @@ tr.me-row td { background: var(--sun-50); font-weight: 600; }
 .main .mobile-cta { bottom: calc(var(--nav-h) + .5rem); }
 .pub-main .mobile-cta { bottom: .6rem; }
 @media (min-width: 960px) { .mobile-cta { display: none; } }
+
+.lang-select { width: auto; min-height: 36px; padding: .3rem .5rem; font-size: .85rem; border-radius: 10px; }

@@ -1,6 +1,8 @@
-import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Component, OnInit, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { errorMessage } from '../core/auth.interceptor';
 import { CatalogApi } from '../core/catalog.service';
 import { EnrollResult, PayMethod, durationLabel, priceLabel } from '../core/models';
@@ -15,10 +17,12 @@ interface Item {
   lines: string[];
 }
 
+type Choice = 'ONLINE' | 'CODE' | 'ABONNEMENT';
+
 /**
- * Inscription a un cours ou a une formation. Gratuit : un clic. Payant : Mobile Money, carte ou code de licence
- * (licence institutionnelle). En demonstration le paiement est simule ; en production il passe par un agregateur
- * (FedaPay, Kkiapay, Stripe...) et l'inscription n'est confirmee qu'a la reception du paiement.
+ * Inscription a un cours ou a une formation.
+ * Gratuit : un clic. Payant : paiement en ligne securise chez le prestataire (FedaPay : Mobile Money, carte),
+ * code de licence institutionnel, ou abonnement en cours. Aucun paiement n'est simule.
  */
 @Component({
   selector: 'app-checkout',
@@ -30,7 +34,6 @@ interface Item {
         <div class="empty-icon" style="width:84px;height:84px"><app-icon name="check-circle" [size]="42" /></div>
         <h1>Inscription confirmée</h1>
         <p class="muted">{{ r.message }}</p>
-        @if (r.amount) { <p class="small">Montant réglé : <strong>{{ price(r.amount) }}</strong> · Référence {{ r.paymentRef }}</p> }
         <a class="btn primary lg" [routerLink]="startLink()">{{ kind() === 'formation' ? 'Commencer la formation' : 'Commencer le cours' }} <app-icon name="arrow" /></a>
       </section>
     } @else if (item(); as it) {
@@ -41,33 +44,35 @@ interface Item {
           @if (!it.price) {
             <h2>Inscription gratuite</h2>
             <p class="muted">Ce contenu est financé par le programme : aucun paiement n'est demandé.</p>
-            <button class="primary lg block" (click)="pay('GRATUIT')" [disabled]="busy()">{{ busy() ? 'Inscription…' : 'Confirmer mon inscription' }}</button>
+            <button class="primary lg block" (click)="enrollWith('GRATUIT')" [disabled]="busy()">{{ busy() ? 'Inscription…' : 'Confirmer mon inscription' }}</button>
           } @else {
-            <h2>Moyen de paiement</h2>
+            <h2>Comment souhaitez-vous accéder à ce contenu ?</h2>
             <div class="pay-methods" role="radiogroup">
-              <button class="pay-opt" role="radio" [attr.aria-checked]="method() === 'MOBILE_MONEY'" [class.selected]="method() === 'MOBILE_MONEY'" (click)="method.set('MOBILE_MONEY')">
-                <app-icon name="smartphone" [size]="26" /><span><strong>Mobile Money</strong><span class="xs muted">MTN MoMo, Moov Money</span></span></button>
-              <button class="pay-opt" role="radio" [attr.aria-checked]="method() === 'CARTE'" [class.selected]="method() === 'CARTE'" (click)="method.set('CARTE')">
-                <app-icon name="credit-card" [size]="26" /><span><strong>Carte bancaire</strong><span class="xs muted">Visa, Mastercard</span></span></button>
-              <button class="pay-opt" role="radio" [attr.aria-checked]="method() === 'CODE'" [class.selected]="method() === 'CODE'" (click)="method.set('CODE')">
+              @if (subscribed()) {
+                <button class="pay-opt" role="radio" [attr.aria-checked]="choice() === 'ABONNEMENT'" [class.selected]="choice() === 'ABONNEMENT'" (click)="choice.set('ABONNEMENT')">
+                  <app-icon name="award" [size]="26" /><span><strong>Mon abonnement</strong><span class="xs muted">Inclus, sans paiement supplémentaire</span></span></button>
+              }
+              <button class="pay-opt" role="radio" [attr.aria-checked]="choice() === 'ONLINE'" [class.selected]="choice() === 'ONLINE'" (click)="choice.set('ONLINE')" [disabled]="!onlineEnabled()">
+                <app-icon name="smartphone" [size]="26" /><span><strong>Payer en ligne</strong><span class="xs muted">Mobile Money (MTN, Moov) ou carte bancaire, sur la page sécurisée FedaPay</span></span></button>
+              <button class="pay-opt" role="radio" [attr.aria-checked]="choice() === 'CODE'" [class.selected]="choice() === 'CODE'" (click)="choice.set('CODE')">
                 <app-icon name="school" [size]="26" /><span><strong>Code de licence</strong><span class="xs muted">Fourni par votre institution</span></span></button>
             </div>
-            @switch (method()) {
-              @case ('MOBILE_MONEY') {
-                <label>Numéro Mobile Money <input type="tel" name="phone" [(ngModel)]="phone" placeholder="+229 97 00 00 00" autocomplete="tel" /></label>
-                <p class="xs muted">Vous recevrez une demande de confirmation sur votre téléphone.</p>
-              }
-              @case ('CARTE') {
-                <p class="small muted">Vous serez redirigé·e vers la page sécurisée du prestataire de paiement. Aucune donnée de carte n'est saisie ni conservée sur cette plateforme.</p>
+            @if (!onlineEnabled()) { <p class="notice small"><app-icon name="alert" [size]="16" /> Le paiement en ligne n'est pas activé sur ce serveur. Utilisez un code de licence ou un abonnement.</p> }
+            @if (onlineEnabled() && environment() === 'sandbox') { <p class="notice small"><app-icon name="alert" [size]="16" /> Prestataire en mode test (sandbox) : aucun débit réel.</p> }
+            @switch (choice()) {
+              @case ('ONLINE') {
+                <p class="small muted">Vous allez être redirigé·e vers la page de paiement sécurisée. Aucune donnée bancaire ne transite par cette plateforme. L'accès est ouvert dès que le paiement est confirmé.</p>
+                <button class="sun lg block" (click)="payOnline()" [disabled]="busy() || !onlineEnabled()">{{ busy() ? 'Redirection…' : 'Payer ' + price(it.price) }}</button>
               }
               @case ('CODE') {
                 <label>Code de licence <input name="code" [(ngModel)]="code" placeholder="Ex. GDP-2027" autocapitalize="characters" /></label>
+                <button class="primary lg block" (click)="enrollWith('CODE')" [disabled]="busy() || !code.trim()">Valider le code</button>
+              }
+              @case ('ABONNEMENT') {
+                <button class="primary lg block" (click)="enrollWith('ABONNEMENT')" [disabled]="busy()">Accéder avec mon abonnement</button>
               }
             }
-            <p class="notice small"><app-icon name="alert" [size]="16" /> Démonstration : le paiement est simulé, aucun débit n'est effectué.</p>
-            <button class="sun lg block" (click)="pay(method())" [disabled]="busy() || !ready()">
-              {{ busy() ? 'Traitement…' : method() === 'CODE' ? 'Valider le code' : 'Payer ' + price(it.price) }}
-            </button>
+            @if (!subscribed()) { <p class="small center" style="margin-top:.8rem"><a routerLink="/abonnement">Voir les abonnements : accès à tous les contenus payants</a></p> }
           }
         </section>
         <aside class="card flat">
@@ -85,6 +90,7 @@ interface Item {
 })
 export class CheckoutPage implements OnInit {
   private api = inject(CatalogApi);
+  private http = inject(HttpClient);
   private router = inject(Router);
   readonly kind = input.required<string>();
   readonly id = input.required<string>();
@@ -93,16 +99,24 @@ export class CheckoutPage implements OnInit {
   error = signal('');
   busy = signal(false);
   done = signal<EnrollResult | null>(null);
-  method = signal<PayMethod>('MOBILE_MONEY');
-  phone = '';
+  choice = signal<Choice>('ONLINE');
+  onlineEnabled = signal(false);
+  environment = signal<string | null>(null);
+  subscribed = signal(false);
   code = '';
-
-  ready = computed(() => true);
 
   async ngOnInit(): Promise<void> {
     const id = Number(this.id());
     try {
-      const mine = await this.api.myLearning().catch(() => null);
+      const [mine, cfg, sub] = await Promise.all([
+        this.api.myLearning().catch(() => null),
+        firstValueFrom(this.http.get<{ enabled: boolean; environment: string | null }>('/api/public/payments/config')).catch(() => ({ enabled: false, environment: null })),
+        firstValueFrom(this.http.get<{ active: boolean }>('/api/me/subscription')).catch(() => ({ active: false })),
+      ]);
+      this.onlineEnabled.set(cfg.enabled);
+      this.environment.set(cfg.environment);
+      this.subscribed.set(sub.active);
+      this.choice.set(sub.active ? 'ABONNEMENT' : cfg.enabled ? 'ONLINE' : 'CODE');
       if (this.kind() === 'formation') {
         if (mine?.programs.some((p) => p.programId === id)) return void this.router.navigate(['/formations', id], { replaceUrl: true });
         const { data } = await this.api.program(id);
@@ -121,23 +135,34 @@ export class CheckoutPage implements OnInit {
     }
   }
 
-  async pay(m: PayMethod): Promise<void> {
-    if (m === 'MOBILE_MONEY' && !this.phone.trim()) return void this.error.set('Indiquez votre numéro Mobile Money');
-    if (m === 'CODE' && !this.code.trim()) return void this.error.set('Indiquez votre code de licence');
+  async enrollWith(m: PayMethod | 'ABONNEMENT'): Promise<void> {
     this.busy.set(true);
     this.error.set('');
     const id = Number(this.id());
     try {
       const r = await this.api.enroll({
         ...(this.kind() === 'formation' ? { programId: id } : { courseId: id }),
-        method: m,
-        phone: this.phone || undefined,
-        code: this.code || undefined,
+        method: m as PayMethod,
+        code: m === 'CODE' ? this.code.trim() : undefined,
       });
       this.done.set(r);
     } catch (e) {
       this.error.set(errorMessage(e));
     } finally {
+      this.busy.set(false);
+    }
+  }
+
+  /** Redirection vers la page de paiement du prestataire ; le retour se fait sur /paiement/retour. */
+  async payOnline(): Promise<void> {
+    this.busy.set(true);
+    this.error.set('');
+    try {
+      const r = await firstValueFrom(this.http.post<{ reference: string; url: string }>('/api/payments',
+        { kind: this.kind() === 'formation' ? 'PROGRAM' : 'COURSE', targetId: Number(this.id()) }));
+      location.href = r.url;
+    } catch (e) {
+      this.error.set(errorMessage(e));
       this.busy.set(false);
     }
   }

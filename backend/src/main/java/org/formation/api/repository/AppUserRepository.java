@@ -13,6 +13,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     boolean existsByEmailIgnoreCase(String email);
 
+    long countByRoleAndEnabledTrue(org.formation.api.domain.Role role);
+
     List<AppUser> findByRoleNotIn(Collection<Role> roles);
 
     List<AppUser> findBySchoolId(Long schoolId);

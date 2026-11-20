@@ -1,4 +1,6 @@
+import { HttpClient } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { errorMessage } from '../core/auth.interceptor';
@@ -47,9 +49,14 @@ const DEMO = [
               <input type="password" name="password" [(ngModel)]="password" required autocomplete="current-password" />
             </label>
             @if (error()) { <p class="error">{{ error() }}</p> }
+            <p class="small" style="margin:-.3rem 0 .6rem;text-align:right"><a routerLink="/mot-de-passe-oublie">Mot de passe oublié ?</a></p>
             <button class="primary block lg" type="submit" [disabled]="f.invalid || loading()">
               {{ loading() ? 'Connexion…' : 'Se connecter' }}
             </button>
+            @if (sso(); as s) {
+              <a class="btn block lg" [href]="s.url" style="margin-top:.6rem"><app-icon name="shield" /> {{ s.label }}</a>
+            }
+            @if (ssoError) { <p class="error small">Connexion institutionnelle impossible ({{ ssoError }}).</p> }
             <p class="center small">Pas encore de compte ? <a routerLink="/inscription" [queryParams]="redirect ? { redirect } : {}">Créer un compte gratuit</a></p>
           </form>
           <div class="section">
@@ -72,6 +79,14 @@ export class LoginPage {
   protected redirect = this.route.snapshot.queryParamMap.get('redirect');
 
   demo = DEMO;
+  private http = inject(HttpClient);
+  sso = signal<{ url: string; label: string } | null>(null);
+  ssoError = this.route.snapshot.queryParamMap.get('sso');
+
+  constructor() {
+    void firstValueFrom(this.http.get<{ enabled: boolean; url: string; label: string }>('/api/public/sso'))
+      .then((s) => s.enabled && this.sso.set(s)).catch(() => undefined);
+  }
   email = '';
   password = '';
   loading = signal(false);

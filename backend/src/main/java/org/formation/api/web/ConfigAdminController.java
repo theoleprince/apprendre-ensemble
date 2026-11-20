@@ -114,4 +114,26 @@ public class ConfigAdminController {
     // ---- Utilisateurs
     @GetMapping("/users")
     public List<UserBrief> users(@RequestParam(required = false) Role role) { return config.users(role); }
+
+    // ---- Publics, pays, langues
+    @GetMapping("/audiences")
+    public List<AudienceDto> audiences() { return config.audiences(); }
+
+    @PostMapping("/audiences")
+    public AudienceDto createAudience(@Valid @RequestBody AudienceInput in) { return config.saveAudience(null, in); }
+
+    @PutMapping("/audiences/{code}")
+    public AudienceDto updateAudience(@PathVariable String code, @Valid @RequestBody AudienceInput in) { return config.saveAudience(code, in); }
+
+    @GetMapping("/countries")
+    public List<RefAdmin> countries() { return config.countries(); }
+
+    @PutMapping("/countries")
+    public RefAdmin saveCountry(@Valid @RequestBody CountryInput in) { return config.saveCountry(in); }
+
+    @GetMapping("/languages")
+    public List<RefAdmin> languages() { return config.languages(); }
+
+    @PutMapping("/languages")
+    public RefAdmin saveLanguage(@Valid @RequestBody LanguageInput in) { return config.saveLanguage(in); }
 }

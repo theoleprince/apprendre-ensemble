@@ -72,7 +72,7 @@ public class ProgramService {
     }
 
     private UserState state(AppUser u) {
-        return UserState.of(progress.findAllForUser(u.getId()), certificates.findAllForUser(u.getId()));
+        return UserState.of(progress.findAllForUser(u.getId()), certificates.findValidForUser(u.getId()));
     }
 
     private boolean visible(AppUser u, Program p) {
@@ -162,7 +162,7 @@ public class ProgramService {
         if ("CLOSED".equals(ClassroomLocks.status(c, LocalDate.now()))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cette classe est terminée");
         }
-        if (!c.getProgram().getTargetRoles().contains(u.getRole())) {
+        if (!c.getProgram().getTargetRoles().contains(AccessPolicy.audienceOf(u))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cette classe ne correspond pas à votre profil");
         }
         c.getMembers().add(u);
@@ -318,7 +318,7 @@ public class ProgramService {
 
     ProgramCertDto certDto(ProgramCertificate c) {
         return new ProgramCertDto(c.getCode(), c.getProgram().getTitle(), c.getUser().getFullName(), c.getRank(), c.getClassSize(),
-                c.getPoints(), c.getIssuedAt(), c.getClassroom() == null ? null : c.getClassroom().getName());
+                c.getPoints(), c.getIssuedAt(), c.getClassroom() == null ? null : c.getClassroom().getName(), c.getRevokedAt());
     }
 
     // =====================================================================
@@ -327,6 +327,9 @@ public class ProgramService {
 
     @Transactional(readOnly = true)
     public SchoolDashboard schoolDashboard(AppUser director) {
+        if (director.getRole() != Role.DIRECTION_ECOLE && !policy.isStaff(director)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Réservé à la direction de l'établissement");
+        }
         School s = director.getSchool();
         if (s == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Aucun établissement rattaché à votre compte");
         List<AppUser> staff = users.findBySchoolId(s.getId()).stream()
@@ -368,7 +371,7 @@ public class ProgramService {
         UserState st = state(u);
         List<Classroom> mine = classrooms.findForMember(u.getId());
         Program main = mine.isEmpty()
-                ? programs.findAllByOrderByIdAsc().stream().filter(p -> p.getTargetRoles().contains(u.getRole())).findFirst().orElse(null)
+                ? programs.findAllByOrderByIdAsc().stream().filter(p -> p.getTargetRoles().contains(AccessPolicy.audienceOf(u))).findFirst().orElse(null)
                 : mine.getFirst().getProgram();
         int percent = 0;
         if (main != null && !main.getCourses().isEmpty()) {

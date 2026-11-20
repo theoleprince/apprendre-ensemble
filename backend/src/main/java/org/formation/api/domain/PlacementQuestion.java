@@ -27,10 +27,9 @@ public class PlacementQuestion {
 
     /** Publics concernes (vide = tous). */
     @ElementCollection(fetch = FetchType.EAGER)
-    @Enumerated(EnumType.STRING)
-    @CollectionTable(name = "placement_question_role")
+        @CollectionTable(name = "placement_question_role")
     @Column(name = "role")
-    private Set<Role> roles = new HashSet<>();
+    private Set<String> roles = new HashSet<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
     @OrderColumn(name = "option_index")

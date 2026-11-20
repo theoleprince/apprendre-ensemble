@@ -20,6 +20,9 @@ spring:
   threads:
     virtual:
       enabled: true
+  # Migrations de schema versionnees : actives en production (profil prod), le developpement reste en ddl-auto=update.
+  flyway:
+    enabled: false
 
 server:
   # PaaS (Railway, Render...) : port fourni par la variable PORT
@@ -36,10 +39,48 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        # docker-compose : health,prometheus sur un port interne (MANAGEMENT_SERVER_PORT=8081), jamais publie
+        include: ${APP_ACTUATOR_EXPOSE:health}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: formation-api
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+logging:
+  structured:
+    format:
+      # ecs = journaux JSON (Elastic Common Schema) pour une collecte centralisee ; vide = texte lisible
+      console: ${LOG_FORMAT:}
 
 app:
   public-url: ${APP_PUBLIC_URL:http://localhost:4200}
+  relay:
+    # Mode serveur relais : URL du serveur central (vide = serveur central normal)
+    central-url: ${APP_RELAY_CENTRAL_URL:}
+    dir: ${APP_RELAY_DIR:./data/relay}
+  sso:
+    # SSO OpenID Connect (Keycloak, Entra ID, Google...). Vide : connexion par e-mail et mot de passe seulement.
+    issuer-uri: ${SSO_ISSUER_URI:}
+    client-id: ${SSO_CLIENT_ID:}
+    client-secret: ${SSO_CLIENT_SECRET:}
+    label: ${SSO_LABEL:Connexion institutionnelle}
+    default-audience: ${SSO_DEFAULT_AUDIENCE:ENSEIGNANT}
+    default-country: ${SSO_DEFAULT_COUNTRY:BJ}
+  payment:
+    fedapay:
+      # Cle secrete FedaPay (sk_sandbox_... en test, sk_live_... en production). Vide : paiement en ligne indisponible.
+      secret-key: ${FEDAPAY_SECRET_KEY:}
+      environment: ${FEDAPAY_ENV:sandbox}
+      webhook-secret: ${FEDAPAY_WEBHOOK_SECRET:}
+  mail:
+    # Expediteur des e-mails (reinitialisation du mot de passe). SMTP : SPRING_MAIL_HOST, SPRING_MAIL_PORT...
+    from: ${APP_MAIL_FROM:no-reply@formation.local}
   jwt:
     # A remplacer en test/prod via la variable APP_JWT_SECRET (>= 32 caracteres)
     secret: ${APP_JWT_SECRET:dev-secret-change-me-dev-secret-change-me}
@@ -69,6 +110,15 @@ spring:
   config:
     activate:
       on-profile: prod
+  flyway:
+    enabled: true
+    # base existante creee avant les migrations : marquee comme V1 sans rejouer le script
+    baseline-on-migrate: true
+    baseline-version: 1
+  jpa:
+    hibernate:
+      # le schema est gere par Flyway : Hibernate verifie seulement qu'il correspond aux entites
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
   datasource:
     url: ${DB_URL:jdbc:postgresql://db:5432/formation}
     username: ${DB_USER:formation}
@@ -78,4 +128,4 @@ spring:
       enabled: false
 app:
   seed:
-    demo-data: ${APP_SEED_DEMO:true}
+    demo-data: ${APP_SEED_DEMO:false}

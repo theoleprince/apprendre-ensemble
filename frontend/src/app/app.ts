@@ -3,6 +3,10 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs';
 import { AssistantService } from './core/assistant.service';
 import { MediaCacheService } from './core/media-cache.service';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
+import { AudienceService } from './core/audience.service';
+import { I18nRuntimeService } from './core/i18n-runtime.service';
 import { AuthService } from './core/auth.service';
 import { TranslatePipe } from './core/i18n';
 import { LearningService } from './core/learning.service';
@@ -39,10 +43,10 @@ interface NavItem {
               @if (learning.pending() > 0) { · {{ learning.pending() }} }
             </span>
           }
-          <div class="lang-switch" role="group" aria-label="Langue">
-            <button [class.active]="prefs.prefs().lang === 'fr'" (click)="prefs.update({ lang: 'fr' })">FR</button>
-            <button [class.active]="prefs.prefs().lang === 'en'" (click)="prefs.update({ lang: 'en' })">EN</button>
-          </div>
+          <select class="lang-select" [value]="prefs.prefs().lang" (change)="setLang($event)" aria-label="Langue de l'interface"
+                  [title]="i18n.coverage() !== null && i18n.coverage()! < 0.9 ? 'Traduction partielle : les textes non traduits restent en français' : ''">
+            @for (l of langs(); track l.code) { <option [value]="l.code" [selected]="l.code === prefs.prefs().lang">{{ l.code.toUpperCase() }} · {{ l.name }}</option> }
+          </select>
           <button class="icon-btn ghost" (click)="logout()" [title]="'action.logout' | t" [attr.aria-label]="'action.logout' | t"><app-icon name="logout" /></button>
         </header>
         <div class="layout" [class.focus]="focus()">
@@ -75,6 +79,9 @@ interface NavItem {
           <a class="brand" routerLink="/"><span class="brand-mark"><app-icon name="sprout" [size]="22" /></span><span class="brand-name">Apprendre Ensemble</span></a>
           <nav class="pub-nav"><a routerLink="/catalogue" routerLinkActive="active">Catalogue</a></nav>
           <span class="spacer"></span>
+          <select class="lang-select" [value]="prefs.prefs().lang" (change)="setLang($event)" aria-label="Langue de l'interface">
+            @for (l of langs(); track l.code) { <option [value]="l.code" [selected]="l.code === prefs.prefs().lang">{{ l.code.toUpperCase() }}</option> }
+          </select>
           <a class="btn ghost" routerLink="/login" [queryParams]="{ redirect: url() }">Se connecter</a>
           <a class="btn primary" routerLink="/inscription" [queryParams]="{ redirect: url() }">Créer un compte</a>
         </header>
@@ -109,6 +116,10 @@ export class App {
   private assistant = inject(AssistantService);
   private router = inject(Router);
   private media = inject(MediaCacheService);
+  private audiences = inject(AudienceService);
+  protected i18n = inject(I18nRuntimeService);
+  private http = inject(HttpClient);
+  protected langs = signal<{ code: string; name: string }[]>([{ code: 'fr', name: 'Français' }, { code: 'en', name: 'English' }]);
 
   protected url = signal(location.pathname);
   protected readonly confetti = Array.from({ length: 60 }, (_, i) => ({
@@ -127,7 +138,10 @@ export class App {
         { path: '/admin/classes', icon: 'users', key: 'Classes' },
         { path: '/admin/programmes', icon: 'graduation', key: 'Programmes' },
         { path: '/admin/modules', icon: 'book', key: 'nav.courses' },
-        { path: '/admin/referentiels', icon: 'settings', key: 'Référentiels' },
+        { path: '/admin/referentiels', icon: 'book-open', key: 'Référentiels' },
+        { path: '/admin/parametres', icon: 'settings', key: 'Paramètres' },
+        { path: '/admin/comptes', icon: 'user', key: 'Comptes' },
+        { path: '/admin/certificats', icon: 'award', key: 'Certificats' },
         { path: '/admin/apprenants', icon: 'shuffle', key: 'Groupes RCT' },
         { path: '/mentorat', icon: 'eye', key: 'nav.mentor' },
         { path: '/admin/ia', icon: 'shield', key: 'Supervision IA' },
@@ -154,8 +168,12 @@ export class App {
   protected showShell = computed(() => this.auth.isLoggedIn() && !this.routeIsBare());
   /** Visiteur sans compte sur une page publique : en-tete simple (catalogue, connexion, inscription). */
   protected publicChrome = computed(() => !this.auth.isLoggedIn() && /^\/(catalogue|cours|formations|verifier)?(\/|$|\?)/.test(this.url()));
-  private routeIsBare = () => /^\/(login|inscription|verifier|bienvenue)/.test(this.currentUrl());
+  private routeIsBare = () => /^\/(login|inscription|verifier|bienvenue|mot-de-passe-oublie|reinitialiser|sso)/.test(this.currentUrl());
   private currentUrl = () => this.url();
+
+  setLang(ev: Event): void {
+    this.prefs.update({ lang: (ev.target as HTMLSelectElement).value });
+  }
 
   /** Deconnexion : envoie d'abord la progression en attente (sinon elle serait perdue), puis efface l'appareil. */
   async logout(): Promise<void> {
@@ -170,6 +188,10 @@ export class App {
   }
 
   constructor() {
+    void this.audiences.load();
+    this.i18n.start();
+    void firstValueFrom(this.http.get<{ languages: { code: string; name: string }[] }>('/api/referentiel'))
+      .then((r) => r.languages?.length && this.langs.set(r.languages)).catch(() => undefined);
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe((e) => {
       this.url.set((e as NavigationEnd).urlAfterRedirects);
       // le contexte de l'assistant est fixe par les pages de module / lecon

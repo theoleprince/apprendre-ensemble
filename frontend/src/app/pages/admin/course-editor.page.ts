@@ -1,15 +1,15 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, OnInit, inject, input, signal } from '@angular/core';
+import { Component, OnInit, inject, input, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { errorMessage } from '../../core/auth.interceptor';
 import { CourseInput, Domain, LessonInput, MediaUpload, ROLE_LABELS, Referentiel, Role, formatBytes } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
+import { AudienceService } from '../../core/audience.service';
 import { IconComponent } from '../../shared/icon.component';
 import { CoverComponent } from '../../shared/visuals';
 
-const ALL_ROLES: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_ECOLE', 'PARENT', 'TRAVAILLEUR_SOCIAL', 'JEUNE'];
 
 @Component({
   selector: 'app-course-editor',
@@ -38,8 +38,8 @@ const ALL_ROLES: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_EC
             <label>Langue <select name="lang" [(ngModel)]="c.languageCode"><option [ngValue]="null">Toutes</option>@for (x of r.languages; track x.code) {<option [ngValue]="x.code">{{ x.name }}</option>}</select></label>
           </div>
           <fieldset><legend>Publics</legend>
-            @for (role of roles; track role) {
-              <label class="check inline"><input type="checkbox" [checked]="c.targetRoles.includes(role)" (change)="toggleRole(role)" /> {{ labels[role] }}</label>
+            @for (role of roles(); track role) {
+              <label class="check inline"><input type="checkbox" [checked]="c.targetRoles.includes(role)" (change)="toggleRole(role)" /> {{ aud.label(role) }}</label>
             }
           </fieldset>
           <fieldset><legend>Droits d'accès fins</legend>
@@ -131,7 +131,8 @@ export class CourseEditorPage implements OnInit {
   readonly id = input.required<string>();
   labels = ROLE_LABELS;
   courseIcons = ['book-open', 'cloud-sun', 'handshake', 'family', 'smartphone', 'school', 'heart', 'compass', 'graduation', 'sprout', 'lightbulb', 'users', 'target', 'shield', 'globe', 'wrench'];
-  roles = ALL_ROLES;
+  protected aud = inject(AudienceService);
+  roles = computed(() => this.aud.list().filter((a) => a.active).map((a) => a.code));
   types = [
     { v: 'TEXT' as const, l: 'Texte', icon: 'text' },
     { v: 'AUDIO' as const, l: 'Audio', icon: 'headphones' },
@@ -165,7 +166,7 @@ export class CourseEditorPage implements OnInit {
     }
   }
 
-  toggleRole(r: Role): void {
+  toggleRole(r: string): void {
     this.c.targetRoles = this.c.targetRoles.includes(r) ? this.c.targetRoles.filter((x) => x !== r) : [...this.c.targetRoles, r];
   }
 

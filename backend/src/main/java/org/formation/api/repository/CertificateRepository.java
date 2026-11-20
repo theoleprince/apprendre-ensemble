@@ -17,6 +17,13 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
     @Query("select c from Certificate c join fetch c.course where c.user.id = :userId order by c.issuedAt desc")
     List<Certificate> findAllForUser(Long userId);
 
+    /** Certificats valides (non revoques) : seuls a compter pour la progression et les certificats de formation. */
+    @Query("select c from Certificate c join fetch c.course where c.user.id = :userId and c.revokedAt is null order by c.issuedAt desc")
+    List<Certificate> findValidForUser(Long userId);
+
+    @Query("select c from Certificate c join fetch c.user join fetch c.course where lower(c.code) like :q or lower(c.user.fullName) like :q order by c.issuedAt desc")
+    List<Certificate> search(String q, org.springframework.data.domain.Pageable page);
+
     @Query("select c from Certificate c join fetch c.user join fetch c.course order by c.id")
     List<Certificate> findAllForExport();
 }

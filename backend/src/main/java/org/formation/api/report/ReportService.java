@@ -96,6 +96,7 @@ public class ReportService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Certificat introuvable"));
         }
         Certificate c = found.get();
+        if (c.isRevoked()) throw new ResponseStatusException(HttpStatus.GONE, "Certificat révoqué : " + c.getRevokedReason());
         String verifyUrl = publicUrl + "/verifier/" + c.getCode();
         Map<String, Object> p = new HashMap<>();
         p.put("PLATFORM_NAME", platformName);
@@ -129,6 +130,7 @@ public class ReportService {
 
     /** Certificat de parcours (programme complet), avec mention de laureat·e pour le podium de la classe. */
     private byte[] programCertificatePdf(ProgramCertificate pc) {
+        if (pc.isRevoked()) throw new ResponseStatusException(HttpStatus.GONE, "Certificat révoqué : " + pc.getRevokedReason());
         String verifyUrl = publicUrl + "/verifier/" + pc.getCode();
         Map<String, Object> p = new HashMap<>();
         p.put("PLATFORM_NAME", platformName);
@@ -284,6 +286,7 @@ public class ReportService {
             case PARENT -> "Parent / éducateur·trice";
             case TRAVAILLEUR_SOCIAL -> "Travailleur·se social·e";
             case JEUNE -> "Jeune";
+            case APPRENANT -> "Apprenant·e";
         };
     }
 }

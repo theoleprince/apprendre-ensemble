@@ -41,7 +41,7 @@ public class CertificationService {
                 && progress.countByUserIdAndLessonCourseId(user.getId(), course.getId()) >= course.getLessons().size();
         int best = attempts.findTopByUserIdAndCourseIdOrderByScorePercentDesc(user.getId(), course.getId())
                 .map(QuizAttempt::getScorePercent).orElse(-1);
-        boolean hasQuiz = !course.getQuestions().isEmpty();
+        boolean hasQuiz = !course.examQuestions().isEmpty();
 
         if (allLessons) {
             issue(user, course, CertificateLevel.ATTESTATION, Math.max(best, 0), issued);
@@ -85,6 +85,7 @@ public class CertificationService {
 
     public static CertificateDto toDto(Certificate c) {
         return new CertificateDto(c.getCode(), c.getLevel(), c.getLevel().label(), c.getCourse().getId(),
-                c.getCourse().getTitle(), c.getUser().getFullName(), c.getScorePercent(), c.getIssuedAt());
+                c.getCourse().getTitle(), c.getUser().getFullName(), c.getScorePercent(), c.getIssuedAt(),
+                c.getRevokedAt(), c.getRevokedReason());
     }
 }

@@ -34,10 +34,9 @@ public class Program {
     private String countryCode;
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @Enumerated(EnumType.STRING)
-    @CollectionTable(name = "program_target_role")
+        @CollectionTable(name = "program_target_role")
     @Column(name = "role")
-    private Set<Role> targetRoles = new HashSet<>();
+    private Set<String> targetRoles = new HashSet<>();
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "program_course")

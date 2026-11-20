@@ -6,10 +6,10 @@ import { firstValueFrom } from 'rxjs';
 import { errorMessage } from '../../core/auth.interceptor';
 import { AdminCourse, CertificateLevel, LEVELS, ProgramAdmin, ROLE_LABELS, Role } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
+import { AudienceService } from '../../core/audience.service';
 import { IconComponent } from '../../shared/icon.component';
 import { CoverComponent } from '../../shared/visuals';
 
-const ROLES: Role[] = ['ENSEIGNANT', 'CONSEILLER_PEDAGOGIQUE', 'DIRECTION_ECOLE', 'PARENT', 'TRAVAILLEUR_SOCIAL', 'JEUNE'];
 const ICONS = ['graduation', 'compass', 'school', 'family', 'sprout', 'heart', 'book-open', 'users', 'shield', 'target', 'smartphone', 'handshake'];
 
 /** Liste des programmes. */
@@ -31,7 +31,7 @@ const ICONS = ['graduation', 'compass', 'school', 'family', 'sprout', 'heart', '
           <div class="xs muted">{{ p.courseIds.length }} modules · {{ p.durationLabel }} · {{ p.classroomCount }} classe(s)</div>
           <div class="tags">
             <span class="tag" [class.grey]="!p.published">{{ p.published ? 'Publié' : 'Brouillon' }}</span>
-            @for (r of p.targetRoles; track r) { <span class="tag grey">{{ labels[r] }}</span> }
+            @for (r of p.targetRoles; track r) { <span class="tag grey">{{ aud.label(r) }}</span> }
           </div>
         </a>
       }
@@ -40,7 +40,7 @@ const ICONS = ['graduation', 'compass', 'school', 'family', 'sprout', 'heart', '
 })
 export class ProgramsAdminPage implements OnInit {
   private http = inject(HttpClient);
-  labels = ROLE_LABELS;
+  protected aud = inject(AudienceService);
   list = signal<ProgramAdmin[]>([]);
   error = signal('');
 
@@ -77,7 +77,7 @@ export class ProgramsAdminPage implements OnInit {
             <select name="lvl" [(ngModel)]="p.requiredLevel">@for (l of levels; track l.key) {<option [value]="l.key">{{ l.label }}</option>}</select></label>
         </div>
         <fieldset><legend>Publics</legend>
-          @for (r of roles; track r) { <label class="check inline"><input type="checkbox" [checked]="p.targetRoles.includes(r)" (change)="toggleRole(r)" /> {{ labels[r] }}</label> }
+          @for (r of roles(); track r) { <label class="check inline"><input type="checkbox" [checked]="p.targetRoles.includes(r)" (change)="toggleRole(r)" /> {{ aud.label(r) }}</label> }
         </fieldset>
         <label class="check"><input type="checkbox" name="pub" [(ngModel)]="p.published" /> Publié</label>
       </section>
@@ -114,8 +114,8 @@ export class ProgramEditorPage implements OnInit {
   private toast = inject(ToastService);
   readonly id = input.required<string>();
 
-  labels = ROLE_LABELS;
-  roles = ROLES;
+  protected aud = inject(AudienceService);
+  roles = computed(() => this.aud.list().filter((a) => a.active).map((a) => a.code));
   icons = ICONS;
   levels = LEVELS;
   courses = signal<AdminCourse[]>([]);
@@ -125,7 +125,7 @@ export class ProgramEditorPage implements OnInit {
   toAdd: number | null = null;
   p = {
     title: '', description: '', icon: 'graduation', durationLabel: '', countryCode: 'BJ' as string | null,
-    targetRoles: ['ENSEIGNANT'] as Role[], courseIds: [] as number[], requiredLevel: 'BADGE' as CertificateLevel, published: true, price: 0,
+    targetRoles: ['ENSEIGNANT'] as string[], courseIds: [] as number[], requiredLevel: 'BADGE' as CertificateLevel, published: true, price: 0,
   };
   available = computed(() => this.courses().filter((c) => !this.p.courseIds.includes(c.id)));
 
@@ -151,7 +151,7 @@ export class ProgramEditorPage implements OnInit {
     return this.courses().find((c) => c.id === id)?.domainName ?? '';
   }
 
-  toggleRole(r: Role): void {
+  toggleRole(r: string): void {
     this.p.targetRoles = this.p.targetRoles.includes(r) ? this.p.targetRoles.filter((x) => x !== r) : [...this.p.targetRoles, r];
   }
 

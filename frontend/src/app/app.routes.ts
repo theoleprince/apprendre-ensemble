@@ -9,6 +9,8 @@ export const routes: Routes = [
   { path: 'cours/:id', loadComponent: () => import('./pages/course.page').then((m) => m.CoursePage) },
   { path: 'formations/:id', loadComponent: () => import('./pages/formation.page').then((m) => m.FormationPage) },
   // ---- inscription puis apprentissage lineaire ----
+  { path: 'paiement/retour', canActivate: [authGuard], loadComponent: () => import('./pages/payment.page').then((m) => m.PaymentReturnPage) },
+  { path: 'abonnement', canActivate: [authGuard], loadComponent: () => import('./pages/payment.page').then((m) => m.SubscriptionPage) },
   { path: 'paiement/:kind/:id', canActivate: [authGuard], loadComponent: () => import('./pages/checkout.page').then((m) => m.CheckoutPage) },
   { path: 'apprendre/:id', canActivate: [authGuard], loadComponent: () => import('./pages/player.page').then((m) => m.PlayerPage) },
   { path: 'apprendre/:id/:step', canActivate: [authGuard], loadComponent: () => import('./pages/player.page').then((m) => m.PlayerPage) },
@@ -22,6 +24,9 @@ export const routes: Routes = [
   { path: 'parcours/:id', redirectTo: 'formations/:id' },
   { path: 'login', canActivate: [guestGuard], loadComponent: () => import('./pages/login.page').then((m) => m.LoginPage) },
   { path: 'inscription', canActivate: [guestGuard], loadComponent: () => import('./pages/register.page').then((m) => m.RegisterPage) },
+  { path: 'sso', loadComponent: () => import('./pages/sso.page').then((m) => m.SsoPage) },
+  { path: 'mot-de-passe-oublie', canActivate: [guestGuard], loadComponent: () => import('./pages/password.page').then((m) => m.ForgotPage) },
+  { path: 'reinitialiser', loadComponent: () => import('./pages/password.page').then((m) => m.ResetPage) },
   { path: 'verifier/:code', loadComponent: () => import('./pages/verify.page').then((m) => m.VerifyPage) },
   { path: 'bienvenue', canActivate: [authGuard], loadComponent: () => import('./pages/placement.page').then((m) => m.PlacementPage) },
   { path: 'accueil', canActivate: [authGuard], loadComponent: () => import('./pages/home.page').then((m) => m.HomePage) },
@@ -44,6 +49,9 @@ export const routes: Routes = [
   { path: 'admin/classes/:id', canActivate: [staffGuard], loadComponent: () => import('./pages/admin/classrooms-admin.page').then((m) => m.ClassroomEditorPage) },
   { path: 'admin/referentiels', canActivate: [staffGuard], loadComponent: () => import('./pages/admin/referentials.page').then((m) => m.ReferentialsPage) },
   { path: 'admin/apprenants', canActivate: [staffGuard], loadComponent: () => import('./pages/admin/learners.page').then((m) => m.LearnersPage) },
+  { path: 'admin/comptes', canActivate: [staffGuard], loadComponent: () => import('./pages/admin/accounts.page').then((m) => m.AccountsPage) },
+  { path: 'admin/certificats', canActivate: [staffGuard], loadComponent: () => import('./pages/admin/certificates-admin.page').then((m) => m.CertificatesAdminPage) },
+  { path: 'admin/parametres', canActivate: [staffGuard], loadComponent: () => import('./pages/admin/settings.page').then((m) => m.SettingsPage) },
   { path: 'admin/ia', canActivate: [staffGuard], loadComponent: () => import('./pages/admin/ai-supervision.page').then((m) => m.AiSupervisionPage) },
   { path: '**', redirectTo: '' },
 ];

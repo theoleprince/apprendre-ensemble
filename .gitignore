@@ -17,3 +17,4 @@ photo_*.jpg
 .idea/
 .DS_Store
 Thumbs.db
+backups/

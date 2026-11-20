@@ -610,7 +610,7 @@ export class PlayerPage implements OnDestroy {
     const pct = Math.round((good * 100) / l.checks.length);
     this.checked.set(true);
     if (pct >= this.pkg()!.passScore && !this.learning.isDone(l.id)) {
-      await this.learning.completeLesson(l.id, (Date.now() - this.startedAt) / 1000);
+      await this.learning.completeLesson(l.id, (Date.now() - this.startedAt) / 1000, this.checkAnswers().map((a) => a ?? -1));
     }
   }
 

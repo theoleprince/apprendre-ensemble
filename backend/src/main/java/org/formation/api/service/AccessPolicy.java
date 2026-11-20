@@ -12,6 +12,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class AccessPolicy {
 
+    /** Code du public de la personne (parametrable), a defaut le nom de son role. */
+    public static String audienceOf(AppUser u) {
+        return u.getAudience() != null && !u.getAudience().isBlank() ? u.getAudience() : u.getRole().name();
+    }
+
     public boolean isStaff(AppUser u) {
         return u.getRole() == Role.ADMIN || u.getRole() == Role.FORMATEUR;
     }

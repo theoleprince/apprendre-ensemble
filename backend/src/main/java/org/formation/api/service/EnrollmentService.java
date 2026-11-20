@@ -32,12 +32,13 @@ public class EnrollmentService {
     private final AccessPolicy policy;
     private final ClassroomLocks locks;
     private final ProgramService programService;
-    private final Set<String> licenceCodes;
+    private final LicenceCodeRepository licences;
+    private final SubscriptionRepository subscriptions;
 
     public EnrollmentService(CourseRepository courses, ProgramRepository programs, DomainRepository domains,
                              EnrollmentRepository enrollments, LessonProgressRepository progress, QuizAttemptRepository attempts,
                              CertificateRepository certificates, AccessPolicy policy, ClassroomLocks locks,
-                             ProgramService programService, @Value("${app.licence-codes:GDP-2027}") String licenceCodes) {
+                             ProgramService programService, LicenceCodeRepository licences, SubscriptionRepository subscriptions) {
         this.courses = courses;
         this.programs = programs;
         this.domains = domains;
@@ -48,8 +49,8 @@ public class EnrollmentService {
         this.policy = policy;
         this.locks = locks;
         this.programService = programService;
-        this.licenceCodes = Arrays.stream(licenceCodes.split(",")).map(String::trim).map(String::toUpperCase)
-                .filter(s -> !s.isEmpty()).collect(Collectors.toSet());
+        this.licences = licences;
+        this.subscriptions = subscriptions;
     }
 
     // =====================================================================
@@ -97,10 +98,27 @@ public class EnrollmentService {
         return new ProgramPublicDetail(card(p), p.getCourses().stream().map(this::card).toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> mediaManifest() {
+        List<Map<String, Object>> out = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (Course c : courses.findAllByOrderByIdAsc()) {
+            if (!c.isPublished()) continue;
+            for (Lesson l : c.getLessons()) {
+                for (String u : new String[]{l.getMediaUrl(), l.getSubtitlesUrl()}) {
+                    if (u != null && u.startsWith("/api/media/") && seen.add(u)) {
+                        out.add(Map.of("url", u, "courseId", c.getId(), "sizeBytes", u.equals(l.getMediaUrl()) ? l.getMediaSizeBytes() : 0L));
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
     private CatalogCourse card(Course c) {
         return new CatalogCourse(c.getId(), c.getTitle(), c.getDescription(), c.getIcon(),
                 c.getDomain() == null ? null : c.getDomain().getId(), c.getDomain() == null ? null : c.getDomain().getName(),
-                c.getType(), c.getLessons().size(), minutes(c), c.getQuestions().size(), c.getPrice(), c.getTargetRoles(),
+                c.getType(), c.getLessons().size(), minutes(c), c.examQuestions().size(), c.getPrice(), c.getTargetRoles(),
                 c.getLessons().stream().anyMatch(l -> l.getMediaType() == MediaType.VIDEO),
                 c.getLessons().stream().anyMatch(l -> l.getMediaType() == MediaType.AUDIO),
                 enrollments.countByCourseId(c.getId()));
@@ -136,53 +154,80 @@ public class EnrollmentService {
             if (enrollments.findByUserIdAndProgramIdAndCourseIsNull(u.getId(), p.getId()).isPresent()) {
                 return new EnrollResult(null, p.getId(), 0, null, "Vous êtes déjà inscrit·e à cette formation");
             }
-            String ref = pay(p.getPrice(), req);
-            int amount = p.getPrice() == 0 || req.method() == Enrollment.Method.CODE ? 0 : p.getPrice();
-            Enrollment e = new Enrollment();
-            e.setUser(u);
-            e.setProgram(p);
-            e.setMethod(p.getPrice() == 0 ? Enrollment.Method.GRATUIT : req.method());
-            e.setAmount(amount);
-            e.setPaymentRef(ref);
-            enrollments.save(e);
-            for (Course c : p.getCourses()) enrollCourse(u, c, p, Enrollment.Method.FORMATION, 0, ref);
-            return new EnrollResult(null, p.getId(), amount, ref, "Inscription confirmée : " + p.getTitle());
+            String ref = entitle(u, p.getPrice(), req, p.getId());
+            grantProgram(u, p, p.getPrice() == 0 ? Enrollment.Method.GRATUIT : req.method(), 0, ref);
+            return new EnrollResult(null, p.getId(), 0, ref, "Inscription confirmée : " + p.getTitle());
         }
         Course c = courses.findById(req.courseId()).filter(x -> policy.canAccess(u, x))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cours introuvable"));
         if (enrollments.existsByUserIdAndCourseId(u.getId(), c.getId())) {
             return new EnrollResult(c.getId(), null, 0, null, "Vous êtes déjà inscrit·e à ce cours");
         }
-        String ref = pay(c.getPrice(), req);
-        int amount = c.getPrice() == 0 || req.method() == Enrollment.Method.CODE ? 0 : c.getPrice();
-        enrollCourse(u, c, null, c.getPrice() == 0 ? Enrollment.Method.GRATUIT : req.method(), amount, ref);
-        return new EnrollResult(c.getId(), null, amount, ref, "Inscription confirmée : " + c.getTitle());
+        Long scope = programs.findAllByOrderByIdAsc().stream().filter(p -> p.getCourses().contains(c)).map(Program::getId).findFirst().orElse(null);
+        String ref = entitle(u, c.getPrice(), req, scope);
+        grantCourse(u, c, c.getPrice() == 0 ? Enrollment.Method.GRATUIT : req.method(), 0, ref);
+        return new EnrollResult(c.getId(), null, 0, ref, "Inscription confirmée : " + c.getTitle());
+    }
+
+    /** Droits accordes apres paiement confirme (PaymentService) ou inscription directe. */
+    public void grantCourse(AppUser u, Course c, Enrollment.Method m, int amount, String ref) {
+        enrollCourse(u, c, null, m, amount, ref);
+    }
+
+    public void grantProgram(AppUser u, Program p, Enrollment.Method m, int amount, String ref) {
+        if (enrollments.findByUserIdAndProgramIdAndCourseIsNull(u.getId(), p.getId()).isEmpty()) {
+            Enrollment e = new Enrollment();
+            e.setUser(u);
+            e.setProgram(p);
+            e.setMethod(m);
+            e.setAmount(amount);
+            e.setPaymentRef(ref);
+            enrollments.save(e);
+        }
+        for (Course c : p.getCourses()) enrollCourse(u, c, p, Enrollment.Method.FORMATION, 0, ref);
+    }
+
+    /** Abonnement en cours de validite. */
+    @Transactional(readOnly = true)
+    public boolean hasActiveSubscription(AppUser u) {
+        return subscriptions.findByUserIdOrderByEndsAtDesc(u.getId()).stream().anyMatch(Subscription::isActive);
     }
 
     /**
-     * Paiement : en demonstration il est simule (reference SIM-...). En production : agregateur Mobile Money / carte
-     * (ex. FedaPay, Kkiapay, Stripe) avec confirmation par webhook avant l'inscription.
+     * Droit d'acceder a un contenu payant sans paiement en ligne : licence institutionnelle ou abonnement actif.
+     * Le paiement Mobile Money / carte passe par PaymentService (FedaPay), confirme cote serveur.
      */
-    private String pay(int price, EnrollRequest req) {
+    private String entitle(AppUser u, int price, EnrollRequest req, Long programScope) {
         if (price == 0) return null;
         return switch (req.method()) {
-            case GRATUIT, FORMATION -> throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED, "Ce contenu est payant");
-            case CODE -> {
-                String code = req.code() == null ? "" : req.code().trim().toUpperCase();
-                if (!licenceCodes.contains(code)) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Code de licence invalide");
-                }
-                yield "LIC-" + code;
+            case CODE -> useLicence(req.code(), programScope);
+            case ABONNEMENT -> {
+                if (!hasActiveSubscription(u)) throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED, "Aucun abonnement actif");
+                yield "ABONNEMENT";
             }
-            case MOBILE_MONEY -> {
-                String phone = req.phone() == null ? "" : req.phone().replaceAll("\\s", "");
-                if (!phone.matches("\\+?[0-9]{8,13}")) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Numéro Mobile Money invalide");
-                }
-                yield "SIM-MM-" + programService.code(8);
-            }
-            case CARTE -> "SIM-CB-" + programService.code(8);
+            case MOBILE_MONEY, CARTE -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Paiement en ligne : passez par la page de paiement sécurisée");
+            default -> throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED, "Ce contenu est payant");
         };
+    }
+
+    /** Licence institutionnelle : active, non expiree, places disponibles, perimetre respecte. Une place est consommee. */
+    private String useLicence(String raw, Long programScope) {
+        String code = raw == null ? "" : raw.trim();
+        LicenceCode l = licences.findByCodeIgnoreCase(code)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Code de licence invalide"));
+        if (!l.isActive() || (l.getValidUntil() != null && l.getValidUntil().isBefore(java.time.LocalDate.now()))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Code de licence expiré ou désactivé");
+        }
+        if (l.getSeats() > 0 && l.getUsed() >= l.getSeats()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Plus aucune place disponible sur cette licence");
+        }
+        if (l.getProgramId() != null && !l.getProgramId().equals(programScope)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ce code ne couvre pas ce contenu");
+        }
+        l.setUsed(l.getUsed() + 1);
+        licences.save(l);
+        return "LIC-" + l.getCode().toUpperCase();
     }
 
     private void enrollCourse(AppUser u, Course c, Program via, Enrollment.Method m, int amount, String ref) {
@@ -254,7 +299,7 @@ public class EnrollmentService {
     }
 
     private boolean validated(AppUser u, Course c, CertificateLevel required) {
-        return certificates.findAllForUser(u.getId()).stream()
+        return certificates.findValidForUser(u.getId()).stream()
                 .anyMatch(x -> x.getCourse().getId().equals(c.getId()) && x.getLevel().ordinal() >= required.ordinal());
     }
 
@@ -265,7 +310,7 @@ public class EnrollmentService {
                 .collect(Collectors.groupingBy(p -> p.getLesson().getCourse().getId(), Collectors.counting()));
         Map<Long, Integer> best = new HashMap<>();
         for (QuizAttempt a : attempts.findByUserId(u.getId())) best.merge(a.getCourse().getId(), a.getScorePercent(), Math::max);
-        Map<Long, List<CertificateLevel>> levels = certificates.findAllForUser(u.getId()).stream()
+        Map<Long, List<CertificateLevel>> levels = certificates.findValidForUser(u.getId()).stream()
                 .collect(Collectors.groupingBy(x -> x.getCourse().getId(), Collectors.mapping(Certificate::getLevel, Collectors.toList())));
 
         List<MyCourse> cs = new ArrayList<>();
@@ -274,7 +319,7 @@ public class EnrollmentService {
             Course c = e.getCourse();
             int b = best.getOrDefault(c.getId(), -1);
             cs.add(new MyCourse(c.getId(), c.getTitle(), c.getIcon(), c.getDomain() == null ? null : c.getDomain().getName(),
-                    c.getLessons().size(), done.getOrDefault(c.getId(), 0L).intValue(), c.getQuestions().size(), b,
+                    c.getLessons().size(), done.getOrDefault(c.getId(), 0L).intValue(), c.examQuestions().size(), b,
                     b >= c.getPassScore(), c.getPassScore(), levels.getOrDefault(c.getId(), List.of()).stream().sorted().toList(),
                     e.getProgram() == null ? null : e.getProgram().getId(), e.getProgram() == null ? null : e.getProgram().getTitle(),
                     lockReason(u, c).orElse(null), e.getEnrolledAt(), c.getContentVersion(), minutes(c)));

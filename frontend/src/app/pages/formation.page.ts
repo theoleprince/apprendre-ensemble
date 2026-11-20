@@ -5,6 +5,7 @@ import { errorMessage } from '../core/auth.interceptor';
 import { CatalogApi } from '../core/catalog.service';
 import { LEVELS, MyCourse, ProgramPublicDetail, ROLE_LABELS, STATUS_LABELS, courseStatus, durationLabel, frDate, ordinal, priceLabel } from '../core/models';
 import { ToastService } from '../core/toast.service';
+import { AudienceService } from '../core/audience.service';
 import { IconComponent } from '../shared/icon.component';
 import { CoverComponent, MedalComponent } from '../shared/visuals';
 
@@ -135,6 +136,7 @@ import { CoverComponent, MedalComponent } from '../shared/visuals';
   `,
 })
 export class FormationPage implements OnInit {
+  protected aud = inject(AudienceService);
   protected auth = inject(AuthService);
   private api = inject(CatalogApi);
   private router = inject(Router);
@@ -205,6 +207,6 @@ export class FormationPage implements OnInit {
   }
 
   roles(r: string[]): string {
-    return r.map((x) => ROLE_LABELS[x as keyof typeof ROLE_LABELS]).join(', ');
+    return this.aud.labels(r);
   }
 }

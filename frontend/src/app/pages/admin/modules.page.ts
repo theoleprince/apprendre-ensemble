@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { errorMessage } from '../../core/auth.interceptor';
 import { AdminCourse, ROLE_LABELS } from '../../core/models';
+import { AudienceService } from '../../core/audience.service';
 import { IconComponent } from '../../shared/icon.component';
 import { CoverComponent } from '../../shared/visuals';
 
@@ -39,6 +40,7 @@ import { CoverComponent } from '../../shared/visuals';
   `,
 })
 export class AdminModulesPage implements OnInit {
+  protected aud = inject(AudienceService);
   private http = inject(HttpClient);
   courses = signal<AdminCourse[]>([]);
   error = signal('');
@@ -52,6 +54,6 @@ export class AdminModulesPage implements OnInit {
   }
 
   roles(c: AdminCourse): string {
-    return c.targetRoles.map((r) => ROLE_LABELS[r]).join(', ');
+    return this.aud.labels(c.targetRoles);
   }
 }

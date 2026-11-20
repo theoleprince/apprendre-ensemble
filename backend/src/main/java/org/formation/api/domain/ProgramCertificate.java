@@ -36,4 +36,16 @@ public class ProgramCertificate {
     private int points;
 
     private Instant issuedAt = Instant.now();
+
+    /** Revocation (fraude, erreur d'attribution) : le certificat reste tracable mais n'est plus valide. */
+    private Instant revokedAt;
+
+    @Column(length = 500)
+    private String revokedReason;
+
+    private String revokedBy;
+
+    public boolean isRevoked() {
+        return revokedAt != null;
+    }
 }

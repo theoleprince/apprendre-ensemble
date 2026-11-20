@@ -41,10 +41,9 @@ public class Course {
     private String languageCode;
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @Enumerated(EnumType.STRING)
-    @CollectionTable(name = "course_target_role")
+        @CollectionTable(name = "course_target_role")
     @Column(name = "role")
-    private Set<Role> targetRoles = new HashSet<>();
+    private Set<String> targetRoles = new HashSet<>();
 
     /** Restriction par groupe RCT (vide = tous les groupes). */
     @ElementCollection(fetch = FetchType.EAGER)
@@ -83,4 +82,13 @@ public class Course {
     private List<QuizQuestion> questions = new ArrayList<>();
 
     private Instant updatedAt = Instant.now();
+
+    /**
+     * Questions de l'evaluation finale : celles qui ne servent pas de quiz de lecon.
+     * Les quiz de lecon sont corriges sur l'appareil (reponses connues du client) : ils ne doivent jamais
+     * composer l'examen, sinon les reponses de l'examen seraient lisibles cote client.
+     */
+    public List<QuizQuestion> examQuestions() {
+        return questions.stream().filter(q -> q.getLesson() == null).toList();
+    }
 }

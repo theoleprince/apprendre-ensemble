@@ -6,7 +6,8 @@ export type Role =
   | 'DIRECTION_ECOLE'
   | 'PARENT'
   | 'TRAVAILLEUR_SOCIAL'
-  | 'JEUNE';
+  | 'JEUNE'
+  | 'APPRENANT';
 
 export type CourseType = 'THEORIQUE' | 'PRATIQUE';
 export type MediaType = 'TEXT' | 'AUDIO' | 'VIDEO';
@@ -22,6 +23,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   PARENT: 'Parent / éducateur·trice',
   TRAVAILLEUR_SOCIAL: 'Travailleur·se social·e',
   JEUNE: 'Jeune',
+  APPRENANT: 'Apprenant·e',
 };
 
 /** Noms d'icones SVG (voir shared/icon.component). */
@@ -34,6 +36,7 @@ export const ROLE_ICONS: Record<Role, string> = {
   PARENT: 'family',
   TRAVAILLEUR_SOCIAL: 'heart',
   JEUNE: 'smartphone',
+  APPRENANT: 'user',
 };
 
 export const LEVELS: { key: CertificateLevel; label: string; short: string; icon: string; rule: string }[] = [
@@ -54,6 +57,7 @@ export interface User {
   cohort: string | null;
   placementDone: boolean;
   recommendedCourseIds: number[];
+  audience?: string | null;
 }
 
 export interface AuthResponse {
@@ -70,6 +74,18 @@ export interface Referentiel {
   countries: RefItem[];
   languages: RefItem[];
   learnerRoles: Role[];
+  audiences: AudienceItem[];
+}
+
+/** Public cible parametrable. */
+export interface AudienceItem {
+  code: string;
+  label: string;
+  icon: string | null;
+  position: number;
+  baseRole: Role;
+  selfRegistration: boolean;
+  active: boolean;
 }
 
 export interface PlacementQuestion {
@@ -150,6 +166,8 @@ export interface ProgressItem {
   completedAt: string;
   timeSpentSeconds: number;
   offline: boolean;
+  /** Reponses au quiz de la lecon : le serveur les re-corrige avant d'accepter la lecon. */
+  checkAnswers?: number[] | null;
 }
 
 export interface Certificate {
@@ -161,12 +179,15 @@ export interface Certificate {
   learnerName: string;
   scorePercent: number;
   issuedAt: string;
+  revokedAt?: string | null;
+  revokedReason?: string | null;
 }
 
 export interface SyncResponse {
   accepted: number;
   serverState: ProgressItem[];
   newCertificates: Certificate[];
+  rejected: { lessonId: number; reason: string }[];
 }
 
 export interface QuestionCorrection {
@@ -307,7 +328,8 @@ export interface AdminCourse {
   type: CourseType;
   countryCode: string | null;
   languageCode: string | null;
-  targetRoles: Role[];
+  /** Codes de publics (parametrables). */
+  targetRoles: string[];
   allowedCohorts: string[];
   published: boolean;
   lessonCount: number;
@@ -343,7 +365,8 @@ export interface CourseInput {
   type: CourseType;
   countryCode: string | null;
   languageCode: string | null;
-  targetRoles: Role[];
+  /** Codes de publics (parametrables). */
+  targetRoles: string[];
   allowedCohorts: string[];
   allowedRegions: string[];
   passScore: number;
@@ -431,6 +454,7 @@ export interface ProgramCert {
   points: number;
   issuedAt: string;
   classroomName: string | null;
+  revokedAt?: string | null;
 }
 
 export interface ProgramSummary {
@@ -502,7 +526,8 @@ export interface ResourceItem {
   fileUrl: string | null;
   domainId: number | null;
   domainName: string | null;
-  targetRoles: Role[];
+  /** Codes de publics (parametrables). */
+  targetRoles: string[];
 }
 
 export interface School {
@@ -553,7 +578,8 @@ export interface ProgramAdmin {
   icon: string | null;
   durationLabel: string | null;
   countryCode: string | null;
-  targetRoles: Role[];
+  /** Codes de publics (parametrables). */
+  targetRoles: string[];
   courseIds: number[];
   courseTitles: string[];
   requiredLevel: CertificateLevel;
@@ -618,7 +644,8 @@ export interface CatalogCourse {
   totalMinutes: number;
   questionCount: number;
   price: number;
-  targetRoles: Role[];
+  /** Codes de publics (parametrables). */
+  targetRoles: string[];
   hasVideo: boolean;
   hasAudio: boolean;
   learners: number;
@@ -633,7 +660,8 @@ export interface CatalogProgram {
   courseCount: number;
   totalMinutes: number;
   price: number;
-  targetRoles: Role[];
+  /** Codes de publics (parametrables). */
+  targetRoles: string[];
   requiredLevel: CertificateLevel;
   domains: string[];
 }
@@ -668,7 +696,7 @@ export interface ProgramPublicDetail {
   courses: CatalogCourse[];
 }
 
-export type PayMethod = 'GRATUIT' | 'MOBILE_MONEY' | 'CARTE' | 'CODE';
+export type PayMethod = 'GRATUIT' | 'MOBILE_MONEY' | 'CARTE' | 'CODE' | 'ABONNEMENT';
 
 export interface EnrollResult {
   courseId: number | null;

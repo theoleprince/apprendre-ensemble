@@ -62,6 +62,9 @@ public class DataInitializer implements ApplicationRunner {
     private final CertificationService certification;
     private final ProgramService programService;
     private final EnrollmentService enrollments;
+    private final LicenceCodeRepository licences;
+    private final AudienceRepository audiences;
+    private final SubscriptionPlanRepository plans;
     private final PasswordEncoder encoder;
     private final boolean demoData;
     private final String adminPassword;
@@ -76,6 +79,7 @@ public class DataInitializer implements ApplicationRunner {
                            PortfolioItemRepository portfolios, DomainRepository domains, ProgramRepository programs,
                            SchoolRepository schools, ClassroomRepository classrooms, ResourceRepository resources,
                            CertificationService certification, ProgramService programService, EnrollmentService enrollments,
+                           LicenceCodeRepository licences, SubscriptionPlanRepository plans, AudienceRepository audiences,
                            PasswordEncoder encoder,
                            @Value("${app.seed.demo-data:true}") boolean demoData,
                            @Value("${app.seed.admin-password}") String adminPassword,
@@ -100,6 +104,9 @@ public class DataInitializer implements ApplicationRunner {
         this.certification = certification;
         this.programService = programService;
         this.enrollments = enrollments;
+        this.licences = licences;
+        this.audiences = audiences;
+        this.plans = plans;
         this.encoder = encoder;
         this.demoData = demoData;
         this.adminPassword = adminPassword;
@@ -134,6 +141,14 @@ public class DataInitializer implements ApplicationRunner {
     // =====================================================================
 
     private void seed() {
+        // ---------- Publics (parametrables : d'autres s'ajoutent en administration) ----------
+        audience("ENSEIGNANT", "Enseignant·e", "book-open", 1, Role.ENSEIGNANT);
+        audience("DIRECTION_ECOLE", "Direction d'école", "school", 2, Role.DIRECTION_ECOLE);
+        audience("PARENT", "Parent / éducateur·trice", "family", 3, Role.PARENT);
+        audience("TRAVAILLEUR_SOCIAL", "Travailleur·se social·e", "heart", 4, Role.TRAVAILLEUR_SOCIAL);
+        audience("JEUNE", "Jeune", "smartphone", 5, Role.JEUNE);
+        audience("CONSEILLER_PEDAGOGIQUE", "Conseiller·ère pédagogique", "compass", 6, Role.CONSEILLER_PEDAGOGIQUE).setSelfRegistration(false);
+
         // ---------- Domaines ----------
         Domain dSel = domain(1, "Compétences socio-émotionnelles", "cloud-sun", "Reconnaître et réguler ses émotions, celles des enfants.");
         Domain dCoop = domain(2, "Coopération et climat de classe", "handshake", "Apprendre ensemble, s'entraider, vivre un climat serein.");
@@ -599,11 +614,70 @@ public class DataInitializer implements ApplicationRunner {
 
         // =================== TESTS PAR LECON, PRIX ===================
         for (Course c : List.of(m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15, m16, m17)) attachChecks(c);
+
+        // =================== EVALUATIONS FINALES (questions distinctes des quiz de lecon) ===================
+        exam(m1, "Toutes les émotions sont légitimes. Ce qui se règle, ce sont :", List.of("Les comportements", "Les émotions elles-mêmes", "Rien, tout est permis"), 0, "On accueille l'émotion, on encadre le comportement.");
+        exam(m1, "Un élève est en pleine crise de colère. Que faites-vous en premier ?", List.of("Je le punis tout de suite", "Je me mets à sa hauteur et je parle doucement", "Je lui demande de s'expliquer devant la classe"), 1, "Sécurité et calme d'abord ; on parle de ce qui s'est passé plus tard.");
+        exam(m1, "Pourquoi un élève submergé par la peur apprend-il moins bien ?", List.of("Parce qu'il est paresseux", "Parce que l'émotion mobilise son attention et sa mémoire", "Ce n'est pas vrai"), 1, "Les émotions fortes réduisent l'attention et la mémoire.");
+        exam(m2, "« Si je comprends bien, tu es déçu parce que… » est un exemple de :", List.of("Reformulation", "Punition", "Jugement"), 0, "Reformuler montre à l'élève qu'il a été entendu.");
+        exam(m2, "Un message « je » décrit :", List.of("La personne", "Le comportement, ce que je ressens et mon besoin", "Les fautes passées de l'élève"), 1, "Il parle du comportement, jamais de la personne.");
+        exam(m2, "Quel équilibre est conseillé entre encouragements et remarques ?", List.of("1 encouragement pour 4 remarques", "4 encouragements pour 1 remarque", "Aucun encouragement"), 1, "4 pour 1 : le climat de la classe change en quelques semaines.");
+        exam(m3, "Dans le jeu de la rivière, le groupe gagne quand :", List.of("Le plus rapide arrive le premier", "Tout le groupe traverse ensemble", "Un seul élève traverse"), 1, "Dans un jeu coopératif, tout le monde gagne ensemble.");
+        exam(m3, "Combien de questions comporte le débriefing proposé ?", List.of("Une", "Trois", "Dix"), 1, "Ce qui a marché, ce qui a été difficile, ce qu'on ferait autrement.");
+        exam(m4, "Deux élèves se disputent un ballon. Quelle est la première étape ?", List.of("Stop : séparer et laisser redescendre la colère", "Désigner le coupable", "Confisquer le ballon pour toujours"), 0, "On commence par faire redescendre la tension.");
+        exam(m4, "Un élève toujours isolé à la récréation est :", List.of("Un signe à surveiller", "Normal, il n'y a rien à faire", "La preuve d'une maltraitance"), 0, "Un signe isolé alerte, il ne prouve rien à lui seul.");
+        exam(m4, "Les élèves médiateurs peuvent :", List.of("Punir leurs camarades", "Aider à appliquer les 4 étapes et appeler un adulte", "Remplacer l'enseignant"), 1, "Ils aident, l'adulte reste responsable.");
+        exam(m5, "Combien de règles de classe au maximum ?", List.of("5", "15", "30"), 0, "Peu de règles, bien comprises.");
+        exam(m5, "« Nous levons la main pour parler » est une règle :", List.of("Formulée positivement", "Formulée négativement", "Inutile"), 0, "On dit ce qu'on fait, pas ce qu'on interdit.");
+        exam(m5, "Au Bénin, les punitions corporelles à l'école sont :", List.of("Recommandées", "Interdites par la loi", "Obligatoires en cas de faute grave"), 1, "Elles sont interdites et n'apprennent que la peur.");
+        exam(m6, "Un bon rituel de fin de journée est :", List.of("« Qu'avons-nous appris ? »", "Un contrôle surprise", "Une punition collective"), 0, "Le bilan aide à fixer les apprentissages.");
+        exam(m6, "À quelle fréquence changer les binômes de tutorat ?", List.of("Chaque mois", "Jamais", "Chaque heure"), 0, "Changer chaque mois, et valoriser l'aide apportée.");
+        exam(m7, "Dans la grille d'observation, on compte notamment :", List.of("Les encouragements donnés", "Les fautes d'orthographe au tableau", "Les retards de l'enseignant"), 0, "Les encouragements sont un indicateur clé du climat de classe.");
+        exam(m7, "L'esprit de la visite de classe est :", List.of("Inspecter et sanctionner", "Accompagner et faire progresser", "Noter l'enseignant"), 1, "On n'inspecte pas, on accompagne.");
+        exam(m8, "Combien dure la séance type de communauté de pratique ?", List.of("45 minutes", "3 heures", "10 minutes"), 0, "5 + 15 + 15 + 10 minutes.");
+        exam(m8, "La séance se termine par :", List.of("Une note pour chaque participant", "Une action que chacun essaiera avant la prochaine séance", "Un examen écrit"), 1, "Chacun repart avec une action concrète.");
+        exam(m9, "Les règles d'école sont construites :", List.of("Par la direction seule", "Avec les enseignant·es et les élèves délégués", "Par les parents seuls"), 1, "Des règles construites ensemble sont mieux appliquées.");
+        exam(m9, "Le cahier d'incidents note :", List.of("La date, le lieu, le type et la suite donnée", "Le nom des familles à punir", "Uniquement les notes des élèves"), 0, "Il sert à repérer les lieux et moments à risque.");
+        exam(m10, "Un·e enseignant·e « décroche » quand :", List.of("Plus de 14 jours sans activité", "Une journée sans activité", "Il ou elle a réussi tous ses cours"), 0, "Au-delà de 14 jours sans activité.");
+        exam(m10, "Les cours téléchargés peuvent être suivis :", List.of("Uniquement avec Internet", "Sans connexion", "Seulement à l'école"), 1, "Une fois téléchargés, ils fonctionnent hors connexion.");
+        exam(m11, "Pour poser une limite efficace, on annonce la conséquence :", List.of("Avant", "Jamais", "Après avoir frappé"), 0, "Annoncer avant, appliquer calmement après.");
+        exam(m11, "Se mettre à hauteur de l'enfant et reformuler l'aide à :", List.of("Se calmer plus vite", "Avoir peur", "Recommencer"), 0, "L'enfant qui se sent compris se calme plus vite.");
+        exam(m12, "Avant 6 ans, un enfant :", List.of("Contrôle parfaitement ses émotions", "Ne sait pas encore bien contrôler les émotions fortes", "Fait exprès de se mettre en colère"), 1, "Son cerveau apprend encore à réguler les émotions fortes.");
+        exam(m12, "Face à la colère de votre enfant, vous commencez par :", List.of("Respirer pour rester calme", "Crier plus fort", "L'ignorer pour toujours"), 0, "Votre calme est son modèle.");
+        exam(m13, "Une idée de jeu sans matériel :", List.of("Compter les cailloux ou les marches", "Acheter une console", "Regarder la télévision"), 0, "Le quotidien offre de nombreux jeux d'apprentissage.");
+        exam(m13, "Combien de temps de jeu par jour est proposé ?", List.of("10 minutes", "3 heures", "Aucun"), 0, "10 minutes par jour suffisent pour renforcer le lien.");
+        exam(m14, "Votre mot de passe peut être partagé :", List.of("Avec personne", "Avec un ami proche", "Sur les réseaux sociaux"), 0, "Un mot de passe ne se partage jamais.");
+        exam(m14, "Après avoir appris sans connexion, votre progression :", List.of("Est perdue", "Est envoyée plus tard, au retour du réseau", "Doit être recopiée à la main"), 1, "Elle est synchronisée automatiquement.");
+        exam(m15, "Prix 600 F, billet de 1 000 F. Combien rendre ?", List.of("300 F", "400 F", "500 F"), 1, "600 → 1 000 : on rend 400 F.");
+        exam(m15, "Une étoile (*) sur un formulaire indique souvent :", List.of("Une case obligatoire", "Une case à ignorer", "Une erreur"), 0, "Les cases obligatoires sont souvent marquées d'une étoile.");
+        exam(m16, "Beaucoup de métiers s'apprennent :", List.of("En apprentissage ou en centre de formation professionnelle", "Uniquement à l'université", "Sans jamais pratiquer"), 0, "L'apprentissage auprès d'un patron est une voie fréquente.");
+        exam(m16, "Pour préparer sa présentation, il est utile de :", List.of("S'entraîner à voix haute devant un ami", "Improviser sans préparation", "Lire un long texte"), 0, "L'entraînement à voix haute donne de l'assurance.");
+        exam(m17, "Quand un enfant se confie, vous signalez :", List.of("Le jour même", "À la fin de l'année", "Jamais sans preuve"), 0, "Le signalement se fait le jour même.");
+        exam(m17, "Votre rôle face à un enfant en danger est de :", List.of("Enquêter vous-même", "Protéger et orienter", "Confronter la famille"), 1, "Protéger et orienter, pas enquêter.");
+        exam(m17, "Faut-il promettre le secret à l'enfant ?", List.of("Oui, toujours", "Non, on ne promet pas le secret", "Seulement s'il pleure"), 1, "On ne promet pas le secret : il faut pouvoir signaler.");
         // la plupart des contenus sont gratuits (finances par le programme) ; quelques exemples payants
         for (Course c : List.of(m7, m8, m9, m10)) c.setPrice(5000);
         m16.setPrice(2000);
         pCons.setPrice(12000);
         pDir.setPrice(12000);
+        LicenceCode lic = new LicenceCode();
+        lic.setCode("GDP-2027");
+        lic.setInstitution("Fondation Graines de Paix (démonstration)");
+        lic.setSeats(500);
+        lic.setValidUntil(LocalDate.of(2027, 12, 31));
+        licences.save(lic);
+        SubscriptionPlan monthly = new SubscriptionPlan();
+        monthly.setName("Mensuel");
+        monthly.setDescription("Accès à tous les cours et formations payants pendant 30 jours.");
+        monthly.setPrice(1500);
+        monthly.setDurationDays(30);
+        plans.save(monthly);
+        SubscriptionPlan yearly = new SubscriptionPlan();
+        yearly.setName("Annuel");
+        yearly.setDescription("Accès à tous les cours et formations payants pendant un an.");
+        yearly.setPrice(12000);
+        yearly.setDurationDays(365);
+        plans.save(yearly);
 
         // =================== RESSOURCES ===================
         res("La météo des émotions · fiche activité", "cloud-sun", dSel, Set.of(Role.ENSEIGNANT, Role.PARENT, Role.CONSEILLER_PEDAGOGIQUE),
@@ -792,7 +866,7 @@ public class DataInitializer implements ApplicationRunner {
                 }
                 boolean allDone = nLessons == m.getLessons().size() && !t.isAfter(limit.plus(Duration.ofDays(3)));
                 int best = -1;
-                if (allDone && !m.getQuestions().isEmpty() && rnd.nextDouble() < 0.9) {
+                if (allDone && !m.examQuestions().isEmpty() && rnd.nextDouble() < 0.9) {
                     Instant at = t.isAfter(limit) ? limit : t;
                     best = quiz(u, m, mods.getFirst() == m, at, engagement);
                     // un apprenant engage relit la lecon et retente l'evaluation
@@ -830,7 +904,7 @@ public class DataInitializer implements ApplicationRunner {
                 }
                 certification.evaluate(u, m);
                 // progression stricte : le cours suivant n'ouvre qu'une fois celui-ci valide
-                if (!allDone || (!m.getQuestions().isEmpty() && best < m.getPassScore())) break;
+                if (!allDone || (!m.examQuestions().isEmpty() && best < m.getPassScore())) break;
             }
             if (!discussion.isEmpty() && engagement > 0.5 && rnd.nextDouble() < 0.6) {
                 String[] replies = {"Merci pour le partage, je vais essayer !", "Chez nous, le jeu de la rivière marche très bien.",
@@ -854,8 +928,9 @@ public class DataInitializer implements ApplicationRunner {
     private int quiz(AppUser u, Course m, boolean trapModule, Instant at, double engagement) {
         List<String> answers = new ArrayList<>();
         int good = 0;
-        for (int qi = 0; qi < m.getQuestions().size(); qi++) {
-            QuizQuestion q = m.getQuestions().get(qi);
+        List<QuizQuestion> exam = m.examQuestions();
+        for (int qi = 0; qi < exam.size(); qi++) {
+            QuizQuestion q = exam.get(qi);
             boolean trap = trapModule && qi == 1;
             double pWrong = trap ? 0.55 : 0.25 - engagement * 0.15;
             boolean ok = rnd.nextDouble() > pWrong;
@@ -866,7 +941,7 @@ public class DataInitializer implements ApplicationRunner {
         QuizAttempt at2 = new QuizAttempt();
         at2.setUser(u);
         at2.setCourse(m);
-        at2.setScorePercent(Math.round(good * 100f / m.getQuestions().size()));
+        at2.setScorePercent(Math.round(good * 100f / exam.size()));
         at2.setPassed(at2.getScorePercent() >= m.getPassScore());
         at2.setAnswers(String.join(",", answers));
         at2.setAttemptedAt(at);
@@ -941,7 +1016,7 @@ public class DataInitializer implements ApplicationRunner {
         c.setDescription(desc);
         c.setType(type);
         c.setLanguageCode("fr");
-        c.getTargetRoles().addAll(roles);
+        roles.forEach(r -> c.getTargetRoles().add(r.name()));
         return c;
     }
 
@@ -952,7 +1027,7 @@ public class DataInitializer implements ApplicationRunner {
         p.setDescription(desc);
         p.setDurationLabel(duration);
         p.setCountryCode("BJ");
-        p.getTargetRoles().addAll(roles);
+        roles.forEach(r -> p.getTargetRoles().add(r.name()));
         p.getCourses().addAll(List.of(mods));
         p.setRequiredLevel(level);
         return programs.save(p);
@@ -963,7 +1038,7 @@ public class DataInitializer implements ApplicationRunner {
         r.setTitle(title);
         r.setIcon(icon);
         r.setDomain(d);
-        r.getTargetRoles().addAll(roles);
+        roles.forEach(x -> r.getTargetRoles().add(x.name()));
         r.setSummary(summary);
         r.setContent(content.strip());
         resources.save(r);
@@ -1041,6 +1116,21 @@ public class DataInitializer implements ApplicationRunner {
         c.getQuestions().add(q);
     }
 
+    private Audience audience(String code, String label, String icon, int pos, Role base) {
+        Audience a = new Audience();
+        a.setCode(code);
+        a.setLabel(label);
+        a.setIcon(icon);
+        a.setPosition(pos);
+        a.setBaseRole(base);
+        return audiences.save(a);
+    }
+
+    /** Question de l'evaluation finale : jamais envoyee au client avec sa reponse. */
+    private void exam(Course c, String text, List<String> options, int correct, String explanation) {
+        question(c, text, options, correct, explanation);
+    }
+
     /** Question de test de comprehension rattachee a une lecon (position a partir de 1). */
     private void check(Course c, int lessonPos, String text, List<String> options, int correct, String explanation) {
         question(c, text, options, correct, explanation);
@@ -1098,7 +1188,7 @@ public class DataInitializer implements ApplicationRunner {
         PlacementQuestion q = new PlacementQuestion();
         q.setPosition(pos);
         q.setQuestion(text);
-        q.getRoles().addAll(roles);
+        roles.forEach(x -> q.getRoles().add(x.name()));
         q.getOptions().addAll(List.of(options));
         placement.save(q);
     }

@@ -38,8 +38,7 @@ public class Resource {
     private Domain domain;
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @Enumerated(EnumType.STRING)
-    @CollectionTable(name = "resource_target_role")
+        @CollectionTable(name = "resource_target_role")
     @Column(name = "role")
-    private Set<Role> targetRoles = new HashSet<>();
+    private Set<String> targetRoles = new HashSet<>();
 }

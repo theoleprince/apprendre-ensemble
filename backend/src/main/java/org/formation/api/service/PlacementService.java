@@ -38,7 +38,7 @@ public class PlacementService {
 
     private List<PlacementQuestion> applicable(AppUser user) {
         return questions.findAllByOrderByPositionAsc().stream()
-                .filter(q -> q.getRoles().isEmpty() || q.getRoles().contains(user.getRole()))
+                .filter(q -> q.getRoles().isEmpty() || q.getRoles().contains(AccessPolicy.audienceOf(user)))
                 .toList();
     }
 

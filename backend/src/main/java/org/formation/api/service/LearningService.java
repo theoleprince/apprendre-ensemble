@@ -97,7 +97,7 @@ public class LearningService {
         return new CoursePackage(c.getId(), c.getTitle(), c.getDescription(), c.getIcon(), c.getType(),
                 c.getPassScore(), c.getMasteryScore(), c.isExpertiseEnabled(), c.getContentVersion(), c.getUpdatedAt(),
                 c.getLessons().stream().map(l -> lessonDto(l, c.getQuestions())).toList(),
-                c.getQuestions().stream().map(q -> new QuestionDto(q.getId(), q.getQuestion(), List.copyOf(q.getOptions()))).toList());
+                c.examQuestions().stream().map(q -> new QuestionDto(q.getId(), q.getQuestion(), List.copyOf(q.getOptions()))).toList());
     }
 
     static LessonDto lessonDto(Lesson l, List<QuizQuestion> questions) {
@@ -126,17 +126,51 @@ public class LearningService {
     public SyncResponse sync(AppUser user, List<ProgressItem> items) {
         int accepted = 0;
         Set<Course> touched = new HashSet<>();
-        for (ProgressItem item : items) {
+        List<RejectedItem> rejected = new ArrayList<>();
+        // lecons deja validees, enrichies au fil du lot : l'ordre d'un meme cours est respecte dans un envoi groupe
+        Set<Long> done = new HashSet<>();
+        progress.findAllForUser(user.getId()).forEach(p -> done.add(p.getLesson().getId()));
+        Map<Long, Optional<String>> lockByCourse = new HashMap<>();
+        List<ProgressItem> ordered = items.stream()
+                .sorted(Comparator.comparing((ProgressItem it) -> lessons.findById(it.lessonId()).map(Lesson::getPosition).orElse(0)))
+                .toList();
+        for (ProgressItem item : ordered) {
             Optional<Lesson> lesson = lessons.findById(item.lessonId());
-            if (lesson.isEmpty() || !policy.canAccess(user, lesson.get().getCourse())
-                    || !enrollments.isEnrolled(user, lesson.get().getCourse())) {
+            if (lesson.isEmpty()) {
+                rejected.add(new RejectedItem(item.lessonId(), "Leçon inconnue"));
                 continue;
+            }
+            Lesson l = lesson.get();
+            Course course = l.getCourse();
+            if (!policy.canAccess(user, course) || !enrollments.isEnrolled(user, course)) {
+                rejected.add(new RejectedItem(l.getId(), "Cours non accessible ou inscription absente"));
+                continue;
+            }
+            if (!done.contains(l.getId())) {
+                // controles serveur : la progression n'est jamais simplement declaree par le client
+                Optional<String> lock = lockByCourse.computeIfAbsent(course.getId(), k -> enrollments.lockReason(user, course));
+                if (lock.isPresent()) {
+                    rejected.add(new RejectedItem(l.getId(), lock.get()));
+                    continue;
+                }
+                boolean previousDone = course.getLessons().stream()
+                        .filter(x -> x.getPosition() < l.getPosition()).allMatch(x -> done.contains(x.getId()));
+                if (!previousDone) {
+                    rejected.add(new RejectedItem(l.getId(), "Les leçons précédentes ne sont pas terminées"));
+                    continue;
+                }
+                List<QuizQuestion> checks = course.getQuestions().stream()
+                        .filter(q -> q.getLesson() != null && q.getLesson().getId().equals(l.getId())).toList();
+                if (!checks.isEmpty() && !checkPassed(checks, item.checkAnswers(), course.getPassScore())) {
+                    rejected.add(new RejectedItem(l.getId(), "Quiz de la leçon non réussi"));
+                    continue;
+                }
             }
             Instant completedAt = item.completedAt().isAfter(Instant.now()) ? Instant.now() : item.completedAt();
             LessonProgress p = progress.findByUserIdAndLessonId(user.getId(), item.lessonId()).orElseGet(() -> {
                 LessonProgress np = new LessonProgress();
                 np.setUser(user);
-                np.setLesson(lesson.get());
+                np.setLesson(l);
                 np.setCompletedAt(completedAt);
                 return np;
             });
@@ -147,7 +181,8 @@ public class LearningService {
             p.setCompletedOffline(p.isCompletedOffline() || item.offline());
             p.setSyncedAt(Instant.now());
             progress.save(p);
-            touched.add(lesson.get().getCourse());
+            done.add(l.getId());
+            touched.add(course);
             accepted++;
         }
         List<CertificateDto> issued = new ArrayList<>();
@@ -159,19 +194,30 @@ public class LearningService {
             activity.save(new ActivityEvent(user.getId(), ActivityEvent.Type.SYNC, accepted));
         }
         touch(user);
-        return new SyncResponse(accepted, serverProgress(user), issued);
+        return new SyncResponse(accepted, serverProgress(user), issued, rejected);
+    }
+
+    /** Le quiz de la lecon est re-corrige par le serveur (le client ne fait que l'afficher). */
+    static boolean checkPassed(List<QuizQuestion> checks, List<Integer> answers, int passScore) {
+        if (answers == null || answers.size() != checks.size()) return false;
+        int good = 0;
+        for (int i = 0; i < checks.size(); i++) {
+            Integer a = answers.get(i);
+            if (a != null && a == checks.get(i).getCorrectIndex()) good++;
+        }
+        return Math.round(good * 100f / checks.size()) >= passScore;
     }
 
     @Transactional(readOnly = true)
     public List<ProgressItem> serverProgress(AppUser user) {
         return progress.findAllForUser(user.getId()).stream()
-                .map(p -> new ProgressItem(p.getLesson().getId(), p.getCompletedAt(), p.getTimeSpentSeconds(), p.isCompletedOffline()))
+                .map(p -> new ProgressItem(p.getLesson().getId(), p.getCompletedAt(), p.getTimeSpentSeconds(), p.isCompletedOffline(), null))
                 .toList();
     }
 
     public QuizResult submitQuiz(AppUser user, Long courseId, List<Integer> answers) {
         Course c = enrolledCourse(user, courseId);
-        List<QuizQuestion> qs = c.getQuestions();
+        List<QuizQuestion> qs = c.examQuestions();
         if (qs.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ce cours n'a pas d'évaluation");
         }
@@ -210,8 +256,7 @@ public class LearningService {
     @Transactional(readOnly = true)
     public List<CertificateDto> myCertificates(AppUser user) {
         return certificates.findAllForUser(user.getId()).stream()
-                .map(c -> new CertificateDto(c.getCode(), c.getLevel(), c.getLevel().label(), c.getCourse().getId(),
-                        c.getCourse().getTitle(), user.getFullName(), c.getScorePercent(), c.getIssuedAt()))
+                .map(CertificationService::toDto)
                 .toList();
     }
 
@@ -222,7 +267,8 @@ public class LearningService {
                 .or(() -> programCerts.findByCode(k).map(pc -> new CertificateDto(pc.getCode(), null,
                         pc.getRank() == null ? "Certificat de parcours" : "Certificat de parcours · Lauréat·e (" + pc.getRank()
                                 + (pc.getRank() == 1 ? "er" : "e") + " sur " + pc.getClassSize() + ")",
-                        null, pc.getProgram().getTitle(), pc.getUser().getFullName(), 0, pc.getIssuedAt())))
+                        null, pc.getProgram().getTitle(), pc.getUser().getFullName(), 0, pc.getIssuedAt(),
+                        pc.getRevokedAt(), pc.getRevokedReason())))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Certificat introuvable"));
     }
 
