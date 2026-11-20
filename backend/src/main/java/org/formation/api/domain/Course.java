@@ -73,6 +73,30 @@ public class Course {
     /** Incremente a chaque modification : le client hors ligne sait s'il doit retelecharger. */
     private int contentVersion = 1;
 
+    // ---- Presentation (page publique) ----
+    /** DEBUTANT, INTERMEDIAIRE ou AVANCE. */
+    private String level = "DEBUTANT";
+
+    /** Ce que l'apprenant saura faire a la fin. */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "course_objective")
+    @OrderColumn(name = "position")
+    @Column(name = "objective", length = 300)
+    private List<String> objectives = new ArrayList<>();
+
+    @Column(length = 1000)
+    private String prerequisites;
+
+    private String authorName;
+    private String authorTitle;
+    @Column(length = 1000)
+    private String authorBio;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "course_faq")
+    @OrderColumn(name = "position")
+    private List<FaqEntry> faq = new ArrayList<>();
+
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position")
     private List<Lesson> lessons = new ArrayList<>();

@@ -26,4 +26,6 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
 
     @Query("select c from Certificate c join fetch c.user join fetch c.course order by c.id")
     List<Certificate> findAllForExport();
+
+    long countByRevokedAtIsNull();
 }

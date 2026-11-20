@@ -30,7 +30,7 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://db:5432/formation
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-formation}
       DB_USER: formation
       DB_PASSWORD: ${DB_PASSWORD}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?APP_JWT_SECRET manquant dans .env}

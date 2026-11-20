@@ -7,6 +7,10 @@ export const routes: Routes = [
   { path: '', pathMatch: 'full', canActivate: [landingGuard], loadComponent: () => import('./pages/landing.page').then((m) => m.LandingPage) },
   { path: 'catalogue', loadComponent: () => import('./pages/catalog.page').then((m) => m.CatalogPage) },
   { path: 'cours/:id', loadComponent: () => import('./pages/course.page').then((m) => m.CoursePage) },
+  { path: 'a-propos', data: { page: 'about' }, loadComponent: () => import('./pages/info.page').then((m) => m.InfoPage) },
+  { path: 'aide', data: { page: 'help' }, loadComponent: () => import('./pages/info.page').then((m) => m.InfoPage) },
+  { path: 'confidentialite', data: { page: 'privacy' }, loadComponent: () => import('./pages/info.page').then((m) => m.InfoPage) },
+  { path: 'mentions-legales', data: { page: 'legal' }, loadComponent: () => import('./pages/info.page').then((m) => m.InfoPage) },
   { path: 'formations/:id', loadComponent: () => import('./pages/formation.page').then((m) => m.FormationPage) },
   // ---- inscription puis apprentissage lineaire ----
   { path: 'paiement/retour', canActivate: [authGuard], loadComponent: () => import('./pages/payment.page').then((m) => m.PaymentReturnPage) },

@@ -172,6 +172,7 @@ public class AccountService {
         em.createQuery("update Classroom c set c.facilitator = null where c.facilitator.id = :id").setParameter("id", id).executeUpdate();
         em.createNativeQuery("delete from classroom_member where members_id = :id").setParameter("id", id).executeUpdate();
         resetTokens.deleteByUserId(id);
+        em.createQuery("delete from LessonNote n where n.user.id = :id").setParameter("id", id).executeUpdate();
 
         u.setEmail("supprime-" + id + "@invalid.local");
         u.setFullName("Compte supprimé");
@@ -218,6 +219,9 @@ public class AccountService {
                 "thread", "body", "createdAt"));
         out.put("feedback", rows("select f.course.title, f.rating, f.comment, f.createdAt from CourseFeedback f where f.user.id = :id", id,
                 "course", "rating", "comment", "createdAt"));
+        out.put("lessonNotes", rows("select n.lesson.course.title, n.lesson.title, n.text, n.bookmarked, n.updatedAt from LessonNote n where n.user.id = :id", id,
+                "course", "lesson", "text", "bookmarked", "updatedAt"));
+        out.put("goals", Map.of("weeklyGoalMinutes", u.getWeeklyGoalMinutes(), "remindersEnabled", u.isRemindersEnabled()));
         out.put("assistantConversations", rows("select a.question, a.answer, a.at from AssistantLog a where a.userId = :id", id,
                 "question", "answer", "at"));
         return out;

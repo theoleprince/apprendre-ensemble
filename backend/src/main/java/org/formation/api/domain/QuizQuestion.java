@@ -33,6 +33,14 @@ public class QuizQuestion {
     @Column(name = "option_text", length = 500)
     private List<String> options = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private QuestionKind kind = QuestionKind.SINGLE;
+
+    /** Mise en situation affichee avant la question (type SCENARIO). */
+    @Column(length = 2000)
+    private String context;
+
     private int correctIndex;
 
     /** Explication affichee apres correction (evaluation formative). */

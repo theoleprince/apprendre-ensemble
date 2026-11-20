@@ -50,5 +50,29 @@ public class Program {
     /** Prix d'inscription a la formation complete (FCFA). 0 = gratuite. */
     private int price;
 
+    // ---- Presentation (page publique) ----
+    /** DEBUTANT, INTERMEDIAIRE ou AVANCE. */
+    private String level = "DEBUTANT";
+
+    /** Ce que l'apprenant saura faire a la fin. */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "program_objective")
+    @OrderColumn(name = "position")
+    @Column(name = "objective", length = 300)
+    private List<String> objectives = new ArrayList<>();
+
+    @Column(length = 1000)
+    private String prerequisites;
+
+    private String authorName;
+    private String authorTitle;
+    @Column(length = 1000)
+    private String authorBio;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "program_faq")
+    @OrderColumn(name = "position")
+    private List<FaqEntry> faq = new ArrayList<>();
+
     private boolean published = true;
 }

@@ -20,7 +20,7 @@
   --surface-2: #fbfaf6;
   --text: #17231c;
   --text-2: #4c5a52;
-  --muted: #6d7a72;
+  --muted: #5b6860;
   --border: #e4e2d9;
   --danger: #b3261e;
   --ok: #1e7a45;
@@ -132,6 +132,8 @@ code { background: #eef1ee; padding: 0 5px; border-radius: 5px; font-size: 0.9em
 /* ---------- Cartes & surfaces ---------- */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem; box-shadow: var(--shadow); }
 .card + .card { margin-top: 1rem; }
+/* dans une grille, l'espacement vient de la grille (sinon toutes les cartes sauf la premiere sont decalees) */
+.grid > .card, .grid > * > .card, .card-grid > *, .stack > .card + .card { margin-top: 0; }
 .card.flat { box-shadow: none; }
 .card.narrow { max-width: 460px; margin: 2rem auto; }
 .section { margin: 1.5rem 0; }

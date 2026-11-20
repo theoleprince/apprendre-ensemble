@@ -1,3 +1,5 @@
+import { PresentationEditorComponent, emptyPresentation } from '../../shared/presentation-editor.component';
+import { Presentation } from '../../core/models';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -56,7 +58,7 @@ export class ProgramsAdminPage implements OnInit {
 /** Editeur de programme : publics, ordre des modules, niveau requis pour le certificat de parcours. */
 @Component({
   selector: 'app-program-editor',
-  imports: [FormsModule, RouterLink, IconComponent, CoverComponent],
+  imports: [FormsModule, RouterLink, IconComponent, CoverComponent, PresentationEditorComponent],
   template: `
     <a routerLink="/admin/programmes" class="back"><app-icon name="back" [size]="18" /> Programmes</a>
     <h1>{{ isNew() ? 'Nouveau programme' : 'Modifier le programme' }}</h1>
@@ -102,6 +104,8 @@ export class ProgramsAdminPage implements OnInit {
         <button type="button" (click)="add()" [disabled]="!toAdd"><app-icon name="plus" /> Ajouter</button>
       </div>
 
+      <app-presentation-editor [value]="p.presentation" />
+
       <div class="focus-cta" style="position:sticky">
         <button class="primary grow lg" type="submit" [disabled]="f.invalid || !p.targetRoles.length || !p.courseIds.length || saving()">{{ saving() ? 'Enregistrement…' : 'Enregistrer' }}</button>
       </div>
@@ -126,6 +130,7 @@ export class ProgramEditorPage implements OnInit {
   p = {
     title: '', description: '', icon: 'graduation', durationLabel: '', countryCode: 'BJ' as string | null,
     targetRoles: ['ENSEIGNANT'] as string[], courseIds: [] as number[], requiredLevel: 'BADGE' as CertificateLevel, published: true, price: 0,
+    presentation: emptyPresentation() as Presentation,
   };
   available = computed(() => this.courses().filter((c) => !this.p.courseIds.includes(c.id)));
 
@@ -136,7 +141,8 @@ export class ProgramEditorPage implements OnInit {
       if (!this.isNew()) {
         const x = await firstValueFrom(this.http.get<ProgramAdmin>(`/api/admin/programs/${this.id()}`));
         this.p = { title: x.title, description: x.description, icon: x.icon ?? 'graduation', durationLabel: x.durationLabel ?? '', countryCode: x.countryCode,
-          targetRoles: [...x.targetRoles], courseIds: [...x.courseIds], requiredLevel: x.requiredLevel, published: x.published, price: x.price ?? 0 };
+          targetRoles: [...x.targetRoles], courseIds: [...x.courseIds], requiredLevel: x.requiredLevel, published: x.published, price: x.price ?? 0,
+          presentation: x.presentation ?? emptyPresentation() };
       }
     } catch (e) {
       this.error.set(errorMessage(e));

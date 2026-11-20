@@ -31,12 +31,16 @@ public class LearningService {
     private final ClassroomLocks locks;
     private final ProgramCertificateRepository programCerts;
     private final EnrollmentService enrollments;
+    /** Graine des permutations d'affichage de l'evaluation finale (exercices a arranger). */
+    private final String secret;
 
     public LearningService(CourseRepository courses, LessonRepository lessons, LessonProgressRepository progress,
                            QuizAttemptRepository attempts, CertificateRepository certificates,
                            CourseFeedbackRepository feedbacks, ActivityEventRepository activity, AppUserRepository users,
                            CertificationService certification, AccessPolicy policy, ProgramService programs,
-                           ClassroomLocks locks, ProgramCertificateRepository programCerts, EnrollmentService enrollments) {
+                           ClassroomLocks locks, ProgramCertificateRepository programCerts, EnrollmentService enrollments,
+                           @org.springframework.beans.factory.annotation.Value("${app.jwt.secret}") String secret) {
+        this.secret = secret;
         this.courses = courses;
         this.lessons = lessons;
         this.progress = progress;
@@ -97,16 +101,22 @@ public class LearningService {
         return new CoursePackage(c.getId(), c.getTitle(), c.getDescription(), c.getIcon(), c.getType(),
                 c.getPassScore(), c.getMasteryScore(), c.isExpertiseEnabled(), c.getContentVersion(), c.getUpdatedAt(),
                 c.getLessons().stream().map(l -> lessonDto(l, c.getQuestions())).toList(),
-                c.examQuestions().stream().map(q -> new QuestionDto(q.getId(), q.getQuestion(), List.copyOf(q.getOptions()))).toList());
+                c.examQuestions().stream().map(q -> new QuestionDto(q.getId(), q.getQuestion(),
+                        QuestionGrader.displayOptions(q, QuestionGrader.examPermutation(q, secret)), kind(q), q.getContext())).toList());
     }
 
     static LessonDto lessonDto(Lesson l, List<QuizQuestion> questions) {
         List<CheckQuestion> checks = questions.stream()
                 .filter(q -> q.getLesson() != null && q.getLesson().getId().equals(l.getId()))
-                .map(q -> new CheckQuestion(q.getId(), q.getQuestion(), List.copyOf(q.getOptions()), q.getCorrectIndex(), q.getExplanation()))
+                .map(q -> new CheckQuestion(q.getId(), q.getQuestion(), List.copyOf(q.getOptions()), q.getCorrectIndex(), q.getExplanation(),
+                        kind(q), q.getContext()))
                 .toList();
         return new LessonDto(l.getId(), l.getPosition(), l.getTitle(), l.getMediaType(), l.getMediaUrl(),
                 l.getMediaSizeBytes(), l.getSubtitlesUrl(), l.getContent(), l.getPracticeTask(), l.getDurationMinutes(), checks);
+    }
+
+    static org.formation.api.domain.QuestionKind kind(QuizQuestion q) {
+        return q.getKind() == null ? org.formation.api.domain.QuestionKind.SINGLE : q.getKind();
     }
 
     /** Cours accessible ET suivi : il faut etre inscrit pour acceder au contenu. */
@@ -203,7 +213,8 @@ public class LearningService {
         int good = 0;
         for (int i = 0; i < checks.size(); i++) {
             Integer a = answers.get(i);
-            if (a != null && a == checks.get(i).getCorrectIndex()) good++;
+            QuizQuestion q = checks.get(i);
+            if (QuestionGrader.correct(q, a, QuestionGrader.identity(q.getOptions().size()))) good++;
         }
         return Math.round(good * 100f / checks.size()) >= passScore;
     }
@@ -232,9 +243,10 @@ public class LearningService {
         for (int i = 0; i < qs.size(); i++) {
             Integer a = answers.get(i);
             QuizQuestion q = qs.get(i);
-            boolean ok = a != null && a == q.getCorrectIndex();
+            int[] perm = QuestionGrader.examPermutation(q, secret);
+            boolean ok = QuestionGrader.correct(q, a, perm);
             if (ok) good++;
-            corrections.add(new QuestionCorrection(q.getId(), q.getCorrectIndex(), ok, q.getExplanation()));
+            corrections.add(new QuestionCorrection(q.getId(), QuestionGrader.solution(q, perm), ok, q.getExplanation()));
         }
         int score = Math.round(good * 100f / qs.size());
 

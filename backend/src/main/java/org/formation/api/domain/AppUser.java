@@ -75,4 +75,15 @@ public class AppUser {
 
     /** Compte efface a la demande (droit a l'effacement) : donnees personnelles anonymisees. */
     private Instant deletedAt;
+
+    // ---- Motivation ----
+    /** Objectif d'apprentissage hebdomadaire (minutes). */
+    @Column(nullable = false, columnDefinition = "integer default 60")
+    private int weeklyGoalMinutes = 60;
+
+    /** Rappels par e-mail apres quelques jours sans activite (consentement explicite). */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean remindersEnabled;
+
+    private Instant lastReminderAt;
 }

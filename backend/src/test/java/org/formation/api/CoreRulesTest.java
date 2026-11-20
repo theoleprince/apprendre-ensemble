@@ -6,6 +6,7 @@ import org.formation.api.repository.CourseRepository;
 import org.formation.api.service.AdminService;
 import org.formation.api.service.EnrollmentService;
 import org.formation.api.service.LearningService;
+import org.formation.api.service.QuestionGrader;
 import org.formation.api.web.dto.Dtos.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,7 @@ class CoreRulesTest {
     @Autowired AppUserRepository users;
     @Autowired CourseRepository courses;
     @Autowired EnrollmentService enrollments;
+    @org.springframework.beans.factory.annotation.Value("${app.jwt.secret}") String secret;
 
     private AppUser teacher() {
         return users.findByEmailIgnoreCase("enseignant@demo.local").orElseThrow();
@@ -46,7 +48,7 @@ class CoreRulesTest {
     /** Bonnes reponses du quiz d'une lecon (ce que l'apprenant a coche pour reussir). */
     private static List<Integer> rightAnswers(Course c, Lesson l) {
         return c.getQuestions().stream().filter(q -> q.getLesson() != null && q.getLesson().getId().equals(l.getId()))
-                .map(QuizQuestion::getCorrectIndex).toList();
+                .map(q -> QuestionGrader.solution(q, QuestionGrader.identity(q.getOptions().size()))).toList();
     }
 
     private static ProgressItem done(Course c, Lesson l, Instant at, int seconds, boolean offline) {
@@ -124,7 +126,7 @@ class CoreRulesTest {
         SyncResponse s = learning.sync(u, all);
         assertThat(s.newCertificates()).extracting(CertificateDto::level).containsExactly(CertificateLevel.ATTESTATION);
 
-        List<Integer> right = c.examQuestions().stream().map(QuizQuestion::getCorrectIndex).toList();
+        List<Integer> right = c.examQuestions().stream().map(q -> QuestionGrader.solution(q, QuestionGrader.examPermutation(q, secret))).toList();
         List<Integer> wrong = right.stream().map(a -> (a + 1) % 3).toList();
 
         QuizResult failed = learning.submitQuiz(u, c.getId(), wrong);

@@ -75,11 +75,12 @@ public final class Dtos {
     }
 
     /** Test de comprehension apres une lecon : corrige sur l'appareil (fonctionne hors ligne). */
-    public record CheckQuestion(Long id, String question, List<String> options, int correctIndex, String explanation) {
+    public record CheckQuestion(Long id, String question, List<String> options, int correctIndex, String explanation,
+                                org.formation.api.domain.QuestionKind kind, String context) {
     }
 
     /** Question envoyee au client : sans la bonne reponse. */
-    public record QuestionDto(Long id, String question, List<String> options) {
+    public record QuestionDto(Long id, String question, List<String> options, org.formation.api.domain.QuestionKind kind, String context) {
     }
 
     /** Paquet complet d'un module : telecharge une fois, consultable hors ligne. */
@@ -170,8 +171,9 @@ public final class Dtos {
                               String subtitlesUrl, String content, String practiceTask, @Min(0) int durationMinutes) {
     }
 
-    public record QuestionInput(@NotBlank String question, @NotNull @Size(min = 2) List<String> options,
-                                @Min(0) int correctIndex, String explanation, Integer lessonPosition) {
+    public record QuestionInput(@NotBlank String question, @NotNull @Size(min = 2, max = 9) List<String> options,
+                                @Min(0) int correctIndex, String explanation, Integer lessonPosition,
+                                org.formation.api.domain.QuestionKind kind, String context) {
     }
 
     public record CourseInput(
@@ -191,7 +193,8 @@ public final class Dtos {
             @NotNull List<@Valid LessonInput> lessons,
             @NotNull List<@Valid QuestionInput> questions,
             Long domainId,
-            @Min(0) int price) {
+            @Min(0) int price,
+            @Valid Presentation presentation) {
     }
 
     public record AdminCourse(Long id, String title, String icon, CourseType type, String countryCode,
@@ -330,12 +333,13 @@ public final class Dtos {
     // ---------- Administration ----------
     public record ProgramInput(@NotBlank String title, String description, String icon, String durationLabel, String countryCode,
                                @NotEmpty Set<String> targetRoles, @NotNull List<Long> courseIds, @NotNull CertificateLevel requiredLevel,
-                               boolean published, @Min(0) int price) {
+                               boolean published, @Min(0) int price, @Valid Presentation presentation) {
     }
 
     public record ProgramAdmin(Long id, String title, String description, String icon, String durationLabel, String countryCode,
                                Set<String> targetRoles, List<Long> courseIds, List<String> courseTitles,
-                               CertificateLevel requiredLevel, boolean published, long classroomCount, int price) {
+                               CertificateLevel requiredLevel, boolean published, long classroomCount, int price,
+                               Presentation presentation) {
     }
 
     public record ClassroomInput(@NotBlank String name, @NotNull Long programId, Long facilitatorId,
@@ -363,12 +367,13 @@ public final class Dtos {
     // ---------- Catalogue public, inscriptions, progression ----------
     public record CatalogCourse(Long id, String title, String description, String icon, Long domainId, String domainName,
                                 CourseType type, int lessonCount, int totalMinutes, int questionCount, int price,
-                                Set<String> targetRoles, boolean hasVideo, boolean hasAudio, long learners) {
+                                Set<String> targetRoles, boolean hasVideo, boolean hasAudio, long learners,
+                                String level, String languageCode, double rating, long ratingCount, Instant updatedAt) {
     }
 
     public record CatalogProgram(Long id, String title, String description, String icon, String durationLabel, int courseCount,
                                  int totalMinutes, int price, Set<String> targetRoles, CertificateLevel requiredLevel,
-                                 List<String> domains) {
+                                 List<String> domains, String level, long learners, double rating, long ratingCount) {
     }
 
     public record Catalog(List<CatalogProgram> programs, List<CatalogCourse> courses, List<DomainDto> domains) {
@@ -382,10 +387,64 @@ public final class Dtos {
     }
 
     public record CourseDetail(CatalogCourse course, List<SyllabusItem> syllabus, int passScore, int masteryScore,
-                               boolean expertiseEnabled, List<ProgramRef> programs) {
+                               boolean expertiseEnabled, List<ProgramRef> programs,
+                               Presentation presentation, Reviews reviews, Preview preview, List<CatalogCourse> related) {
     }
 
-    public record ProgramPublicDetail(CatalogProgram program, List<CatalogCourse> courses) {
+    public record ProgramPublicDetail(CatalogProgram program, List<CatalogCourse> courses, Presentation presentation, Reviews reviews) {
+    }
+
+    // ---------- Presentation, avis, chiffres publics ----------
+    public record FaqDto(@NotBlank @Size(max = 500) String question, @NotBlank @Size(max = 2000) String answer) {
+    }
+
+    /** Ce qui rend une page de cours convaincante : niveau, objectifs, prerequis, formateur, FAQ. */
+    public record Presentation(@Pattern(regexp = "DEBUTANT|INTERMEDIAIRE|AVANCE") String level,
+                               @Size(max = 12) List<@Size(max = 300) String> objectives,
+                               @Size(max = 1000) String prerequisites,
+                               @Size(max = 255) String authorName, @Size(max = 255) String authorTitle,
+                               @Size(max = 1000) String authorBio,
+                               @Size(max = 20) List<@Valid FaqDto> faq) {
+    }
+
+    /** Avis publie : prenom et initiale seulement (donnees personnelles minimales). */
+    public record ReviewDto(String author, int rating, String comment, Instant createdAt, String courseTitle) {
+    }
+
+    /** Note moyenne, repartition (index 0 = 1 etoile) et derniers avis commentes. */
+    public record Reviews(double average, long count, long[] histogram, List<ReviewDto> latest) {
+    }
+
+    /** Extrait video gratuit (premiere lecon video du cours). */
+    public record Preview(String title, String mediaUrl, String subtitlesUrl) {
+    }
+
+    public record PublicStats(long learners, long certificates, long courses, long countries, double rating, long ratings,
+                              List<ReviewDto> testimonials) {
+    }
+
+    // ---------- Notes de lecon ----------
+    public record NoteInput(@Size(max = 4000) String text, boolean bookmarked) {
+    }
+
+    public record NoteDto(Long lessonId, String lessonTitle, int lessonPosition, Long courseId, String courseTitle,
+                          String text, boolean bookmarked, Instant updatedAt) {
+    }
+
+    // ---------- Motivation ----------
+    public record DayActivity(java.time.LocalDate date, int minutes, int lessons) {
+    }
+
+    public record BadgeDto(String code, String label, String description, String icon, boolean earned, Instant earnedAt,
+                           int progress, int target) {
+    }
+
+    public record Engagement(int streak, int bestStreak, boolean activeToday, List<DayActivity> week, int weekMinutes,
+                             int weeklyGoalMinutes, boolean remindersEnabled, int xp, int level, int levelStartXp,
+                             int nextLevelXp, List<BadgeDto> badges) {
+    }
+
+    public record GoalsInput(@Min(15) @Max(1200) int weeklyGoalMinutes, boolean remindersEnabled) {
     }
 
     public record EnrollRequest(Long courseId, Long programId, @NotNull org.formation.api.domain.Enrollment.Method method,

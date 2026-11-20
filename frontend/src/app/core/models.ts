@@ -132,18 +132,34 @@ export interface Lesson {
   checks: CheckQuestion[];
 }
 
+/** Types d'exercices. ORDER : options dans le bon ordre. MATCH : options "gauche::droite". */
+export type QuestionKind = 'SINGLE' | 'TRUE_FALSE' | 'FILL_BLANK' | 'SCENARIO' | 'ORDER' | 'MATCH';
+
+export const QUESTION_KINDS: { key: QuestionKind; label: string; hint: string }[] = [
+  { key: 'SINGLE', label: 'Choix unique', hint: 'Une seule bonne réponse parmi plusieurs.' },
+  { key: 'TRUE_FALSE', label: 'Vrai ou faux', hint: 'Deux réponses : « Vrai » puis « Faux ».' },
+  { key: 'FILL_BLANK', label: 'Texte à trous', hint: 'Marquez le trou par ___ dans la question ; les réponses complètent la phrase.' },
+  { key: 'SCENARIO', label: 'Mise en situation', hint: 'Décrivez la situation, puis posez la question.' },
+  { key: 'ORDER', label: 'Remettre dans l\'ordre', hint: 'Saisissez les éléments dans le BON ordre : ils seront mélangés pour l\'apprenant.' },
+  { key: 'MATCH', label: 'Associer', hint: 'Une ligne par paire, sous la forme « gauche :: droite ».' },
+];
+
 export interface CheckQuestion {
   id: number;
   question: string;
   options: string[];
   correctIndex: number;
   explanation: string | null;
+  kind?: QuestionKind;
+  context?: string | null;
 }
 
 export interface Question {
   id: number;
   question: string;
   options: string[];
+  kind?: QuestionKind;
+  context?: string | null;
 }
 
 export interface CoursePackage {
@@ -356,6 +372,8 @@ export interface QuestionInput {
   explanation: string | null;
   /** Lecon apres laquelle la question sert de quiz (null = evaluation finale seulement). */
   lessonPosition?: number | null;
+  kind?: QuestionKind;
+  context?: string | null;
 }
 
 export interface CourseInput {
@@ -375,6 +393,7 @@ export interface CourseInput {
   published: boolean;
   lessons: LessonInput[];
   questions: QuestionInput[];
+  presentation?: Presentation | null;
   domainId: number | null;
   price?: number;
 }
@@ -586,6 +605,7 @@ export interface ProgramAdmin {
   published: boolean;
   classroomCount: number;
   price?: number;
+  presentation?: Presentation | null;
 }
 
 export interface ClassroomAdmin {
@@ -649,6 +669,92 @@ export interface CatalogCourse {
   hasVideo: boolean;
   hasAudio: boolean;
   learners: number;
+  level: Level;
+  languageCode: string | null;
+  rating: number;
+  ratingCount: number;
+  updatedAt: string | null;
+}
+
+export type Level = 'DEBUTANT' | 'INTERMEDIAIRE' | 'AVANCE';
+export const LEVEL_LABELS: Record<Level, string> = { DEBUTANT: 'Débutant', INTERMEDIAIRE: 'Intermédiaire', AVANCE: 'Avancé' };
+
+export interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+export interface Presentation {
+  level: Level | null;
+  objectives: string[];
+  prerequisites: string | null;
+  authorName: string | null;
+  authorTitle: string | null;
+  authorBio: string | null;
+  faq: FaqItem[];
+}
+
+export interface Review {
+  author: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  courseTitle: string | null;
+}
+
+export interface Reviews {
+  average: number;
+  count: number;
+  /** index 0 = 1 etoile */
+  histogram: number[];
+  latest: Review[];
+}
+
+export interface PublicStats {
+  learners: number;
+  certificates: number;
+  courses: number;
+  countries: number;
+  rating: number;
+  ratings: number;
+  testimonials: Review[];
+}
+
+export interface NoteItem {
+  lessonId: number;
+  lessonTitle: string;
+  lessonPosition: number;
+  courseId: number;
+  courseTitle: string;
+  text: string;
+  bookmarked: boolean;
+  updatedAt: string;
+}
+
+export interface Badge {
+  code: string;
+  label: string;
+  description: string;
+  icon: string;
+  earned: boolean;
+  earnedAt: string | null;
+  progress: number;
+  target: number;
+}
+
+export interface Engagement {
+  streak: number;
+  bestStreak: number;
+  activeToday: boolean;
+  week: { date: string; minutes: number; lessons: number }[];
+  weekMinutes: number;
+  weeklyGoalMinutes: number;
+  remindersEnabled: boolean;
+  xp: number;
+  level: number;
+  levelStartXp: number;
+  nextLevelXp: number;
+  badges: Badge[];
 }
 
 export interface CatalogProgram {
@@ -664,6 +770,10 @@ export interface CatalogProgram {
   targetRoles: string[];
   requiredLevel: CertificateLevel;
   domains: string[];
+  level: Level;
+  learners: number;
+  rating: number;
+  ratingCount: number;
 }
 
 export interface Catalog {
@@ -689,11 +799,17 @@ export interface CourseDetail {
   masteryScore: number;
   expertiseEnabled: boolean;
   programs: { id: number; title: string }[];
+  presentation: Presentation;
+  reviews: Reviews;
+  preview: { title: string; mediaUrl: string; subtitlesUrl: string | null } | null;
+  related: CatalogCourse[];
 }
 
 export interface ProgramPublicDetail {
   program: CatalogProgram;
   courses: CatalogCourse[];
+  presentation: Presentation;
+  reviews: Reviews;
 }
 
 export type PayMethod = 'GRATUIT' | 'MOBILE_MONEY' | 'CARTE' | 'CODE' | 'ABONNEMENT';

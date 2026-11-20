@@ -34,11 +34,16 @@ public class EnrollmentService {
     private final ProgramService programService;
     private final LicenceCodeRepository licences;
     private final SubscriptionRepository subscriptions;
+    private final CourseFeedbackRepository feedbacks;
+    private final AppUserRepository users;
 
     public EnrollmentService(CourseRepository courses, ProgramRepository programs, DomainRepository domains,
                              EnrollmentRepository enrollments, LessonProgressRepository progress, QuizAttemptRepository attempts,
                              CertificateRepository certificates, AccessPolicy policy, ClassroomLocks locks,
-                             ProgramService programService, LicenceCodeRepository licences, SubscriptionRepository subscriptions) {
+                             ProgramService programService, LicenceCodeRepository licences, SubscriptionRepository subscriptions,
+                             CourseFeedbackRepository feedbacks, AppUserRepository users) {
+        this.feedbacks = feedbacks;
+        this.users = users;
         this.courses = courses;
         this.programs = programs;
         this.domains = domains;
@@ -59,11 +64,12 @@ public class EnrollmentService {
 
     @Transactional(readOnly = true)
     public Catalog catalog(AppUser viewer) {
+        Map<Long, double[]> stats = ratingStats();
         List<CatalogCourse> cs = courses.findAllByOrderByIdAsc().stream()
-                .filter(c -> listed(viewer, c)).map(this::card).toList();
+                .filter(c -> listed(viewer, c)).map(c -> card(c, stats)).toList();
         List<CatalogProgram> ps = programs.findAllByOrderByIdAsc().stream()
                 .filter(p -> p.isPublished() && p.getCourses().stream().allMatch(c -> listed(viewer, c)))
-                .map(this::card).toList();
+                .map(p -> card(p, stats)).toList();
         List<DomainDto> ds = domains.findAllByOrderByPositionAsc().stream()
                 .map(d -> new DomainDto(d.getId(), d.getName(), d.getDescription(), d.getIcon(), d.getPosition())).toList();
         return new Catalog(ps, cs, ds);
@@ -88,14 +94,80 @@ public class EnrollmentService {
         List<ProgramRef> in = programs.findAllByOrderByIdAsc().stream()
                 .filter(p -> p.isPublished() && p.getCourses().contains(c))
                 .map(p -> new ProgramRef(p.getId(), p.getTitle())).toList();
-        return new CourseDetail(card(c), syllabus, c.getPassScore(), c.getMasteryScore(), c.isExpertiseEnabled(), in);
+        Map<Long, double[]> stats = ratingStats();
+        Preview preview = c.getLessons().stream()
+                .filter(l -> l.getMediaType() == MediaType.VIDEO && l.getMediaUrl() != null).findFirst()
+                .map(l -> new Preview(l.getTitle(), l.getMediaUrl(), l.getSubtitlesUrl())).orElse(null);
+        List<CatalogCourse> related = courses.findAllByOrderByIdAsc().stream()
+                .filter(x -> !x.getId().equals(c.getId()) && listed(viewer, x))
+                .sorted(Comparator.comparing((Course x) -> !Objects.equals(x.getDomain(), c.getDomain()))
+                        .thenComparing(x -> -enrollments.countByCourseId(x.getId())))
+                .limit(3).map(x -> card(x, stats)).toList();
+        return new CourseDetail(card(c, stats), syllabus, c.getPassScore(), c.getMasteryScore(), c.isExpertiseEnabled(), in,
+                Presentations.of(c), reviews(List.of(c.getId()), false), preview, related);
     }
 
     @Transactional(readOnly = true)
     public ProgramPublicDetail programDetail(AppUser viewer, Long id) {
         Program p = programs.findById(id).filter(Program::isPublished)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Formation introuvable"));
-        return new ProgramPublicDetail(card(p), p.getCourses().stream().map(this::card).toList());
+        Map<Long, double[]> stats = ratingStats();
+        return new ProgramPublicDetail(card(p, stats), p.getCourses().stream().map(c -> card(c, stats)).toList(),
+                Presentations.of(p), reviews(p.getCourses().stream().map(Course::getId).toList(), true));
+    }
+
+    /** Chiffres reels de la plateforme et temoignages (avis 4-5 etoiles commentes) pour la page d'accueil. */
+    @Transactional(readOnly = true)
+    public PublicStats publicStats() {
+        long published = courses.findAllByOrderByIdAsc().stream().filter(Course::isPublished).count();
+        double sum = 0;
+        long n = 0;
+        for (double[] s : ratingStats().values()) {
+            sum += s[0] * s[1];
+            n += (long) s[1];
+        }
+        List<ReviewDto> testimonials = feedbacks.testimonials(org.springframework.data.domain.PageRequest.of(0, 40)).stream()
+                .filter(f -> f.getComment().length() >= 20)
+                .collect(Collectors.toMap(CourseFeedback::getComment, f -> f, (a, b) -> a, LinkedHashMap::new))
+                .values().stream().limit(6).map(this::review).toList();
+        return new PublicStats(enrollments.countLearners(), certificates.countByRevokedAtIsNull(), published,
+                users.countCountries(), n == 0 ? 0 : Math.round(sum / n * 10) / 10.0, n, testimonials);
+    }
+
+    /** [courseId] -> [moyenne, nombre d'avis]. */
+    private Map<Long, double[]> ratingStats() {
+        Map<Long, double[]> m = new HashMap<>();
+        for (Object[] r : feedbacks.ratingStats()) {
+            m.put((Long) r[0], new double[]{((Number) r[1]).doubleValue(), ((Number) r[2]).doubleValue()});
+        }
+        return m;
+    }
+
+    private Reviews reviews(List<Long> courseIds, boolean withCourse) {
+        if (courseIds.isEmpty()) return new Reviews(0, 0, new long[5], List.of());
+        List<CourseFeedback> all = feedbacks.forCourses(courseIds);
+        long[] hist = new long[5];
+        double sum = 0;
+        for (CourseFeedback f : all) {
+            int r = Math.max(1, Math.min(5, f.getRating()));
+            hist[r - 1]++;
+            sum += r;
+        }
+        List<ReviewDto> latest = all.stream().filter(f -> f.getComment() != null && !f.getComment().isBlank())
+                .limit(6).map(f -> withCourse ? review(f) : new ReviewDto(shortName(f.getUser().getFullName()), f.getRating(),
+                        f.getComment(), f.getCreatedAt(), null)).toList();
+        return new Reviews(all.isEmpty() ? 0 : Math.round(sum / all.size() * 10) / 10.0, all.size(), hist, latest);
+    }
+
+    private ReviewDto review(CourseFeedback f) {
+        return new ReviewDto(shortName(f.getUser().getFullName()), f.getRating(), f.getComment(), f.getCreatedAt(), f.getCourse().getTitle());
+    }
+
+    /** "Adjoa Mensah" devient "Adjoa M." : le nom complet d'un apprenant n'est jamais publie. */
+    static String shortName(String full) {
+        if (full == null || full.isBlank()) return "Apprenant·e";
+        String[] w = full.trim().split("\\s+");
+        return w.length == 1 ? w[0] : w[0] + " " + w[w.length - 1].charAt(0) + ".";
     }
 
     @Transactional(readOnly = true)
@@ -115,20 +187,32 @@ public class EnrollmentService {
         return out;
     }
 
-    private CatalogCourse card(Course c) {
+    private CatalogCourse card(Course c, Map<Long, double[]> stats) {
+        double[] r = stats.getOrDefault(c.getId(), new double[]{0, 0});
         return new CatalogCourse(c.getId(), c.getTitle(), c.getDescription(), c.getIcon(),
                 c.getDomain() == null ? null : c.getDomain().getId(), c.getDomain() == null ? null : c.getDomain().getName(),
                 c.getType(), c.getLessons().size(), minutes(c), c.examQuestions().size(), c.getPrice(), c.getTargetRoles(),
                 c.getLessons().stream().anyMatch(l -> l.getMediaType() == MediaType.VIDEO),
                 c.getLessons().stream().anyMatch(l -> l.getMediaType() == MediaType.AUDIO),
-                enrollments.countByCourseId(c.getId()));
+                enrollments.countByCourseId(c.getId()), c.getLevel(), c.getLanguageCode(),
+                Math.round(r[0] * 10) / 10.0, (long) r[1], c.getUpdatedAt());
     }
 
-    private CatalogProgram card(Program p) {
+    private CatalogProgram card(Program p, Map<Long, double[]> stats) {
+        double sum = 0;
+        long n = 0;
+        for (Course c : p.getCourses()) {
+            double[] r = stats.get(c.getId());
+            if (r != null) {
+                sum += r[0] * r[1];
+                n += (long) r[1];
+            }
+        }
         return new CatalogProgram(p.getId(), p.getTitle(), p.getDescription(), p.getIcon(), p.getDurationLabel(),
                 p.getCourses().size(), p.getCourses().stream().mapToInt(EnrollmentService::minutes).sum(), p.getPrice(),
                 p.getTargetRoles(), p.getRequiredLevel(),
-                p.getCourses().stream().map(Course::getDomain).filter(Objects::nonNull).map(Domain::getName).distinct().toList());
+                p.getCourses().stream().map(Course::getDomain).filter(Objects::nonNull).map(Domain::getName).distinct().toList(),
+                p.getLevel(), enrollments.countByProgramIdAndCourseIsNull(p.getId()), n == 0 ? 0 : Math.round(sum / n * 10) / 10.0, n);
     }
 
     private static int minutes(Course c) {

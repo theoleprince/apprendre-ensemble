@@ -3,11 +3,14 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../core/auth.service';
 import { errorMessage } from '../core/auth.interceptor';
 import { CatalogApi } from '../core/catalog.service';
-import { LEVELS, MyCourse, ProgramPublicDetail, ROLE_LABELS, STATUS_LABELS, courseStatus, durationLabel, frDate, ordinal, priceLabel } from '../core/models';
+import { LEVELS, LEVEL_LABELS, MyCourse, ProgramPublicDetail, ROLE_LABELS, STATUS_LABELS, courseStatus, durationLabel, frDate, ordinal, priceLabel } from '../core/models';
 import { ToastService } from '../core/toast.service';
 import { AudienceService } from '../core/audience.service';
 import { IconComponent } from '../shared/icon.component';
 import { CoverComponent, MedalComponent } from '../shared/visuals';
+import { DetailBlocksComponent } from '../shared/detail-blocks.component';
+import { SiteFooterComponent } from '../shared/site-footer.component';
+import { StarsComponent } from '../shared/stars.component';
 
 /**
  * Une formation (parcours certifiant) : suite de cours a suivre dans l'ordre.
@@ -15,27 +18,37 @@ import { CoverComponent, MedalComponent } from '../shared/visuals';
  */
 @Component({
   selector: 'app-formation',
-  imports: [RouterLink, IconComponent, CoverComponent, MedalComponent],
+  imports: [RouterLink, IconComponent, CoverComponent, MedalComponent, DetailBlocksComponent, SiteFooterComponent, StarsComponent],
   template: `
     @if (error()) { <p class="error">{{ error() }}</p> }
     @if (d(); as d) {
       @let p = d.program;
-      <nav class="crumbs small"><a routerLink="/catalogue">Catalogue</a> <app-icon name="arrow" [size]="12" /> <span>Formations</span></nav>
+      <section class="dhero">
+        <div class="dhero-in">
+          <nav class="crumbs small" aria-label="Fil d'Ariane"><a routerLink="/catalogue">Catalogue</a> <app-icon name="arrow" [size]="12" /> <span>Formations certifiantes</span></nav>
+          <span class="tag sun">Formation certifiante</span>
+          <h1>{{ p.title }}</h1>
+          <p class="lead">{{ p.description }}</p>
+          <div class="dhero-facts">
+            <app-stars [value]="p.rating" [count]="p.ratingCount" [showEmpty]="true" />
+            @if (p.learners) { <span><app-icon name="users" [size]="15" /> {{ p.learners }} inscrit·es</span> }
+            <span><app-icon name="signal" [size]="15" /> {{ levelLabel(p.level) }}</span>
+            <span><app-icon name="book" [size]="15" /> {{ p.courseCount }} cours</span>
+            <span><app-icon name="clock" [size]="15" /> {{ dur(p.totalMinutes) }} de contenu</span>
+            @if (p.durationLabel) { <span><app-icon name="calendar" [size]="15" /> {{ p.durationLabel }}</span> }
+          </div>
+          @if (d.presentation.authorName) { <p class="small dhero-by">Conçue par <strong>{{ d.presentation.authorName }}</strong></p> }
+          @if (p.targetRoles.length) { <p class="small dhero-by">Pour : {{ roles(p.targetRoles) }}</p> }
+        </div>
+      </section>
       <div class="detail">
         <div class="detail-main">
-          <section class="detail-hero">
-            <div class="tags"><span class="tag sun">Formation certifiante</span>@for (x of p.domains; track x) { <span class="tag grey">{{ x }}</span> }</div>
-            <h1>{{ p.title }}</h1>
-            <p class="lead">{{ p.description }}</p>
-            <div class="facts">
-              <span><app-icon name="book" [size]="16" /> {{ p.courseCount }} cours</span>
-              <span><app-icon name="clock" [size]="16" /> {{ dur(p.totalMinutes) }} de contenu</span>
-              @if (p.durationLabel) { <span><app-icon name="calendar" [size]="16" /> {{ p.durationLabel }}</span> }
-              <span><app-icon name="award" [size]="16" /> Certificat de formation</span>
-            </div>
-            @if (p.targetRoles.length) { <p class="small muted">Pour : {{ roles(p.targetRoles) }}</p> }
-          </section>
-
+          @if (d.presentation.objectives.length) {
+            <section class="card learn-box">
+              <h2>Ce que vous saurez faire</h2>
+              <ul class="obj-list">@for (o of d.presentation.objectives; track $index) { <li><app-icon name="check" [size]="18" /> {{ o }}</li> }</ul>
+            </section>
+          }
           @if (enrolled(); as me) {
             @if (me.classroom; as c) {
               <a class="card class-banner section" [routerLink]="['/classes', c.id]">
@@ -94,11 +107,18 @@ import { CoverComponent, MedalComponent } from '../shared/visuals';
                 <div class="tl-card"><strong>Certificat de formation</strong><div class="xs muted">Délivré quand tous les cours sont validés</div></div></li>
             </ol>
           </section>
+
+          <section class="section">
+            <h2>Prérequis</h2>
+            <p [class.muted]="!d.presentation.prerequisites">{{ d.presentation.prerequisites || 'Aucun. Cette formation est accessible à toutes et tous.' }}</p>
+          </section>
+
+          <app-detail-blocks [presentation]="d.presentation" [reviews]="d.reviews" />
         </div>
 
         <aside class="detail-side">
           <div class="card buy-box">
-            <app-cover [icon]="p.icon" [seed]="p.id + 3" [height]="120" [label]="p.title" />
+            <app-cover [icon]="p.icon" [seed]="p.id + 3" [height]="150" [label]="p.title" />
             <div class="price" [class.free]="!p.price">{{ price(p.price) }}</div>
             @if (enrolled(); as me) {
               <div class="progress"><div [style.width.%]="me.percent"></div></div>
@@ -130,8 +150,10 @@ import { CoverComponent, MedalComponent } from '../shared/visuals';
           <button class="primary" (click)="enroll()" [disabled]="busy()">S'inscrire</button>
         }
       </div>
+      @if (!auth.isLoggedIn()) { <app-site-footer /> }
     } @else if (!error()) {
-      <div class="skeleton" style="height:420px"></div>
+      <div class="skeleton" style="height:220px"></div>
+      <div class="skeleton" style="height:420px;margin-top:1rem"></div>
     }
   `,
 })
@@ -208,5 +230,9 @@ export class FormationPage implements OnInit {
 
   roles(r: string[]): string {
     return this.aud.labels(r);
+  }
+
+  levelLabel(l: string | null | undefined): string {
+    return LEVEL_LABELS[(l ?? 'DEBUTANT') as keyof typeof LEVEL_LABELS] ?? 'Débutant';
   }
 }

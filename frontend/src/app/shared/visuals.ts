@@ -26,15 +26,23 @@ const COVERS = [
           <stop offset="0" [attr.stop-color]="colors()[0]" />
           <stop offset="1" [attr.stop-color]="colors()[1]" />
         </linearGradient>
+        <pattern [attr.id]="gid() + 'p'" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+          <line x1="0" y1="0" x2="0" y2="14" stroke="#fff" stroke-opacity=".06" stroke-width="5" />
+        </pattern>
       </defs>
       <rect width="400" [attr.height]="h()" [attr.fill]="'url(#' + gid() + ')'" />
-      <circle [attr.cx]="330 - seed() % 40" [attr.cy]="h() * 0.2" [attr.r]="h() * 0.9" fill="#fff" opacity=".07" />
-      <circle [attr.cx]="40 + seed() % 60" [attr.cy]="h()" [attr.r]="h() * 0.55" fill="#fff" opacity=".06" />
-      <circle cx="360" [attr.cy]="h() - 10" r="26" fill="#f5c400" opacity=".9" />
-      @for (d of dots(); track $index) { <circle [attr.cx]="d[0]" [attr.cy]="d[1]" r="2.2" fill="#fff" opacity=".35" /> }
-      <g [attr.transform]="'translate(' + (200 - iconSize() / 2) + ' ' + (h() / 2 - iconSize() / 2) + ') scale(' + iconSize() / 24 + ')'"
-         fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <path [attr.d]="path()" />
+      <rect width="400" [attr.height]="h()" [attr.fill]="'url(#' + gid() + 'p)'" />
+      <path [attr.d]="blobA()" fill="#fff" opacity=".09" />
+      <path [attr.d]="blobB()" fill="#000" opacity=".10" />
+      <circle [attr.cx]="sunX()" [attr.cy]="h() * 0.22" [attr.r]="h() * 0.13" fill="#f5c400" opacity=".95" />
+      <circle [attr.cx]="sunX()" [attr.cy]="h() * 0.22" [attr.r]="h() * 0.22" fill="#f5c400" opacity=".18" />
+      <g [attr.transform]="'translate(' + (200 - box() / 2) + ' ' + (h() / 2 - box() / 2) + ')'">
+        <rect [attr.width]="box()" [attr.height]="box()" [attr.rx]="box() * 0.28" fill="#fff" opacity=".16" />
+        <rect [attr.width]="box()" [attr.height]="box()" [attr.rx]="box() * 0.28" fill="none" stroke="#fff" stroke-opacity=".35" />
+        <g [attr.transform]="'translate(' + (box() - iconSize()) / 2 + ' ' + (box() - iconSize()) / 2 + ') scale(' + iconSize() / 24 + ')'"
+           fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path [attr.d]="path()" />
+        </g>
       </g>
     </svg>
   `,
@@ -50,11 +58,19 @@ export class CoverComponent {
   protected colors = computed(() => COVERS[Math.abs(this.seed()) % COVERS.length]);
   protected gid = computed(() => `cg${this.seed()}-${this.height()}`);
   protected path = computed(() => PATHS[this.icon() ?? ''] ?? PATHS['book-open']);
-  protected iconSize = computed(() => Math.round(this.h() * 0.46));
-  protected dots = computed(() => {
-    const out: number[][] = [];
-    for (let i = 0; i < 18; i++) out.push([20 + ((i * 37 + this.seed() * 13) % 360), 10 + ((i * 53 + this.seed() * 7) % (this.h() - 20))]);
-    return out;
+  protected box = computed(() => Math.round(this.h() * 0.5));
+  protected iconSize = computed(() => Math.round(this.box() * 0.56));
+  protected sunX = computed(() => 330 - (this.seed() * 23) % 70);
+  /** Grandes formes organiques (stables par cours). */
+  protected blobA = computed(() => {
+    const h = this.h();
+    const o = (this.seed() * 37) % 60;
+    return `M${-20 + o} ${h} C ${60 + o} ${h * 0.35}, ${170 + o} ${h * 0.55}, ${230 + o} ${h} Z`;
+  });
+  protected blobB = computed(() => {
+    const h = this.h();
+    const o = (this.seed() * 53) % 80;
+    return `M${260 - o} ${h} C ${300 - o} ${h * 0.6}, ${380} ${h * 0.45}, 420 ${h * 0.7} L 420 ${h} Z`;
   });
 }
 

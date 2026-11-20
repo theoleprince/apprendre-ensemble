@@ -9,11 +9,13 @@ import { ToastService } from '../../core/toast.service';
 import { AudienceService } from '../../core/audience.service';
 import { IconComponent } from '../../shared/icon.component';
 import { CoverComponent } from '../../shared/visuals';
+import { PresentationEditorComponent, emptyPresentation } from '../../shared/presentation-editor.component';
+import { QUESTION_KINDS, QuestionInput, QuestionKind } from '../../core/models';
 
 
 @Component({
   selector: 'app-course-editor',
-  imports: [FormsModule, RouterLink, IconComponent, CoverComponent],
+  imports: [FormsModule, RouterLink, IconComponent, CoverComponent, PresentationEditorComponent],
   template: `
     <a routerLink="/admin/modules" class="back"><app-icon name="back" [size]="18" /> Modules</a>
     <h1>{{ isNew() ? 'Nouveau module' : 'Modifier le module' }}</h1>
@@ -97,7 +99,17 @@ import { CoverComponent } from '../../shared/visuals';
           <section class="card" style="margin-bottom:1rem">
             <div class="section-head"><strong>Question {{ i + 1 }}</strong>
               <button type="button" class="ghost icon-btn danger" (click)="c.questions.splice(i, 1)"><app-icon name="trash" [size]="18" /></button></div>
-            <label>Énoncé <input [name]="'q' + i" [(ngModel)]="q.question" required /></label>
+            <div class="field-row">
+              <label style="flex:0 0 240px">Type d'exercice
+                <select [name]="'qk' + i" [ngModel]="q.kind || 'SINGLE'" (ngModelChange)="setKind(q, $event)">
+                  @for (k of kinds; track k.key) { <option [value]="k.key">{{ k.label }}</option> }
+                </select></label>
+              <label>Énoncé <input [name]="'q' + i" [(ngModel)]="q.question" required [placeholder]="q.kind === 'FILL_BLANK' ? 'Ex. : Je reste ___ face à la colère' : ''" /></label>
+            </div>
+            <p class="xs muted" style="margin-top:-.4rem">{{ kindHint(q.kind) }}</p>
+            @if (q.kind === 'SCENARIO') {
+              <label>Mise en situation <textarea [name]="'qx' + i" rows="2" [(ngModel)]="q.context" maxlength="2000"></textarea></label>
+            }
             <label>Quiz après la leçon
               <select [name]="'ql' + i" [(ngModel)]="q.lessonPosition">
                 <option [ngValue]="null">Aucune (évaluation finale seulement)</option>
@@ -105,16 +117,20 @@ import { CoverComponent } from '../../shared/visuals';
               </select></label>
             @for (o of q.options; track $index; let j = $index) {
               <div class="row" style="flex-wrap:nowrap;margin-bottom:.4rem">
-                <input type="radio" [name]="'qc' + i" [value]="j" [(ngModel)]="q.correctIndex" title="Bonne réponse" />
-                <input [name]="'qo' + i + '_' + j" [(ngModel)]="q.options[j]" required style="margin:0" />
-                @if (q.options.length > 2) { <button type="button" class="ghost icon-btn" (click)="removeOption(i, j)"><app-icon name="x" [size]="16" /></button> }
+                @if (q.kind === 'ORDER' || q.kind === 'MATCH') { <span class="sy-n" style="width:28px;height:28px">{{ j + 1 }}</span> }
+                @else { <input type="radio" [name]="'qc' + i" [value]="j" [(ngModel)]="q.correctIndex" title="Bonne réponse" /> }
+                <input [name]="'qo' + i + '_' + j" [(ngModel)]="q.options[j]" required style="margin:0" [readonly]="q.kind === 'TRUE_FALSE'"
+                       [placeholder]="q.kind === 'MATCH' ? 'élément de gauche :: élément de droite' : ''" />
+                @if (q.options.length > 2 && q.kind !== 'TRUE_FALSE') { <button type="button" class="ghost icon-btn" (click)="removeOption(i, j)"><app-icon name="x" [size]="16" /></button> }
               </div>
             }
-            <button type="button" class="link" (click)="q.options.push('')">+ option</button>
+            @if (q.kind !== 'TRUE_FALSE' && q.options.length < 9) { <button type="button" class="link" (click)="q.options.push('')">+ {{ q.kind === 'ORDER' ? 'élément' : q.kind === 'MATCH' ? 'paire' : 'option' }}</button> }
             <label class="section">Explication affichée après correction <input [name]="'qe' + i" [(ngModel)]="q.explanation" /></label>
           </section>
         }
         <button type="button" (click)="addQuestion()"><app-icon name="plus" /> Ajouter une question</button>
+
+        <app-presentation-editor [value]="c.presentation!" />
 
         <div class="lesson-nav">
           <button class="primary grow lg" type="submit" [disabled]="f.invalid || saving() || !c.targetRoles.length">{{ saving() ? 'Enregistrement…' : 'Enregistrer et publier' }}</button>
@@ -149,7 +165,23 @@ export class CourseEditorPage implements OnInit {
   c: CourseInput = {
     title: '', description: '', icon: 'book-open', type: 'THEORIQUE', countryCode: null, languageCode: 'fr', targetRoles: ['ENSEIGNANT'],
     allowedCohorts: [], allowedRegions: [], passScore: 70, masteryScore: 85, expertiseEnabled: true, published: false, lessons: [], questions: [], domainId: null, price: 0,
+    presentation: emptyPresentation(),
   };
+  kinds = QUESTION_KINDS;
+
+  kindHint(k: QuestionKind | undefined): string {
+    return QUESTION_KINDS.find((x) => x.key === (k ?? 'SINGLE'))?.hint ?? '';
+  }
+
+  setKind(q: QuestionInput, k: QuestionKind): void {
+    q.kind = k;
+    if (k === 'TRUE_FALSE') {
+      q.options = ['Vrai', 'Faux'];
+      if (q.correctIndex > 1) q.correctIndex = 0;
+    }
+    if (k === 'MATCH') q.options = q.options.map((o) => (o.includes('::') ? o : o + ' :: '));
+    if (k !== 'SCENARIO') q.context = null;
+  }
 
   async ngOnInit(): Promise<void> {
     this.isNew.set(this.id() === 'nouveau');
@@ -158,6 +190,7 @@ export class CourseEditorPage implements OnInit {
       this.domains.set(await firstValueFrom(this.http.get<Domain[]>('/api/admin/domains')));
       if (!this.isNew()) {
         this.c = await firstValueFrom(this.http.get<CourseInput>(`/api/admin/courses/${this.id()}`));
+        this.c.presentation ??= emptyPresentation();
         this.cohorts = (this.c.allowedCohorts ?? []).join(', ');
         this.regions = (this.c.allowedRegions ?? []).join(', ');
       }
@@ -175,7 +208,7 @@ export class CourseEditorPage implements OnInit {
   }
 
   addQuestion(): void {
-    this.c.questions.push({ question: '', options: ['', ''], correctIndex: 0, explanation: null, lessonPosition: null });
+    this.c.questions.push({ question: '', options: ['', ''], correctIndex: 0, explanation: null, lessonPosition: null, kind: 'SINGLE', context: null });
   }
 
   move(i: number, d: number): void {

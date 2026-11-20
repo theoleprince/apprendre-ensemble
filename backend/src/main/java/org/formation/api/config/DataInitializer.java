@@ -660,6 +660,101 @@ public class DataInitializer implements ApplicationRunner {
         m16.setPrice(2000);
         pCons.setPrice(12000);
         pDir.setPrice(12000);
+
+        // =================== NOUVEAUX TYPES D'EXERCICES ===================
+        check(m1, 4, "Remettez dans l'ordre les gestes face à une crise de colère",
+                List.of("Se placer à hauteur de l'élève et parler doucement", "Nommer l'émotion",
+                        "Proposer le coin calme ou la respiration", "Parler de ce qui s'est passé, une fois l'élève calme"), 0,
+                "Sécurité et calme d'abord, la discussion ensuite.");
+        m1.getQuestions().getLast().setKind(QuestionKind.ORDER);
+        exam(m1, "Associez chaque situation à la réponse la plus adaptée",
+                List.of("Un élève pleure en silence::Je m'approche et je nomme son émotion",
+                        "Deux élèves se battent::Je les sépare et je mets chacun en sécurité",
+                        "Un élève réussit un exercice difficile::J'encourage précisément son effort"), 0,
+                "Chaque situation appelle un geste différent : accueillir, protéger, encourager.");
+        m1.getQuestions().getLast().setKind(QuestionKind.MATCH);
+        exam(m2, "Associez chaque phrase à la technique utilisée",
+                List.of("« Si je comprends bien, tu es déçu… »::Reformulation",
+                        "« Quand tu cries, je suis gêné : j'ai besoin de calme »::Message « je »",
+                        "« Merci d'avoir aidé Koffi à ranger »::Encouragement précis"), 0,
+                "Reformuler, parler de soi, encourager un comportement précis.");
+        m2.getQuestions().getLast().setKind(QuestionKind.MATCH);
+        exam(m3, "Dans un jeu coopératif, il y a toujours un gagnant et un perdant.", List.of("Vrai", "Faux"), 1,
+                "Dans un jeu coopératif, le groupe gagne ou perd ensemble.");
+        m3.getQuestions().getLast().setKind(QuestionKind.TRUE_FALSE);
+        exam(m11, "Quand mon enfant fait une colère, je reste ___ et je l'aide à se calmer.",
+                List.of("calme", "sévère", "à distance"), 0, "Le calme de l'adulte aide l'enfant à retrouver le sien.");
+        m11.getQuestions().getLast().setKind(QuestionKind.FILL_BLANK);
+        exam(m17, "Que faites-vous ?", List.of(
+                        "Je promets de garder le secret pour ne pas perdre sa confiance",
+                        "Je la remercie, je lui explique que je dois en parler pour la protéger, et je signale le jour même",
+                        "J'appelle son oncle pour comprendre ce qui se passe"), 1,
+                "On ne promet jamais le secret, on n'enquête pas soi-même : on protège et on signale le jour même.");
+        m17.getQuestions().getLast().setKind(QuestionKind.SCENARIO);
+        m17.getQuestions().getLast().setContext("Pendant la récréation, Aïcha, 8 ans, vous confie que son oncle la frappe tous les soirs. "
+                + "Elle vous supplie de ne rien dire à personne.");
+
+        // =================== PRESENTATION (niveau, objectifs, prerequis, equipe, FAQ) ===================
+        String[] teach = {"Pôle éducation à la paix", "Conseiller·ères pédagogiques et psychologues de l'éducation",
+                "Les cours de ce pôle reprennent des pratiques éprouvées d'éducation socio-émotionnelle et de discipline positive, "
+                        + "testées en classe avec des enseignant·es du primaire."};
+        String[] lead = {"Pôle encadrement scolaire", "Directions d'école et conseiller·ères pédagogiques expérimenté·es",
+                "Des outils concrets pour accompagner les équipes : observation, retour constructif, pilotage du climat scolaire."};
+        String[] fam = {"Pôle familles", "Éducateur·rices de jeunes enfants et travailleur·ses sociaux",
+                "Des leçons courtes, pensées pour être écoutées, avec des gestes simples à essayer dès le soir même."};
+        String[] youth = {"Pôle jeunesse et insertion", "Formateur·rices en insertion et en alphabétisation",
+                "Des contenus progressifs pour reprendre confiance, maîtriser les bases et construire un projet."};
+        String[] prot = {"Pôle protection de l'enfance", "Travailleur·ses sociaux et juristes de la protection de l'enfance",
+                "Les bons réflexes pour repérer, protéger et orienter, dans le respect des procédures."};
+        present(m1, "DEBUTANT", teach, null, "Reconnaître et nommer les émotions des élèves", "Enseigner une technique de retour au calme",
+                "Réagir sereinement à une crise de colère", "Installer un rituel quotidien autour des émotions");
+        present(m2, "DEBUTANT", teach, null, "Pratiquer l'écoute active en trois gestes", "Formuler un message « je » plutôt qu'un reproche",
+                "Encourager quatre fois plus que l'on ne reprend");
+        present(m3, "DEBUTANT", teach, null, "Animer des jeux coopératifs sans matériel", "Organiser le travail en petits groupes",
+                "Faire de l'entraide une règle de la classe");
+        present(m4, "INTERMEDIAIRE", teach, "Avoir suivi « Écouter et communiquer avec bienveillance » ou en connaître les bases.",
+                "Repérer les signes avant-coureurs d'un conflit", "Mener une médiation entre élèves", "Mettre en place un coin de résolution des conflits");
+        present(m5, "INTERMEDIAIRE", teach, null, "Construire des règles de classe avec les élèves", "Choisir des conséquences éducatives plutôt que des punitions",
+                "Rester ferme et bienveillant·e à la fois");
+        present(m6, "INTERMEDIAIRE", teach, null, "Créer des rituels d'accueil et de fin de journée", "Aménager une classe où chacun trouve sa place",
+                "Mesurer l'évolution du climat de classe");
+        present(m7, "AVANCE", lead, "Expérience d'enseignement ou d'accompagnement d'enseignant·es.",
+                "Préparer et mener une observation de classe", "Donner un retour utile, précis et encourageant", "Fixer avec l'enseignant·e un objectif de progrès");
+        present(m8, "AVANCE", lead, null, "Lancer une communauté de pratique entre enseignant·es", "Animer une séance d'échange de pratiques",
+                "Faire vivre la communauté dans la durée");
+        present(m9, "AVANCE", lead, "Exercer une fonction de direction ou d'encadrement.",
+                "Diagnostiquer le climat scolaire de son école", "Fédérer l'équipe autour d'un projet commun", "Suivre quelques indicateurs simples");
+        present(m10, "AVANCE", lead, "Exercer une fonction de direction ou d'encadrement.",
+                "Identifier les besoins de formation de l'équipe", "Organiser des temps de formation courts sur site", "Accompagner la mise en pratique");
+        present(m11, "DEBUTANT", fam, null, "Remplacer les cris et les coups par des gestes qui fonctionnent", "Poser des limites claires avec calme",
+                "Féliciter les bons comportements");
+        present(m12, "DEBUTANT", fam, null, "Comprendre ce que ressent son enfant", "L'aider à mettre des mots sur ses émotions",
+                "Garder son calme dans les moments difficiles");
+        present(m13, "DEBUTANT", fam, null, "Transformer les moments du quotidien en jeux d'apprentissage", "Raconter et inventer des histoires ensemble",
+                "Compter, trier et mesurer en jouant");
+        present(m14, "DEBUTANT", youth, null, "Utiliser les fonctions essentielles d'un téléphone", "Se protéger des arnaques et des inconnus",
+                "Trouver une information fiable");
+        present(m15, "DEBUTANT", youth, null, "Lire et comprendre un document du quotidien", "Écrire un message clair", "Calculer un budget simple");
+        present(m16, "INTERMEDIAIRE", youth, "Savoir lire un texte simple.", "Identifier ses points forts et ses envies",
+                "Découvrir les métiers qui recrutent près de chez soi", "Préparer un premier entretien");
+        present(m17, "INTERMEDIAIRE", prot, "Travailler au contact d'enfants (école, centre social, association).",
+                "Repérer les signes d'un enfant en danger", "Accueillir la parole d'un enfant sans l'influencer", "Signaler et orienter vers les bons services");
+        m17.getFaq().add(new FaqEntry("Ce cours remplace-t-il la procédure officielle de mon pays ?",
+                "Non. Il donne les bons réflexes ; suivez toujours la procédure de signalement en vigueur dans votre pays et votre structure."));
+        m1.getFaq().add(new FaqEntry("Ce cours convient-il aux enseignant·es de maternelle ?",
+                "Oui : les techniques sont simples et s'adaptent à tous les âges. Les exemples sont pris en primaire."));
+        presentProgram(pTeach, "DEBUTANT", teach, null, "Gérer les émotions en classe, les vôtres et celles des élèves",
+                "Communiquer avec bienveillance et prévenir les conflits", "Installer une discipline positive et un climat où chacun apprend",
+                "Obtenir un certificat de formation vérifiable");
+        presentProgram(pCons, "AVANCE", lead, "Être conseiller·ère pédagogique ou formateur·rice d'enseignant·es.",
+                "Observer une classe et donner un retour utile", "Animer une communauté de pratique", "Accompagner la prévention des conflits");
+        presentProgram(pDir, "AVANCE", lead, "Exercer une fonction de direction d'école.",
+                "Piloter le climat scolaire", "Soutenir la formation de son équipe", "Mettre en place la discipline positive dans toute l'école");
+        presentProgram(pPar, "DEBUTANT", fam, null, "Éduquer sans violence", "Comprendre les émotions de son enfant", "Apprendre en jouant en famille");
+        presentProgram(pYouth, "DEBUTANT", youth, null, "Être à l'aise avec son téléphone", "Consolider la lecture, l'écriture et le calcul",
+                "Construire son projet professionnel");
+        presentProgram(pSoc, "INTERMEDIAIRE", prot, "Travailler au contact d'enfants ou de familles.",
+                "Repérer et orienter un enfant en danger", "Accompagner les parents vers une éducation sans violence", "Prévenir et apaiser les conflits");
         LicenceCode lic = new LicenceCode();
         lic.setCode("GDP-2027");
         lic.setInstitution("Fondation Graines de Paix (démonstration)");
@@ -833,10 +928,12 @@ public class DataInitializer implements ApplicationRunner {
         LocalDate today = LocalDate.now();
         LocalDate end = today.isBefore(c.getEndDate()) ? today : c.getEndDate();
         List<Course> mods = c.getProgram().getCourses();
-        String[] comments = {"Très utile, j'ai essayé dès le lendemain.", "La vidéo est claire mais un peu longue à charger.",
-                "J'aimerais plus d'exemples pour les grandes classes.", "La partie sur la crise de colère n'est pas assez claire.",
-                "Bien expliqué, merci.", "L'audio est pratique, je l'écoute sur le chemin de l'école.",
-                "Je ne comprends pas la différence entre punir et poser une limite."};
+        // avis coherents avec la note : les commentaires critiques accompagnent les notes moyennes
+        String[] praise = {"Très utile, j'ai essayé dès le lendemain.", "Bien expliqué, merci.",
+                "L'audio est pratique, je l'écoute sur le chemin.", "Des exemples concrets que l'on peut appliquer tout de suite.",
+                "Les quiz après chaque leçon aident vraiment à retenir l'essentiel."};
+        String[] critique = {"La vidéo est claire mais un peu longue à charger.", "J'aimerais plus d'exemples pour les grandes classes.",
+                "Certaines notions mériteraient un exemple de plus."};
         for (AppUser u : members) {
             double engagement = minEngagement + (1 - minEngagement) * rnd.nextDouble();
             boolean dropout = engagement < 0.15;
@@ -896,6 +993,7 @@ public class DataInitializer implements ApplicationRunner {
                     f.setUser(u);
                     f.setCourse(m);
                     f.setRating(3 + rnd.nextInt(3));
+                    String[] comments = f.getRating() >= 4 ? praise : critique;
                     f.setClarity(2 + rnd.nextInt(4));
                     f.setUsefulness(3 + rnd.nextInt(3));
                     f.setComment(rnd.nextDouble() < 0.5 ? comments[rnd.nextInt(comments.length)] : null);
@@ -1127,6 +1225,24 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     /** Question de l'evaluation finale : jamais envoyee au client avec sa reponse. */
+    private void present(Course c, String level, String[] author, String prereq, String... objectives) {
+        c.setLevel(level);
+        c.setAuthorName(author[0]);
+        c.setAuthorTitle(author[1]);
+        c.setAuthorBio(author[2]);
+        c.setPrerequisites(prereq);
+        c.getObjectives().addAll(List.of(objectives));
+    }
+
+    private void presentProgram(Program p, String level, String[] author, String prereq, String... objectives) {
+        p.setLevel(level);
+        p.setAuthorName(author[0]);
+        p.setAuthorTitle(author[1]);
+        p.setAuthorBio(author[2]);
+        p.setPrerequisites(prereq);
+        p.getObjectives().addAll(List.of(objectives));
+    }
+
     private void exam(Course c, String text, List<String> options, int correct, String explanation) {
         question(c, text, options, correct, explanation);
     }

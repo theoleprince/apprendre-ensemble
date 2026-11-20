@@ -3,56 +3,62 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../core/auth.service';
 import { errorMessage } from '../core/auth.interceptor';
 import { CatalogApi } from '../core/catalog.service';
-import { CourseDetail, LEVELS, ROLE_LABELS, courseStatus, durationLabel, priceLabel } from '../core/models';
+import { CourseDetail, LEVELS, LEVEL_LABELS, courseStatus, durationLabel, priceLabel } from '../core/models';
 import { ToastService } from '../core/toast.service';
 import { AudienceService } from '../core/audience.service';
+import { CourseCardComponent } from '../shared/course-card.component';
 import { IconComponent } from '../shared/icon.component';
+import { DetailBlocksComponent } from '../shared/detail-blocks.component';
+import { SiteFooterComponent } from '../shared/site-footer.component';
+import { StarsComponent } from '../shared/stars.component';
 import { CoverComponent } from '../shared/visuals';
 
-/** Presentation d'un cours (publique) : ce qu'on apprend, le plan, la certification, et un seul bouton d'action. */
+/**
+ * Page de presentation d'un cours, a la maniere des grandes plateformes : promesse, note, objectifs,
+ * programme detaille, extrait video gratuit, equipe pedagogique, avis, FAQ, cours similaires, un seul bouton d'action.
+ */
 @Component({
   selector: 'app-course',
-  imports: [RouterLink, IconComponent, CoverComponent],
+  imports: [RouterLink, IconComponent, CoverComponent, StarsComponent, CourseCardComponent, DetailBlocksComponent, SiteFooterComponent],
   template: `
     @if (error()) { <p class="error">{{ error() }}</p> }
     @if (d(); as d) {
       @let c = d.course;
-      <nav class="crumbs small"><a routerLink="/catalogue">Catalogue</a> <app-icon name="arrow" [size]="12" /> <span>{{ c.domainName || 'Cours' }}</span></nav>
+      <section class="dhero">
+        <div class="dhero-in">
+          <nav class="crumbs small" aria-label="Fil d'Ariane"><a routerLink="/catalogue">Catalogue</a> <app-icon name="arrow" [size]="12" />
+            <a routerLink="/catalogue" [queryParams]="{ onglet: 'cours', domaine: c.domainId }">{{ c.domainName || 'Cours' }}</a></nav>
+          <h1>{{ c.title }}</h1>
+          <p class="lead">{{ c.description }}</p>
+          <div class="dhero-facts">
+            <app-stars [value]="c.rating" [count]="c.ratingCount" [showEmpty]="true" />
+            @if (c.learners) { <span><app-icon name="users" [size]="15" /> {{ c.learners }} inscrit·es</span> }
+            <span><app-icon name="signal" [size]="15" /> {{ levelLabel(c.level) }}</span>
+            <span><app-icon name="clock" [size]="15" /> {{ dur(c.totalMinutes) }}</span>
+            <span><app-icon name="globe" [size]="15" /> {{ c.languageCode === 'en' ? 'English' : 'Français' }}</span>
+            @if (c.updatedAt) { <span><app-icon name="calendar" [size]="15" /> Mis à jour en {{ month(c.updatedAt) }}</span> }
+          </div>
+          @if (d.presentation.authorName) { <p class="small dhero-by">Conçu par <strong>{{ d.presentation.authorName }}</strong></p> }
+          @if (c.targetRoles.length) { <p class="small dhero-by">Pour : {{ roles(c.targetRoles) }}</p> }
+        </div>
+      </section>
+
       <div class="detail">
         <div class="detail-main">
-          <section class="detail-hero">
-            <div class="tags">
-              <span class="tag">Cours</span>
-              @if (c.domainName) { <span class="tag grey">{{ c.domainName }}</span> }
-              @if (c.hasVideo) { <span class="tag grey"><app-icon name="video" [size]="12" /> Vidéo</span> }
-              @if (c.hasAudio) { <span class="tag grey"><app-icon name="headphones" [size]="12" /> Audio</span> }
-            </div>
-            <h1>{{ c.title }}</h1>
-            <p class="lead">{{ c.description }}</p>
-            <div class="facts">
-              <span><app-icon name="book-open" [size]="16" /> {{ c.lessonCount }} leçons</span>
-              <span><app-icon name="clock" [size]="16" /> {{ dur(c.totalMinutes) }}</span>
-              @if (c.questionCount) { <span><app-icon name="award" [size]="16" /> Certifiant</span> }
-              <span><app-icon name="wifi-off" [size]="16" /> Disponible hors connexion</span>
-              @if (c.learners) { <span><app-icon name="users" [size]="16" /> {{ c.learners }} inscrit·es</span> }
-            </div>
-            @if (c.targetRoles.length) { <p class="small muted">Pour : {{ roles(c.targetRoles) }}</p> }
-          </section>
+          @if (d.presentation.objectives.length) {
+            <section class="card learn-box">
+              <h2>Ce que vous apprendrez</h2>
+              <ul class="obj-list">@for (o of d.presentation.objectives; track $index) { <li><app-icon name="check" [size]="18" /> {{ o }}</li> }</ul>
+            </section>
+          }
 
           <section class="section">
-            <h2>Comment se déroule ce cours</h2>
-            <ol class="how">
-              <li><span class="how-n">1</span><div><strong>Leçons courtes</strong><span class="small muted">Texte, audio ou vidéo, à votre rythme</span></div></li>
-              <li><span class="how-n">2</span><div><strong>Un quiz après chaque notion</strong><span class="small muted">Pour valider et passer à la suite</span></div></li>
-              <li><span class="how-n">3</span><div><strong>Évaluation finale</strong><span class="small muted">{{ d.passScore }} % pour réussir, autant d'essais que nécessaire</span></div></li>
-              <li><span class="how-n">4</span><div><strong>Certificat</strong><span class="small muted">PDF vérifiable, à ajouter sur LinkedIn</span></div></li>
-            </ol>
-          </section>
-
-          <section class="section">
-            <h2>Plan du cours</h2>
+            <div class="section-head">
+              <h2>Programme du cours</h2>
+              <span class="small muted">{{ d.syllabus.length }} leçons · {{ dur(c.totalMinutes) }} @if (c.questionCount) { · évaluation finale }</span>
+            </div>
             <ol class="syllabus">
-              @for (l of d.syllabus; track l.id) {
+              @for (l of shownSyllabus(); track l.id) {
                 <li>
                   <span class="sy-n">{{ l.position }}</span>
                   <div style="flex:1;min-width:0">
@@ -60,17 +66,47 @@ import { CoverComponent } from '../shared/visuals';
                     <div class="xs muted row" style="gap:.6rem">
                       <span><app-icon [name]="l.mediaType === 'VIDEO' ? 'video' : l.mediaType === 'AUDIO' ? 'headphones' : 'text'" [size]="12" /> {{ l.mediaType === 'VIDEO' ? 'Vidéo' : l.mediaType === 'AUDIO' ? 'Audio' : 'Lecture' }} · {{ l.minutes }} min</span>
                       @if (l.checkCount) { <span><app-icon name="lightbulb" [size]="12" /> Quiz</span> }
-                      @if (l.practice) { <span><app-icon name="wrench" [size]="12" /> Exercice</span> }
+                      @if (l.practice) { <span><app-icon name="wrench" [size]="12" /> Exercice pratique</span> }
                     </div>
                   </div>
+                  @if (d.preview && l.mediaType === 'VIDEO' && l.title === d.preview.title) {
+                    <button class="btn ghost small-btn" (click)="previewOpen.set(true)"><app-icon name="play" [size]="14" /> Aperçu</button>
+                  }
                   @if (mine(); as m) { @if (m.doneLessons >= l.position) { <app-icon name="check-circle" [size]="18" style="color:var(--brand)" /> } }
                 </li>
               }
-              @if (c.questionCount) {
-                <li class="sy-exam"><span class="sy-n"><app-icon name="target" [size]="16" /></span>
-                  <div><strong>Évaluation finale</strong><div class="xs muted">{{ c.questionCount }} questions · réussite à {{ d.passScore }} %</div></div></li>
+              @if (allShown()) {
+                @if (c.questionCount) {
+                  <li class="sy-exam"><span class="sy-n"><app-icon name="target" [size]="16" /></span>
+                    <div><strong>Évaluation finale</strong><div class="xs muted">{{ c.questionCount }} questions · réussite à {{ d.passScore }} %</div></div></li>
+                }
+                <li class="sy-exam"><span class="sy-n"><app-icon name="award" [size]="16" /></span><div><strong>Certificat</strong></div></li>
               }
-              <li class="sy-exam"><span class="sy-n"><app-icon name="award" [size]="16" /></span><div><strong>Certificat</strong></div></li>
+            </ol>
+            @if (d.syllabus.length > 6) {
+              <button class="btn ghost block" (click)="expanded.set(!expanded())">{{ expanded() ? 'Réduire le programme' : 'Voir les ' + d.syllabus.length + ' leçons' }} <app-icon name="chevron-down" [size]="16" /></button>
+            }
+          </section>
+
+          @if (d.presentation.prerequisites) {
+            <section class="section">
+              <h2>Prérequis</h2>
+              <p>{{ d.presentation.prerequisites }}</p>
+            </section>
+          } @else {
+            <section class="section">
+              <h2>Prérequis</h2>
+              <p class="muted">Aucun. Ce cours est accessible à toutes et tous.</p>
+            </section>
+          }
+
+          <section class="section">
+            <h2>Comment se déroule ce cours</h2>
+            <ol class="how">
+              <li><span class="how-n">1</span><div><strong>Leçons courtes</strong><span class="small muted">Texte, audio ou vidéo, à votre rythme, même sans connexion</span></div></li>
+              <li><span class="how-n">2</span><div><strong>Un quiz après chaque notion</strong><span class="small muted">Pour valider et passer à la suite</span></div></li>
+              <li><span class="how-n">3</span><div><strong>Évaluation finale</strong><span class="small muted">{{ d.passScore }} % pour réussir, autant d'essais que nécessaire</span></div></li>
+              <li><span class="how-n">4</span><div><strong>Certificat</strong><span class="small muted">PDF vérifiable, à ajouter sur LinkedIn</span></div></li>
             </ol>
           </section>
 
@@ -84,11 +120,18 @@ import { CoverComponent } from '../shared/visuals';
               }
             </div>
           </section>
+
+          <app-detail-blocks [presentation]="d.presentation" [reviews]="d.reviews" />
         </div>
 
         <aside class="detail-side">
           <div class="card buy-box">
-            <app-cover [icon]="c.icon" [seed]="c.id" [height]="120" [label]="c.title" />
+            <div class="buy-cover" [class.has-preview]="!!d.preview">
+              <app-cover [icon]="c.icon" [seed]="c.id" [height]="150" [label]="c.title" />
+              @if (d.preview) {
+                <button class="preview-btn" (click)="previewOpen.set(true)"><span><app-icon name="play" [size]="26" /></span>Aperçu gratuit</button>
+              }
+            </div>
             <div class="price" [class.free]="!c.price">{{ price(c.price) }}</div>
             @if (mine(); as m) {
               @let st = status(m);
@@ -104,14 +147,19 @@ import { CoverComponent } from '../shared/visuals';
               <button class="primary block lg" (click)="enroll()" [disabled]="busy()">
                 {{ busy() ? 'Inscription…' : c.price ? "S'inscrire au cours" : "S'inscrire gratuitement" }}
               </button>
-              <p class="xs muted center">{{ c.price ? 'Mobile Money, carte ou code de licence' : 'Accès immédiat et illimité' }}</p>
+              <p class="xs muted center">{{ c.price ? 'Mobile Money, carte, licence ou abonnement' : 'Accès immédiat et illimité' }}</p>
             }
+            <strong class="small" style="margin-top:.4rem">Ce cours comprend</strong>
             <ul class="buy-list small">
-              <li><app-icon name="check" [size]="14" /> {{ c.lessonCount }} leçons et quiz</li>
-              <li><app-icon name="check" [size]="14" /> Évaluation finale et certificat</li>
-              <li><app-icon name="check" [size]="14" /> Mentor IA disponible à chaque étape</li>
-              <li><app-icon name="check" [size]="14" /> Utilisable sans connexion</li>
+              <li><app-icon name="book-open" [size]="15" /> {{ c.lessonCount }} leçons · {{ dur(c.totalMinutes) }}</li>
+              @if (c.hasVideo) { <li><app-icon name="video" [size]="15" /> Vidéos sous-titrées</li> }
+              @if (c.hasAudio) { <li><app-icon name="headphones" [size]="15" /> Leçons audio</li> }
+              <li><app-icon name="lightbulb" [size]="15" /> Un quiz après chaque notion</li>
+              <li><app-icon name="award" [size]="15" /> Certificat vérifiable</li>
+              <li><app-icon name="wifi-off" [size]="15" /> Utilisable sans connexion</li>
+              <li><app-icon name="sparkles" [size]="15" /> Mentor IA à chaque étape</li>
             </ul>
+            <button class="btn ghost block" (click)="share()"><app-icon name="share" [size]="16" /> Partager ce cours</button>
           </div>
           @if (d.programs.length) {
             <div class="card flat small">
@@ -121,6 +169,14 @@ import { CoverComponent } from '../shared/visuals';
           }
         </aside>
       </div>
+
+      @if (d.related.length) {
+        <section class="section">
+          <div class="section-head"><h2>Vous aimerez aussi</h2></div>
+          <div class="card-grid">@for (r of d.related; track r.id) { <app-course-card [item]="r" /> }</div>
+        </section>
+      }
+
       <div class="mobile-cta">
         <div><strong>{{ price(c.price) }}</strong>@if (mine(); as m) {<div class="xs muted">{{ status(m).percent }} % · {{ status(m).next }}</div>}</div>
         @if (mine(); as m) {
@@ -129,10 +185,27 @@ import { CoverComponent } from '../shared/visuals';
           <button class="primary" (click)="enroll()" [disabled]="busy()">S'inscrire</button>
         }
       </div>
+
+      @if (previewOpen() && d.preview; as pv) {
+        <div class="modal-scrim" (click)="previewOpen.set(false)">
+          <div class="modal video-modal" role="dialog" aria-modal="true" [attr.aria-label]="'Aperçu : ' + pv.title" (click)="$event.stopPropagation()">
+            <div class="row" style="justify-content:space-between">
+              <div><span class="xs muted">Aperçu gratuit</span><h3 style="margin:0">{{ pv.title }}</h3></div>
+              <button class="icon-btn ghost" (click)="previewOpen.set(false)" aria-label="Fermer"><app-icon name="x" /></button>
+            </div>
+            <video [src]="pv.mediaUrl" controls autoplay playsinline preload="metadata">
+              @if (pv.subtitlesUrl) { <track kind="subtitles" srclang="fr" label="Français" [src]="pv.subtitlesUrl" default /> }
+            </video>
+          </div>
+        </div>
+      }
+      @if (!auth.isLoggedIn()) { <app-site-footer /> }
     } @else if (!error()) {
-      <div class="skeleton" style="height:420px"></div>
+      <div class="skeleton" style="height:220px"></div>
+      <div class="skeleton" style="height:420px;margin-top:1rem"></div>
     }
   `,
+  host: { '(document:keydown.escape)': 'previewOpen.set(false)' },
 })
 export class CoursePage implements OnInit {
   protected aud = inject(AudienceService);
@@ -145,8 +218,15 @@ export class CoursePage implements OnInit {
   d = signal<CourseDetail | null>(null);
   error = signal('');
   busy = signal(false);
+  expanded = signal(false);
+  previewOpen = signal(false);
   levels = LEVELS;
   mine = computed(() => this.api.mine()?.courses.find((c) => c.courseId === Number(this.id())) ?? null);
+  shownSyllabus = computed(() => {
+    const s = this.d()?.syllabus ?? [];
+    return this.expanded() || s.length <= 6 ? s : s.slice(0, 5);
+  });
+  allShown = computed(() => this.shownSyllabus().length === (this.d()?.syllabus.length ?? 0));
 
   constructor() {
     effect(() => {
@@ -156,12 +236,16 @@ export class CoursePage implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    void this.aud.load();
     if (this.auth.isLoggedIn()) await this.api.myLearning().catch(() => undefined);
   }
 
   private async load(id: number): Promise<void> {
+    this.d.set(null);
+    this.expanded.set(false);
     try {
       this.d.set((await this.api.course(id)).data);
+      window.scrollTo({ top: 0 });
     } catch (e) {
       this.error.set(errorMessage(e));
     }
@@ -172,7 +256,7 @@ export class CoursePage implements OnInit {
     const c = this.d()!.course;
     const checkout = `/paiement/cours/${c.id}`;
     if (!this.auth.isLoggedIn()) {
-      await this.router.navigate(['/inscription'], { queryParams: { redirect: checkout } });
+      await this.router.navigate(['/inscription'], { queryParams: { redirect: c.price ? checkout : `/cours/${c.id}` } });
       return;
     }
     if (c.price) {
@@ -191,9 +275,32 @@ export class CoursePage implements OnInit {
     }
   }
 
+  async share(): Promise<void> {
+    const url = location.href;
+    const title = this.d()?.course.title ?? '';
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        this.toast.show({ icon: 'link', title: 'Lien copié', text: 'Collez-le dans un message pour le partager.' }, 2500);
+      }
+    } catch {
+      /* partage annule */
+    }
+  }
+
   status = courseStatus;
   price = priceLabel;
   dur = durationLabel;
+
+  levelLabel(l: string | null | undefined): string {
+    return LEVEL_LABELS[(l ?? 'DEBUTANT') as keyof typeof LEVEL_LABELS] ?? 'Débutant';
+  }
+
+  month(iso: string): string {
+    return new Date(iso).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  }
 
   roles(r: string[]): string {
     return this.aud.labels(r);

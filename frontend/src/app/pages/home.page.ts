@@ -11,6 +11,10 @@ import { ForumThread, MyCourse, MyProgram, ResourceItem, SchoolDashboard, course
 import { ProgramApi } from '../core/program.service';
 import { IconComponent } from '../shared/icon.component';
 import { CoverComponent } from '../shared/visuals';
+import { EngagementApi } from '../core/engagement.service';
+import { Catalog } from '../core/models';
+import { CourseCardComponent } from '../shared/course-card.component';
+import { EngagementPanelComponent } from '../shared/engagement-panel.component';
 
 /**
  * "Mes formations" : une seule question a l'ecran, "qu'est-ce que je fais maintenant ?".
@@ -18,7 +22,7 @@ import { CoverComponent } from '../shared/visuals';
  */
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, IconComponent, DatePipe, CoverComponent],
+  imports: [RouterLink, IconComponent, DatePipe, CoverComponent, CourseCardComponent, EngagementPanelComponent],
   template: `
     <p class="muted" style="margin:0">{{ greeting() }} {{ firstName() }}</p>
     <h1 style="margin-top:.2rem">Mes formations</h1>
@@ -38,6 +42,8 @@ import { CoverComponent } from '../shared/visuals';
         </div>
       </section>
     }
+
+    @if (eng.engagement(); as e) { @if (hasAny()) { <app-engagement-panel [data]="e" /> } }
 
     @if (resume(); as r) {
       @let st = status(r);
@@ -124,6 +130,13 @@ import { CoverComponent } from '../shared/visuals';
       </section>
     }
 
+    @if (recommended().length) {
+      <section class="section">
+        <div class="section-head"><h2>Recommandé pour vous</h2><a routerLink="/catalogue" class="small">Tout le catalogue</a></div>
+        <div class="card-grid">@for (c of recommended(); track c.id) { <app-course-card [item]="c" [forMe]="true" /> }</div>
+      </section>
+    }
+
     @if (live(); as t) {
       <section class="card live section">
         <div class="row"><span class="live-dot"></span><strong>Séance en direct</strong><span class="muted small">{{ t.meetingAt | date: 'EEEE d MMMM, HH:mm' }}</span></div>
@@ -170,6 +183,19 @@ export class HomePage implements OnInit {
   fiches = signal<ResourceItem[]>([]);
   school = signal<SchoolDashboard | null>(null);
   threads = signal<ForumThread[]>([]);
+  protected eng = inject(EngagementApi);
+  private cat = signal<Catalog | null>(null);
+
+  /** Cours pour mon public, pas encore suivis, les mieux notes et les plus suivis d'abord. */
+  recommended = computed(() => {
+    const c = this.cat();
+    if (!c) return [];
+    const u = this.auth.user();
+    const me = u?.audience || u?.role || '';
+    const mine = new Set((this.catalog.mine()?.courses ?? []).map((x) => x.courseId));
+    return c.courses.filter((x) => !mine.has(x.id) && (!x.targetRoles.length || x.targetRoles.includes(me)))
+      .sort((a, b) => b.rating * 10 + b.learners / 10 - (a.rating * 10 + a.learners / 10)).slice(0, 3);
+  });
 
   programs = computed<MyProgram[]>(() => this.catalog.mine()?.programs ?? []);
   courses = computed<MyCourse[]>(() => {
@@ -196,6 +222,8 @@ export class HomePage implements OnInit {
   async ngOnInit(): Promise<void> {
     void this.catalog.myLearning().catch(() => undefined).finally(() => this.loaded.set(true));
     void this.api.resources().then((r) => this.fiches.set(r.data)).catch(() => undefined);
+    void this.eng.load();
+    void this.catalog.catalog().then((r) => this.cat.set(r.data)).catch(() => undefined);
     if (this.auth.user()?.role === 'DIRECTION_ECOLE') void this.api.school().then((s) => this.school.set(s)).catch(() => undefined);
     void firstValueFrom(this.http.get<ForumThread[]>('/api/community/threads')).then((t) => this.threads.set(t)).catch(() => undefined);
   }

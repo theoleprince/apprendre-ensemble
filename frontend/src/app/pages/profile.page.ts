@@ -12,10 +12,13 @@ import { PrefsService } from '../core/prefs.service';
 import { ToastService } from '../core/toast.service';
 import { IconComponent } from '../shared/icon.component';
 import { AvatarComponent } from '../shared/visuals';
+import { RouterLink } from '@angular/router';
+import { EngagementApi } from '../core/engagement.service';
+import { Engagement, NoteItem } from '../core/models';
 
 @Component({
   selector: 'app-profile',
-  imports: [IconComponent, TranslatePipe, AvatarComponent, FormsModule],
+  imports: [IconComponent, TranslatePipe, AvatarComponent, FormsModule, RouterLink],
   template: `
     @if (auth.user(); as u) {
       <section class="card row">
@@ -26,8 +29,55 @@ import { AvatarComponent } from '../shared/visuals';
       </section>
     }
 
+    @if (eng.engagement(); as e) {
+      <section class="card section">
+        <h2><app-icon name="target" /> Objectif et rappels</h2>
+        <div class="row" style="justify-content:space-between">
+          <span>Objectif d'apprentissage par semaine</span>
+          <select [ngModel]="e.weeklyGoalMinutes" (ngModelChange)="saveGoals(+$event, e.remindersEnabled)" name="goal" aria-label="Objectif hebdomadaire" style="width:auto">
+            @for (g of goals; track g) { <option [ngValue]="g">{{ g }} min</option> }
+          </select>
+        </div>
+        <label class="check section"><input type="checkbox" [checked]="e.remindersEnabled" (change)="saveGoals(e.weeklyGoalMinutes, !e.remindersEnabled)" />
+          <span><strong>Rappels par e-mail</strong><br /><span class="small muted">Un e-mail après 3 jours sans leçon quand un cours est en cours, au plus une fois par semaine.</span></span></label>
+      </section>
+
+      <section class="card section" id="badges">
+        <h2><app-icon name="medal" /> Mes badges <span class="muted small">{{ earnedCount(e) }}/{{ e.badges.length }} · niveau {{ e.level }} · {{ e.xp }} points</span></h2>
+        <div class="badge-grid">
+          @for (b of e.badges; track b.code) {
+            <div class="badge" [class.off]="!b.earned">
+              <span class="badge-ic"><app-icon [name]="b.icon" [size]="24" /></span>
+              <strong class="small">{{ b.label }}</strong>
+              <span class="xs muted">{{ b.description }}</span>
+              @if (b.earned) { <span class="xs ok-text">Obtenu le {{ day(b.earnedAt) }}</span> }
+              @else if (b.target > 1) { <div class="progress thin"><div [style.width.%]="b.progress * 100 / b.target"></div></div><span class="xs muted">{{ b.progress }}/{{ b.target }}</span> }
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    @if (allNotes().length) {
+      <section class="card section">
+        <h2><app-icon name="note" /> Mes notes de cours</h2>
+        <ul class="note-list">
+          @for (n of allNotes(); track n.lessonId) {
+            <li><a [routerLink]="['/apprendre', n.courseId, 'lecon-' + n.lessonId]">@if (n.bookmarked) {<app-icon name="bookmark" [size]="13" />} <strong>{{ n.courseTitle }}</strong> · {{ n.lessonTitle }}</a>
+              @if (n.text) { <p class="small">{{ n.text }}</p> }</li>
+          }
+        </ul>
+      </section>
+    }
+
     <section class="card section">
       <h2><app-icon name="eye" /> Accessibilité</h2>
+      <div class="row" style="justify-content:space-between">
+        <span><app-icon name="moon" /> Thème</span>
+        <div class="speed">
+          @for (t of themes; track t.v) { <button [class.active]="prefs.prefs().theme === t.v" (click)="prefs.update({ theme: t.v })">{{ t.l }}</button> }
+        </div>
+      </div>
       <div class="row" style="justify-content:space-between">
         <span><app-icon name="type" /> Taille du texte</span>
         <div class="speed">
@@ -76,6 +126,28 @@ import { AvatarComponent } from '../shared/visuals';
   `,
 })
 export class ProfilePage implements OnInit {
+  protected eng = inject(EngagementApi);
+  protected allNotes = signal<NoteItem[]>([]);
+  protected goals = [30, 60, 90, 120, 180, 300];
+  protected themes: { v: 'system' | 'light' | 'dark'; l: string }[] = [{ v: 'system', l: 'Auto' }, { v: 'light', l: 'Clair' }, { v: 'dark', l: 'Sombre' }];
+
+  async saveGoals(minutes: number, reminders: boolean): Promise<void> {
+    try {
+      await this.eng.saveGoals(minutes, reminders);
+      this.toast.show({ icon: 'check-circle', title: 'Préférences enregistrées' }, 1800);
+    } catch (e) {
+      this.toast.show({ icon: 'alert', title: 'Non enregistré', text: errorMessage(e) }, 3000);
+    }
+  }
+
+  earnedCount(e: Engagement): number {
+    return e.badges.filter((b) => b.earned).length;
+  }
+
+  day(iso: string | null): string {
+    return iso ? new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  }
+
   protected auth = inject(AuthService);
   protected learning = inject(LearningService);
   protected prefs = inject(PrefsService);
@@ -90,6 +162,8 @@ export class ProfilePage implements OnInit {
   usage = signal('');
 
   async ngOnInit(): Promise<void> {
+    void this.eng.load();
+    void this.eng.allNotes().then((n) => this.allNotes.set(n)).catch(() => undefined);
     const e = await this.media.estimate();
     this.usage.set(e ? `${formatBytes(e.usage)} utilisés` : '');
   }

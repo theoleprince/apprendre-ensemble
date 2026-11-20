@@ -51,8 +51,9 @@ public class AdminService {
                         l.getDurationMinutes())).toList(),
                 c.getQuestions().stream().map(q -> new QuestionInput(q.getQuestion(), List.copyOf(q.getOptions()),
                         q.getCorrectIndex(), q.getExplanation(),
-                        q.getLesson() == null ? null : q.getLesson().getPosition())).toList(),
-                c.getDomain() == null ? null : c.getDomain().getId(), c.getPrice());
+                        q.getLesson() == null ? null : q.getLesson().getPosition(),
+                        q.getKind() == null ? QuestionKind.SINGLE : q.getKind(), q.getContext())).toList(),
+                c.getDomain() == null ? null : c.getDomain().getId(), c.getPrice(), Presentations.of(c));
     }
 
     public AdminCourse create(CourseInput in) {
@@ -90,8 +91,19 @@ public class AdminService {
     /** Lecons et questions mises a jour en place (par position) : la progression deja synchronisee reste valide. */
     private void apply(Course c, CourseInput in) {
         for (QuestionInput q : in.questions()) {
-            if (q.correctIndex() >= q.options().size()) {
+            QuestionKind k = q.kind() == null ? QuestionKind.SINGLE : q.kind();
+            if (!k.arrangement() && q.correctIndex() >= q.options().size()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Index de bonne reponse invalide : " + q.question());
+            }
+            if (k == QuestionKind.TRUE_FALSE && q.options().size() != 2) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vrai ou faux : exactement 2 réponses : " + q.question());
+            }
+            if (k == QuestionKind.MATCH && q.options().stream().anyMatch(o -> !o.contains("::"))) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Association : chaque ligne doit être de la forme « gauche :: droite » : " + q.question());
+            }
+            if (k == QuestionKind.FILL_BLANK && !q.question().contains("___")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Texte à trous : marquez le trou par ___ : " + q.question());
             }
         }
         if (in.masteryScore() < in.passScore()) {
@@ -115,6 +127,7 @@ public class AdminService {
         c.setPublished(in.published());
         c.setDomain(in.domainId() == null ? null : domains.findById(in.domainId()).orElse(null));
         c.setPrice(Math.max(0, in.price()));
+        Presentations.apply(c, in.presentation());
         c.setUpdatedAt(Instant.now());
 
         List<Lesson> ls = c.getLessons();
@@ -155,7 +168,9 @@ public class AdminService {
             q.setQuestion(qi.question().trim());
             q.getOptions().clear();
             q.getOptions().addAll(qi.options());
-            q.setCorrectIndex(qi.correctIndex());
+            q.setKind(qi.kind() == null ? QuestionKind.SINGLE : qi.kind());
+            q.setCorrectIndex(q.getKind().arrangement() ? 0 : qi.correctIndex());
+            q.setContext(blankToNull(qi.context()));
             q.setExplanation(blankToNull(qi.explanation()));
             Integer lp = qi.lessonPosition();
             q.setLesson(lp == null || lp < 1 || lp > ls.size() ? null : ls.get(lp - 1));

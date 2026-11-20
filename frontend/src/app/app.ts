@@ -47,6 +47,7 @@ interface NavItem {
                   [title]="i18n.coverage() !== null && i18n.coverage()! < 0.9 ? 'Traduction partielle : les textes non traduits restent en français' : ''">
             @for (l of langs(); track l.code) { <option [value]="l.code" [selected]="l.code === prefs.prefs().lang">{{ l.code.toUpperCase() }} · {{ l.name }}</option> }
           </select>
+          <button class="icon-btn ghost theme-btn" (click)="toggleTheme()" [attr.aria-label]="dark() ? 'Passer en mode clair' : 'Passer en mode sombre'" [title]="dark() ? 'Mode clair' : 'Mode sombre'"><app-icon [name]="dark() ? 'sun' : 'moon'" [size]="18" /></button>
           <button class="icon-btn ghost" (click)="logout()" [title]="'action.logout' | t" [attr.aria-label]="'action.logout' | t"><app-icon name="logout" /></button>
         </header>
         <div class="layout" [class.focus]="focus()">
@@ -76,9 +77,10 @@ interface NavItem {
     } @else if (publicChrome()) {
       <div class="pub">
         <header class="pub-top">
-          <a class="brand" routerLink="/"><span class="brand-mark"><app-icon name="sprout" [size]="22" /></span><span class="brand-name">Apprendre Ensemble</span></a>
+          <a class="brand" routerLink="/" aria-label="Apprendre Ensemble, accueil"><span class="brand-mark"><app-icon name="sprout" [size]="22" /></span><span class="brand-name">Apprendre Ensemble</span></a>
           <nav class="pub-nav"><a routerLink="/catalogue" routerLinkActive="active">Catalogue</a></nav>
           <span class="spacer"></span>
+          <button class="icon-btn ghost theme-btn" (click)="toggleTheme()" [attr.aria-label]="dark() ? 'Passer en mode clair' : 'Passer en mode sombre'" [title]="dark() ? 'Mode clair' : 'Mode sombre'"><app-icon [name]="dark() ? 'sun' : 'moon'" [size]="18" /></button>
           <select class="lang-select" [value]="prefs.prefs().lang" (change)="setLang($event)" aria-label="Langue de l'interface">
             @for (l of langs(); track l.code) { <option [value]="l.code" [selected]="l.code === prefs.prefs().lang">{{ l.code.toUpperCase() }}</option> }
           </select>
@@ -122,6 +124,11 @@ export class App {
   protected langs = signal<{ code: string; name: string }[]>([{ code: 'fr', name: 'Français' }, { code: 'en', name: 'English' }]);
 
   protected url = signal(location.pathname);
+  protected dark = computed(() => this.prefs.isDark());
+
+  toggleTheme(): void {
+    this.prefs.update({ theme: this.prefs.isDark() ? 'light' : 'dark' });
+  }
   protected readonly confetti = Array.from({ length: 60 }, (_, i) => ({
     x: Math.random() * 100,
     delay: Math.random() * 0.8,
@@ -167,7 +174,7 @@ export class App {
 
   protected showShell = computed(() => this.auth.isLoggedIn() && !this.routeIsBare());
   /** Visiteur sans compte sur une page publique : en-tete simple (catalogue, connexion, inscription). */
-  protected publicChrome = computed(() => !this.auth.isLoggedIn() && /^\/(catalogue|cours|formations|verifier)?(\/|$|\?)/.test(this.url()));
+  protected publicChrome = computed(() => !this.auth.isLoggedIn() && /^\/(catalogue|cours|formations|verifier|a-propos|aide|confidentialite|mentions-legales)?(\/|$|\?|#)/.test(this.url()));
   private routeIsBare = () => /^\/(login|inscription|verifier|bienvenue|mot-de-passe-oublie|reinitialiser|sso)/.test(this.currentUrl());
   private currentUrl = () => this.url();
 

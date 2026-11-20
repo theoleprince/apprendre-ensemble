@@ -18,4 +18,9 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     List<AppUser> findByRoleNotIn(Collection<Role> roles);
 
     List<AppUser> findBySchoolId(Long schoolId);
+
+    @org.springframework.data.jpa.repository.Query("select count(distinct u.countryCode) from AppUser u where u.countryCode is not null and u.deletedAt is null")
+    long countCountries();
+
+    List<AppUser> findByRemindersEnabledTrueAndEnabledTrueAndDeletedAtIsNull();
 }

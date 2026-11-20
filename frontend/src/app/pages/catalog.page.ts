@@ -1,54 +1,95 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../core/auth.service';
 import { errorMessage } from '../core/auth.interceptor';
 import { CatalogApi } from '../core/catalog.service';
-import { Catalog, CatalogCourse, CatalogProgram, ROLE_LABELS, Role, courseStatus, durationLabel, priceLabel } from '../core/models';
 import { AudienceService } from '../core/audience.service';
+import { Catalog, CatalogCourse, CatalogProgram, LEVEL_LABELS, Level, courseStatus } from '../core/models';
+import { CourseCardComponent } from '../shared/course-card.component';
 import { IconComponent } from '../shared/icon.component';
-import { CoverComponent } from '../shared/visuals';
 
 type Tab = 'formations' | 'cours';
-type PriceFilter = 'all' | 'free' | 'paid';
+type Sort = 'pertinence' | 'populaires' | 'notes' | 'recents' | 'courts';
+type Duration = '' | 'court' | 'moyen' | 'long';
 
-/** Catalogue consultable sans compte : on cherche, on filtre, on ouvre la fiche, on s'inscrit. */
+const LANGS: Record<string, string> = { fr: 'Français', en: 'English', fon: 'Fongbe', bba: 'Baatonum', ddn: 'Dendi', wo: 'Wolof' };
+
+/**
+ * Catalogue consultable sans compte : recherche, filtres (public, niveau, duree, langue, domaine, prix), tri.
+ * Les filtres sont dans l'adresse : une recherche se partage et survit au retour arriere.
+ */
 @Component({
   selector: 'app-catalog',
-  imports: [FormsModule, RouterLink, IconComponent, CoverComponent],
+  imports: [FormsModule, NgTemplateOutlet, RouterLink, IconComponent, CourseCardComponent],
   template: `
     <section class="cat-head">
       <h1>Catalogue</h1>
       <p class="muted">Des formations certifiantes et des cours courts, à suivre à votre rythme, même sans connexion.</p>
       <div class="search">
         <app-icon name="search" [size]="20" />
-        <input type="search" [(ngModel)]="q" name="q" placeholder="Rechercher un cours, une compétence…" aria-label="Rechercher" />
+        <input type="search" [ngModel]="q()" (ngModelChange)="set('q', $event)" name="q" placeholder="Rechercher un cours, une compétence…" aria-label="Rechercher" />
+        @if (q()) { <button class="icon-btn ghost" (click)="set('q', '')" aria-label="Effacer la recherche"><app-icon name="x" [size]="18" /></button> }
       </div>
     </section>
 
     @if (error()) { <p class="error">{{ error() }}</p> }
 
-    <nav class="tabs">
-      <button [class.active]="tab() === 'formations'" (click)="tab.set('formations')"><app-icon name="graduation" [size]="18" /> Formations ({{ programs().length }})</button>
-      <button [class.active]="tab() === 'cours'" (click)="tab.set('cours')"><app-icon name="book-open" [size]="18" /> Cours ({{ courses().length }})</button>
+    <nav class="tabs" role="tablist">
+      <button role="tab" [attr.aria-selected]="tab() === 'formations'" [class.active]="tab() === 'formations'" (click)="set('onglet', 'formations')"><app-icon name="graduation" [size]="18" /> Formations <span class="tab-n">{{ programs().length }}</span></button>
+      <button role="tab" [attr.aria-selected]="tab() === 'cours'" [class.active]="tab() === 'cours'" (click)="set('onglet', 'cours')"><app-icon name="book-open" [size]="18" /> Cours <span class="tab-n">{{ courses().length }}</span></button>
     </nav>
 
-    <div class="filters">
-      <div class="chips">
-        <button [class.active]="price() === 'all'" (click)="price.set('all')">Tous</button>
-        <button [class.active]="price() === 'free'" (click)="price.set('free')">Gratuits</button>
-        <button [class.active]="price() === 'paid'" (click)="price.set('paid')">Payants</button>
+    <div class="cat-toolbar">
+      <button class="btn filters-toggle" (click)="filtersOpen.set(!filtersOpen())" [attr.aria-expanded]="filtersOpen()">
+        <app-icon name="filter" [size]="16" /> Filtres @if (activeCount()) { <span class="tab-n">{{ activeCount() }}</span> }
+      </button>
+      <span class="small muted results">{{ results() }} résultat{{ results() > 1 ? 's' : '' }}</span>
+      <label class="sort"><app-icon name="sort" [size]="16" /><span class="sr-only">Trier par</span>
+        <select [ngModel]="sort()" (ngModelChange)="set('tri', $event)" name="tri" aria-label="Trier par">
+          <option value="pertinence">Pertinence</option>
+          <option value="populaires">Les plus suivis</option>
+          <option value="notes">Les mieux notés</option>
+          <option value="recents">Les plus récents</option>
+          <option value="courts">Les plus courts</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="filters" [class.open]="filtersOpen()">
+      <div class="chips" role="group" aria-label="Prix">
+        <button [class.active]="!price()" (click)="set('prix', '')">Tous</button>
+        <button [class.active]="price() === 'gratuit'" (click)="set('prix', 'gratuit')">Gratuits</button>
+        <button [class.active]="price() === 'payant'" (click)="set('prix', 'payant')">Payants</button>
       </div>
-      <select [(ngModel)]="role" name="role" aria-label="Public">
+      <select [ngModel]="audience()" (ngModelChange)="set('public', $event)" name="public" aria-label="Public">
         <option value="">Tous les publics</option>
         @for (a of aud.list(); track a.code) { <option [value]="a.code">{{ a.label }}</option> }
       </select>
-      @if (tab() === 'cours') {
-        <select [(ngModel)]="domain" name="domain" aria-label="Domaine">
-          <option [ngValue]="0">Tous les domaines</option>
-          @for (d of cat()?.domains ?? []; track d.id) { <option [ngValue]="d.id">{{ d.name }}</option> }
+      <select [ngModel]="level()" (ngModelChange)="set('niveau', $event)" name="niveau" aria-label="Niveau">
+        <option value="">Tous les niveaux</option>
+        @for (l of levels; track l.key) { <option [value]="l.key">{{ l.label }}</option> }
+      </select>
+      <select [ngModel]="duration()" (ngModelChange)="set('duree', $event)" name="duree" aria-label="Durée">
+        <option value="">Toutes les durées</option>
+        <option value="court">Moins d'une heure</option>
+        <option value="moyen">1 à 3 heures</option>
+        <option value="long">Plus de 3 heures</option>
+      </select>
+      @if (languages().length > 1) {
+        <select [ngModel]="lang()" (ngModelChange)="set('langue', $event)" name="langue" aria-label="Langue">
+          <option value="">Toutes les langues</option>
+          @for (l of languages(); track l) { <option [value]="l">{{ langLabel(l) }}</option> }
         </select>
       }
+      @if (tab() === 'cours') {
+        <select [ngModel]="domain()" (ngModelChange)="set('domaine', $event)" name="domaine" aria-label="Domaine">
+          <option value="">Tous les domaines</option>
+          @for (d of cat()?.domains ?? []; track d.id) { <option [value]="'' + d.id">{{ d.name }}</option> }
+        </select>
+      }
+      @if (activeCount()) { <button class="btn ghost" (click)="clear()"><app-icon name="x" [size]="16" /> Effacer les filtres</button> }
     </div>
 
     @if (auth.isLoggedIn() && !auth.isStaff()) {
@@ -60,80 +101,88 @@ type PriceFilter = 'all' | 'free' | 'paid';
     }
 
     @if (!cat()) {
-      <div class="grid cols-3">@for (i of [1, 2, 3]; track i) {<div class="skeleton" style="height:260px"></div>}</div>
+      <div class="card-grid">@for (i of [1, 2, 3, 4, 5, 6]; track i) {<div class="skeleton cc-skel"></div>}</div>
     } @else if (tab() === 'formations') {
-      <div class="grid cols-3 section">
+      <div class="card-grid section">
         @for (p of programs(); track p.id) {
-          <a class="card course-card cat-card" [routerLink]="['/formations', p.id]">
-            <app-cover class="card-cover" [icon]="p.icon" [seed]="p.id + 3" [height]="110" [label]="p.title" />
-            <div class="row" style="justify-content:space-between">
-              <span class="tag sun">Formation</span>
-              @if (forMe(p.targetRoles)) { <span class="tag">Pour vous</span> }
-            </div>
-            <h3>{{ p.title }}</h3>
-            <p class="small muted clamp">{{ p.description }}</p>
-            <div class="meta"><span><app-icon name="book" [size]="14" /> {{ p.courseCount }} cours</span><span><app-icon name="clock" [size]="14" /> {{ dur(p.totalMinutes) }}</span><span><app-icon name="award" [size]="14" /> Certifiante</span></div>
-            <div class="cat-foot">
-              @if (enrolledProgram(p.id); as me) {
-                <span class="small"><strong>{{ me.percent }} %</strong> · inscrit·e</span>
-              } @else {
-                <span class="price-tag" [class.free]="!p.price">{{ priceLabel(p.price) }}</span>
-              }
-              <span class="link small">Voir <app-icon name="arrow" [size]="14" /></span>
-            </div>
-          </a>
-        } @empty { <p class="muted">Aucune formation ne correspond à votre recherche.</p> }
+          @let me = enrolledProgram(p.id);
+          <app-course-card [item]="p" kind="program" [forMe]="forMe(p.targetRoles)" [popularFrom]="popular()"
+                           [progress]="me ? me.percent : null" [status]="me ? me.percent + ' % · inscrit·e' : null" />
+        }
       </div>
+      @if (!programs().length) { <ng-container *ngTemplateOutlet="empty" /> }
     } @else {
-      <div class="grid cols-3 section">
+      <div class="card-grid section">
         @for (c of courses(); track c.id) {
-          <a class="card course-card cat-card" [routerLink]="['/cours', c.id]">
-            <app-cover class="card-cover" [icon]="c.icon" [seed]="c.id" [height]="96" [label]="c.title" />
-            <div class="row" style="justify-content:space-between">
-              <span class="xs muted">{{ c.domainName }}</span>
-              @if (forMe(c.targetRoles)) { <span class="tag">Pour vous</span> }
-            </div>
-            <h3>{{ c.title }}</h3>
-            <div class="meta"><span><app-icon name="book-open" [size]="14" /> {{ c.lessonCount }} leçons</span><span><app-icon name="clock" [size]="14" /> {{ dur(c.totalMinutes) }}</span>
-              @if (c.hasVideo) {<span><app-icon name="video" [size]="14" /></span>} @if (c.hasAudio) {<span><app-icon name="headphones" [size]="14" /></span>}</div>
-            <div class="cat-foot">
-              @if (enrolledCourse(c.id); as me) {
-                @let st = status(me);
-                <span class="small"><strong>{{ st.percent }} %</strong> · {{ st.label }}</span>
-              } @else {
-                <span class="price-tag" [class.free]="!c.price">{{ priceLabel(c.price) }}</span>
-              }
-              <span class="link small">Voir <app-icon name="arrow" [size]="14" /></span>
-            </div>
-          </a>
-        } @empty { <p class="muted">Aucun cours ne correspond à votre recherche.</p> }
+          @let me = enrolledCourse(c.id);
+          <app-course-card [item]="c" [forMe]="forMe(c.targetRoles)" [popularFrom]="popular()"
+                           [progress]="me ? status(me).percent : null" [status]="me ? status(me).percent + ' % · ' + status(me).label : null" />
+        }
       </div>
+      @if (!courses().length) { <ng-container *ngTemplateOutlet="empty" /> }
     }
+
+    <ng-template #empty>
+      <div class="empty-state">
+        <app-icon name="search" [size]="36" />
+        <h3>Aucun résultat</h3>
+        <p class="muted">Essayez un autre mot ou retirez des filtres.</p>
+        <button class="btn" (click)="clear()">Effacer la recherche et les filtres</button>
+      </div>
+    </ng-template>
   `,
 })
 export class CatalogPage implements OnInit {
   protected auth = inject(AuthService);
   private api = inject(CatalogApi);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  protected aud = inject(AudienceService);
 
   cat = signal<Catalog | null>(null);
   error = signal('');
-  tab = signal<Tab>('formations');
-  price = signal<PriceFilter>('all');
-  private qs = signal('');
-  private roleS = signal('');
-  private domainS = signal(0);
-  protected aud = inject(AudienceService);
+  filtersOpen = signal(false);
+  levels = (Object.keys(LEVEL_LABELS) as Level[]).map((k) => ({ key: k, label: LEVEL_LABELS[k] }));
 
-  get q(): string { return this.qs(); }
-  set q(v: string) { this.qs.set(v); }
-  get role(): string { return this.roleS(); }
-  set role(v: string) { this.roleS.set(v); }
-  get domain(): number { return this.domainS(); }
-  set domain(v: number) { this.domainS.set(Number(v)); }
+  /** Etat = parametres de l'adresse. */
+  private params = signal<Record<string, string>>({});
+  q = computed(() => this.params()['q'] ?? '');
+  tab = computed<Tab>(() => (this.params()['onglet'] === 'cours' ? 'cours' : 'formations'));
+  price = computed(() => this.params()['prix'] ?? '');
+  audience = computed(() => this.params()['public'] ?? '');
+  level = computed(() => this.params()['niveau'] ?? '');
+  duration = computed(() => (this.params()['duree'] ?? '') as Duration);
+  lang = computed(() => this.params()['langue'] ?? '');
+  domain = computed(() => this.params()['domaine'] ?? '');
+  sort = computed(() => (this.params()['tri'] ?? 'pertinence') as Sort);
+  activeCount = computed(() => ['prix', 'public', 'niveau', 'duree', 'langue', 'domaine'].filter((k) => this.params()[k]).length);
 
-  programs = computed(() => this.sorted((this.cat()?.programs ?? []).filter((p) => this.keep(p.title + ' ' + p.description + ' ' + p.domains.join(' '), p.price, p.targetRoles))));
+  languages = computed(() => [...new Set((this.cat()?.courses ?? []).map((c) => c.languageCode).filter((l): l is string => !!l))]);
+
+  programs = computed(() => this.sorted((this.cat()?.programs ?? []).filter((p) =>
+    this.keep(p.title + ' ' + p.description + ' ' + p.domains.join(' '), p.price, p.targetRoles, p.level, p.totalMinutes, null))));
   courses = computed(() => this.sorted((this.cat()?.courses ?? []).filter((c) =>
-    this.keep(c.title + ' ' + c.description + ' ' + (c.domainName ?? ''), c.price, c.targetRoles) && (!this.domainS() || c.domainId === this.domainS()))));
+    this.keep(c.title + ' ' + c.description + ' ' + (c.domainName ?? ''), c.price, c.targetRoles, c.level, c.totalMinutes, c.languageCode)
+    && (!this.domain() || String(c.domainId) === this.domain()))));
+  results = computed(() => (this.tab() === 'cours' ? this.courses() : this.programs()).length);
+
+  popular = computed(() => {
+    const l = [...(this.cat()?.courses ?? []), ...(this.cat()?.programs ?? [])].map((x) => x.learners).sort((a, b) => b - a);
+    return l.length >= 4 ? Math.max(1, l[Math.floor(l.length / 5)]) : Number.MAX_SAFE_INTEGER;
+  });
+
+  constructor() {
+    this.route.queryParamMap.subscribe((m) => {
+      const o: Record<string, string> = {};
+      m.keys.forEach((k) => (o[k] = m.get(k) ?? ''));
+      this.params.set(o);
+    });
+    // un filtre actif ouvre le panneau sur mobile
+    effect(() => {
+      const n = this.activeCount();
+      untracked(() => n && this.filtersOpen.set(true));
+    });
+  }
 
   async ngOnInit(): Promise<void> {
     void this.aud.load();
@@ -145,18 +194,43 @@ export class CatalogPage implements OnInit {
     }
   }
 
-  private keep(text: string, price: number, roles: string[]): boolean {
-    const q = norm(this.qs());
+  set(key: string, value: string): void {
+    const p = { ...this.params(), [key]: value };
+    if (key === 'onglet' && value === 'formations') delete p['domaine'];
+    Object.keys(p).forEach((k) => !p[k] && delete p[k]);
+    void this.router.navigate([], { queryParams: p, replaceUrl: true });
+  }
+
+  clear(): void {
+    const keep = this.tab() === 'cours' ? { onglet: 'cours' } : {};
+    void this.router.navigate([], { queryParams: keep, replaceUrl: true });
+  }
+
+  private keep(text: string, price: number, roles: string[], level: string, minutes: number, lang: string | null): boolean {
+    const q = norm(this.q());
     if (q && !q.split(/\s+/).every((w) => norm(text).includes(w))) return false;
-    if (this.price() === 'free' && price > 0) return false;
-    if (this.price() === 'paid' && price === 0) return false;
-    if (this.roleS() && roles.length && !roles.includes(this.roleS())) return false;
+    if (this.price() === 'gratuit' && price > 0) return false;
+    if (this.price() === 'payant' && price === 0) return false;
+    if (this.audience() && roles.length && !roles.includes(this.audience())) return false;
+    if (this.level() && level !== this.level()) return false;
+    const d = this.duration();
+    if (d === 'court' && minutes >= 60) return false;
+    if (d === 'moyen' && (minutes < 60 || minutes > 180)) return false;
+    if (d === 'long' && minutes <= 180) return false;
+    if (this.lang() && lang && lang !== this.lang()) return false;
     return true;
   }
 
-  /** Les contenus pour le public de l'utilisateur d'abord. */
   private sorted<T extends CatalogCourse | CatalogProgram>(list: T[]): T[] {
-    return [...list].sort((a, b) => Number(this.forMe(b.targetRoles)) - Number(this.forMe(a.targetRoles)));
+    const s = this.sort();
+    const by = (f: (x: T) => number) => [...list].sort((a, b) => f(b) - f(a));
+    switch (s) {
+      case 'populaires': return by((x) => x.learners);
+      case 'notes': return by((x) => x.rating * 1000 + x.ratingCount);
+      case 'recents': return by((x) => Date.parse((x as CatalogCourse).updatedAt ?? '') || x.id);
+      case 'courts': return [...list].sort((a, b) => a.totalMinutes - b.totalMinutes);
+      default: return [...list].sort((a, b) => Number(this.forMe(b.targetRoles)) - Number(this.forMe(a.targetRoles)) || b.learners - a.learners);
+    }
   }
 
   forMe(roles: string[]): boolean {
@@ -173,9 +247,11 @@ export class CatalogPage implements OnInit {
     return this.api.mine()?.programs.find((p) => p.programId === id) ?? null;
   }
 
+  langLabel(code: string): string {
+    return LANGS[code] ?? code.toUpperCase();
+  }
+
   status = courseStatus;
-  priceLabel = priceLabel;
-  dur = durationLabel;
 }
 
 function norm(s: string): string {

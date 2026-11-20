@@ -1,82 +1,162 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { AudienceService } from '../core/audience.service';
 import { CatalogApi } from '../core/catalog.service';
-import { CatalogProgram, durationLabel, priceLabel } from '../core/models';
+import { EngagementApi } from '../core/engagement.service';
+import { Catalog, PublicStats } from '../core/models';
+import { CourseCardComponent } from '../shared/course-card.component';
 import { IconComponent } from '../shared/icon.component';
-import { CoverComponent, HeroArtComponent } from '../shared/visuals';
+import { SiteFooterComponent } from '../shared/site-footer.component';
+import { StarsComponent } from '../shared/stars.component';
+import { AvatarComponent, HeroArtComponent } from '../shared/visuals';
 
-/** Accueil public : ce que c'est, comment ca marche en 4 etapes, les formations a la une. */
+/** Accueil public : la promesse, la recherche, les chiffres reels, par public, a la une, avis, comment ca marche. */
 @Component({
   selector: 'app-landing',
-  imports: [RouterLink, IconComponent, CoverComponent, HeroArtComponent],
+  imports: [FormsModule, RouterLink, IconComponent, HeroArtComponent, CourseCardComponent, SiteFooterComponent, StarsComponent, AvatarComponent],
   template: `
     <section class="land-hero">
       <div class="land-copy">
-        <span class="tag sun">Formation en ligne et hors connexion</span>
-        <h1>Apprenez à votre rythme.<br />Obtenez un certificat reconnu.</h1>
-        <p class="lead">Des formations courtes pour les enseignant·es, les parents, les jeunes et les éducateur·trices : leçons en texte, audio ou vidéo, un quiz après chaque notion, un certificat à la fin. Même sans réseau.</p>
-        <div class="row">
-          <a class="btn primary lg" routerLink="/catalogue"><app-icon name="search" /> Découvrir les formations</a>
-          <a class="btn lg" routerLink="/inscription">Créer un compte gratuit</a>
+        <span class="tag sun"><app-icon name="wifi-off" [size]="13" /> En ligne et sans connexion</span>
+        <h1>Apprenez à votre rythme.<br /><span class="hl">Obtenez un certificat reconnu.</span></h1>
+        <p class="lead">Des formations courtes et pratiques pour les enseignant·es, les parents, les jeunes et les travailleur·ses sociaux : leçons en texte, audio ou vidéo, un quiz après chaque notion, un certificat vérifiable à la fin.</p>
+        <form class="hero-search" (ngSubmit)="search()" role="search">
+          <app-icon name="search" [size]="20" />
+          <input type="search" name="q" [(ngModel)]="q" placeholder="Que voulez-vous apprendre ? Ex. : émotions, conflits…" aria-label="Rechercher une formation" />
+          <button class="primary" type="submit">Rechercher</button>
+        </form>
+        <div class="hero-trust small">
+          @if (stats(); as s) {
+            @if (s.ratings) { <app-stars [value]="s.rating" [count]="s.ratings" /> }
+            <span><app-icon name="users" [size]="15" /> {{ fmt(s.learners) }} apprenant·es</span>
+          }
+          <span><app-icon name="check-circle" [size]="15" /> Inscription gratuite</span>
         </div>
-        <p class="small muted">Déjà inscrit·e ? <a routerLink="/login">Se connecter</a></p>
       </div>
       <div class="land-art"><app-hero-art /></div>
     </section>
 
+    @if (stats(); as s) {
+      <section class="stat-band" aria-label="La plateforme en chiffres">
+        <div><strong>{{ fmt(s.learners) }}</strong><span>apprenant·es inscrit·es</span></div>
+        <div><strong>{{ fmt(s.certificates) }}</strong><span>certificats délivrés</span></div>
+        <div><strong>{{ s.courses }}</strong><span>cours disponibles</span></div>
+        <div><strong>{{ s.rating ? s.rating.toLocaleString('fr-FR') + ' / 5' : '—' }}</strong><span>satisfaction moyenne</span></div>
+      </section>
+    }
+
     <section class="section">
-      <h2 class="center">Comment ça marche</h2>
-      <ol class="steps4">
-        <li><span class="s4-ic"><app-icon name="user" [size]="26" /></span><strong>1. Créez votre compte</strong><span class="small muted">Gratuit, en 1 minute.</span></li>
-        <li><span class="s4-ic"><app-icon name="search" [size]="26" /></span><strong>2. Choisissez une formation</strong><span class="small muted">Gratuite ou payante, inscription en un clic.</span></li>
-        <li><span class="s4-ic"><app-icon name="book-open" [size]="26" /></span><strong>3. Suivez les leçons dans l'ordre</strong><span class="small muted">Un quiz valide chaque notion avant la suivante.</span></li>
-        <li><span class="s4-ic"><app-icon name="award" [size]="26" /></span><strong>4. Obtenez votre certificat</strong><span class="small muted">Après l'évaluation finale. Vérifiable et partageable sur LinkedIn.</span></li>
-      </ol>
+      <div class="section-head"><h2>Pour qui ?</h2></div>
+      <div class="aud-grid">
+        @for (a of audiences(); track a.code) {
+          <a class="aud-tile" routerLink="/catalogue" [queryParams]="{ public: a.code }">
+            <span class="aud-ic"><app-icon [name]="a.icon || 'user'" [size]="24" /></span>
+            <strong>{{ a.label }}</strong>
+            <span class="xs muted">{{ countFor(a.code) }} formation{{ countFor(a.code) > 1 ? 's' : '' }}</span>
+          </a>
+        }
+      </div>
     </section>
 
     @if (featured().length) {
       <section class="section">
-        <div class="section-head"><h2>Formations à la une</h2><a routerLink="/catalogue" class="small">Tout le catalogue</a></div>
-        <div class="grid cols-3">
-          @for (p of featured(); track p.id) {
-            <a class="card course-card cat-card" [routerLink]="['/formations', p.id]">
-              <app-cover class="card-cover" [icon]="p.icon" [seed]="p.id + 3" [height]="110" [label]="p.title" />
-              <h3>{{ p.title }}</h3>
-              <p class="small muted clamp">{{ p.description }}</p>
-              <div class="meta"><span><app-icon name="book" [size]="14" /> {{ p.courseCount }} cours</span><span><app-icon name="clock" [size]="14" /> {{ dur(p.totalMinutes) }}</span></div>
-              <div class="cat-foot"><span class="price-tag" [class.free]="!p.price">{{ price(p.price) }}</span><span class="link small">Voir <app-icon name="arrow" [size]="14" /></span></div>
-            </a>
+        <div class="section-head"><h2>Formations certifiantes</h2><a routerLink="/catalogue" class="link-strong">Tout le catalogue <app-icon name="arrow" [size]="16" /></a></div>
+        <div class="card-grid">
+          @for (p of featured(); track p.id) { <app-course-card [item]="p" kind="program" [popularFrom]="popular()" /> }
+        </div>
+      </section>
+    }
+
+    <section class="section how-band">
+      <h2>Comment ça marche</h2>
+      <ol class="steps4">
+        <li><span class="s4-n">1</span><span class="s4-ic"><app-icon name="user" [size]="24" /></span><strong>Créez votre compte</strong><span class="small muted">Gratuit, en une minute.</span></li>
+        <li><span class="s4-n">2</span><span class="s4-ic"><app-icon name="search" [size]="24" /></span><strong>Choisissez une formation</strong><span class="small muted">Gratuite, par licence de votre institution ou par Mobile Money.</span></li>
+        <li><span class="s4-n">3</span><span class="s4-ic"><app-icon name="book-open" [size]="24" /></span><strong>Apprenez pas à pas</strong><span class="small muted">Une notion, un quiz, puis la suivante. Même hors connexion.</span></li>
+        <li><span class="s4-n">4</span><span class="s4-ic"><app-icon name="award" [size]="24" /></span><strong>Obtenez votre certificat</strong><span class="small muted">Vérifiable en ligne et partageable sur LinkedIn.</span></li>
+      </ol>
+    </section>
+
+    @if (stats()?.testimonials?.length) {
+      <section class="section">
+        <div class="section-head"><h2>Ce qu'en disent les apprenant·es</h2></div>
+        <div class="testi-grid">
+          @for (t of stats()!.testimonials.slice(0, 3); track $index) {
+            <figure class="testi">
+              <app-icon name="quote" [size]="22" />
+              <blockquote>{{ t.comment }}</blockquote>
+              <figcaption>
+                <app-avatar [name]="t.author" [size]="36" />
+                <div><strong>{{ t.author }}</strong><div class="xs muted">{{ t.courseTitle }}</div></div>
+                <span class="testi-stars" [attr.aria-label]="t.rating + ' sur 5'">{{ '★'.repeat(t.rating) }}</span>
+              </figcaption>
+            </figure>
           }
         </div>
       </section>
     }
 
     <section class="section feat4">
-      <div><app-icon name="wifi-off" [size]="26" /><strong>Sans connexion</strong><span class="small muted">Téléchargez un cours, apprenez partout. La progression s'envoie au retour du réseau.</span></div>
+      <div><app-icon name="wifi-off" [size]="26" /><strong>Sans connexion</strong><span class="small muted">Téléchargez un cours, apprenez partout. La progression part au retour du réseau.</span></div>
       <div><app-icon name="headphones" [size]="26" /><strong>Texte, audio, vidéo</strong><span class="small muted">Sous-titres, transcriptions et lecture à voix haute.</span></div>
       <div><app-icon name="sparkles" [size]="26" /><strong>Mentor IA</strong><span class="small muted">Une question sur une leçon ? Réponse immédiate, à chaque étape.</span></div>
       <div><app-icon name="users" [size]="26" /><strong>Classes et mentorat</strong><span class="small muted">Suivez une formation en groupe, avec un·e conseiller·ère.</span></div>
     </section>
 
-    <footer class="land-foot small muted">
-      <span>Apprendre Ensemble · plateforme de démonstration</span>
-      <a routerLink="/catalogue">Catalogue</a>
-      <a routerLink="/login">Connexion</a>
-    </footer>
+    <section class="cta-band">
+      <div>
+        <h2>Prêt·e à commencer ?</h2>
+        <p>Créez votre compte gratuit et suivez votre première leçon dès aujourd'hui.</p>
+      </div>
+      <div class="row">
+        <a class="btn sun lg" routerLink="/inscription">Créer mon compte gratuit</a>
+        <a class="btn lg ghost-light" routerLink="/catalogue">Voir le catalogue</a>
+      </div>
+    </section>
+
+    <app-site-footer />
   `,
 })
 export class LandingPage implements OnInit {
   private api = inject(CatalogApi);
-  featured = signal<CatalogProgram[]>([]);
+  private engagement = inject(EngagementApi);
+  private router = inject(Router);
+  protected aud = inject(AudienceService);
+
+  cat = signal<Catalog | null>(null);
+  stats = signal<PublicStats | null>(null);
+  q = '';
+
+  featured = computed(() => [...(this.cat()?.programs ?? [])].sort((a, b) => b.learners - a.learners).slice(0, 6));
+  audiences = computed(() => this.aud.list().filter((a) => this.countFor(a.code) > 0));
+  /** Populaire : le quart le plus suivi. */
+  popular = computed(() => {
+    const l = (this.cat()?.programs ?? []).map((p) => p.learners).sort((a, b) => b - a);
+    return l.length >= 4 ? Math.max(1, l[Math.floor(l.length / 4)]) : Number.MAX_SAFE_INTEGER;
+  });
 
   async ngOnInit(): Promise<void> {
+    void this.aud.load();
+    void this.engagement.stats().then((s) => this.stats.set(s)).catch(() => undefined);
     try {
-      this.featured.set((await this.api.catalog()).data.programs.slice(0, 6));
+      this.cat.set((await this.api.catalog()).data);
     } catch {
       /* hors ligne : la page reste utile sans la liste */
     }
   }
 
-  price = priceLabel;
-  dur = durationLabel;
+  countFor(code: string): number {
+    const c = this.cat();
+    if (!c) return 0;
+    return c.programs.filter((p) => p.targetRoles.includes(code)).length + c.courses.filter((x) => x.targetRoles.includes(code)).length;
+  }
+
+  search(): void {
+    void this.router.navigate(['/catalogue'], { queryParams: this.q.trim() ? { q: this.q.trim() } : {} });
+  }
+
+  fmt(n: number): string {
+    return n.toLocaleString('fr-FR');
+  }
 }

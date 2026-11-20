@@ -16,6 +16,9 @@ import { IconComponent } from '../shared/icon.component';
 import { MarkdownPipe } from '../shared/markdown.pipe';
 import { SpeakButtonComponent } from '../shared/speak-button.component';
 import { MedalComponent } from '../shared/visuals';
+import { EngagementApi } from '../core/engagement.service';
+import { NoteItem } from '../core/models';
+import { QuestionComponent, checkSolution } from '../shared/question.component';
 
 type StepKind = 'lesson' | 'check' | 'exam' | 'end';
 
@@ -34,9 +37,10 @@ interface Step {
  */
 @Component({
   selector: 'app-player',
-  imports: [RouterLink, FormsModule, IconComponent, MarkdownPipe, SpeakButtonComponent, MedalComponent],
+  imports: [RouterLink, FormsModule, IconComponent, MarkdownPipe, SpeakButtonComponent, MedalComponent, QuestionComponent],
+  host: { '(document:keydown)': 'onKey($event)' },
   template: `
-    <div class="cp">
+    <div class="cp" [class.focus-mode]="focusMode()">
       <header class="cp-top">
         <a routerLink="/accueil" class="btn ghost icon-btn" title="Quitter le cours" aria-label="Quitter le cours"><app-icon name="x" /></a>
         <div class="cp-title">
@@ -46,8 +50,11 @@ interface Step {
         @if (pkg()) {
           <div class="cp-progress" [attr.aria-label]="'Progression ' + percent() + ' %'">
             <div class="progress"><div [style.width.%]="percent()"></div></div>
-            <span class="small"><strong>{{ percent() }} %</strong></span>
+            <span class="small"><strong>{{ percent() }} %</strong>@if (remaining() > 0) { <span class="muted"> · encore {{ remainingLabel() }}</span> }</span>
           </div>
+          <button class="btn ghost icon-btn" (click)="notesOpen.set(!notesOpen())" [class.on]="notesOpen()" title="Mes notes (N)" aria-label="Mes notes"><app-icon name="note" [size]="18" /></button>
+          <button class="btn ghost icon-btn hide-sm-flex" (click)="toggleFocus()" [title]="focusMode() ? 'Quitter le mode concentration (F)' : 'Mode concentration (F)'" [attr.aria-pressed]="focusMode()"><app-icon [name]="focusMode() ? 'minimize' : 'maximize'" [size]="18" /></button>
+          <button class="btn ghost icon-btn hide-sm-flex" (click)="helpOpen.set(true)" title="Raccourcis clavier (?)" aria-label="Raccourcis clavier"><app-icon name="keyboard" [size]="18" /></button>
           <button class="btn ghost cp-dl" (click)="download()" [disabled]="downloading() || !learning.online()" [title]="offline() ? 'Disponible hors connexion' : 'Télécharger pour suivre le cours sans connexion'">
             <app-icon [name]="offline() ? 'check-circle' : 'download'" [size]="18" />
             <span class="hide-sm">{{ downloading() ? 'Téléchargement ' + dlPct() + ' %' : offline() ? 'Hors ligne' : 'Télécharger' }}</span>
@@ -89,6 +96,9 @@ interface Step {
                       <span class="xs muted">{{ stepKicker(s) }}</span>
                       {{ s.title }}
                     </span>
+                    @if (s.kind === 'lesson' && noteFor(s.lesson!.id); as n) {
+                      <app-icon [name]="n.bookmarked ? 'bookmark' : 'note'" [size]="14" class="plan-mark" />
+                    }
                   </button>
                 </li>
               }
@@ -109,20 +119,37 @@ interface Step {
                     </div>
                     <div class="row" style="align-items:flex-start">
                       <h1 style="flex:1">{{ l.title }}</h1>
+                      <button class="btn ghost icon-btn" (click)="toggleBookmark(l.id)" [class.on]="noteFor(l.id)?.bookmarked"
+                              [title]="noteFor(l.id)?.bookmarked ? 'Retirer le signet (B)' : 'Ajouter un signet (B)'" [attr.aria-pressed]="!!noteFor(l.id)?.bookmarked">
+                        <app-icon name="bookmark" [size]="20" /></button>
                       @if (l.mediaType === 'TEXT') { <app-speak [text]="l.title + '. ' + l.content" [label]="true" /> }
                     </div>
 
                     @if (l.mediaType === 'VIDEO' && l.mediaUrl) {
                       @if (src()) {
                         <div class="player">
-                          <video #video [src]="src()" controls playsinline preload="metadata">
+                          <video #video [src]="src()" controls playsinline preload="metadata" (timeupdate)="onVideoTime()" (loadedmetadata)="restorePosition()"
+                                 (play)="playing.set(true)" (pause)="playing.set(false)">
                             @if (vtt()) { <track kind="subtitles" srclang="fr" label="Français" [src]="vtt()" default /> }
                           </video>
                         </div>
                         <div class="row media-tools">
                           <span class="small muted">Vitesse</span>
                           <div class="speed">@for (r of speeds; track r) {<button [class.active]="rate() === r" (click)="setRate(r)">{{ r }}×</button>}</div>
+                          <span style="flex:1"></span>
+                          <button class="btn ghost small-btn" (click)="skip(-10)" title="Reculer de 10 s (J)"><app-icon name="back" [size]="14" /> 10 s</button>
+                          <button class="btn ghost small-btn" (click)="skip(10)" title="Avancer de 10 s (L)">10 s <app-icon name="arrow" [size]="14" /></button>
                         </div>
+                        @if (cues().length) {
+                          <details class="transcript card flat live-transcript" open>
+                            <summary><app-icon name="text" /> &nbsp;Transcription interactive <span class="xs muted">&nbsp;· touchez une phrase pour y aller</span></summary>
+                            <div class="cues">
+                              @for (c of cues(); track $index; let i = $index) {
+                                <button class="cue" [class.active]="i === cueIndex()" (click)="seekTo(c.start)"><span class="xs muted">{{ fmt(c.start) }}</span> {{ c.text }}</button>
+                              }
+                            </div>
+                          </details>
+                        }
                       } @else {
                         <button class="media-gate" (click)="load()" [disabled]="!learning.online()">
                           <span class="play-circle"><app-icon [name]="learning.online() ? 'play' : 'wifi-off'" [size]="30" /></span>
@@ -135,7 +162,7 @@ interface Step {
                     @if (l.mediaType === 'AUDIO' && l.mediaUrl) {
                       <div class="audio-player">
                         @if (src()) {
-                          <audio #audio [src]="src()" preload="metadata" (timeupdate)="onTime()" (loadedmetadata)="onTime()" (pause)="playing.set(false)" (play)="playing.set(true)"></audio>
+                          <audio #audio [src]="src()" preload="metadata" (timeupdate)="onTime()" (loadedmetadata)="onTime(); restorePosition()" (pause)="playing.set(false)" (play)="playing.set(true)"></audio>
                         }
                         <button class="big-play" (click)="src() ? togglePlay() : loadAndPlay()" [disabled]="!src() && !learning.online()" [attr.aria-label]="playing() ? 'Pause' : 'Lecture'">
                           <app-icon [name]="playing() ? 'pause' : 'play'" [size]="30" /></button>
@@ -150,7 +177,7 @@ interface Step {
 
                     @if (l.mediaType === 'TEXT') {
                       <div class="content reading" [innerHTML]="l.content | markdown"></div>
-                    } @else if (l.content) {
+                    } @else if (l.content && !cues().length) {
                       <details class="transcript card flat">
                         <summary><app-icon name="text" /> &nbsp;Transcription</summary>
                         <div class="content" [innerHTML]="l.content | markdown"></div>
@@ -179,6 +206,18 @@ interface Step {
                         }
                       </section>
                     }
+
+                    @if (upNext(); as nx) {
+                      <div class="up-next">
+                        <span class="xs muted">À suivre</span>
+                        <div class="row" style="flex-wrap:nowrap">
+                          <span class="un-ic"><app-icon [name]="stepIcon(nx)" [size]="20" /></span>
+                          <div style="flex:1;min-width:0"><strong>{{ nx.kind === 'check' ? 'Quiz : testez vos connaissances' : nx.title }}</strong>
+                            <div class="xs muted">{{ stepKicker(nx) }}</div></div>
+                          <button class="primary" (click)="next()" [disabled]="busy()">{{ nextLabel() }} <app-icon name="arrow" /></button>
+                        </div>
+                      </div>
+                    }
                   </article>
                 }
 
@@ -191,14 +230,8 @@ interface Step {
                     <p class="muted">Répondez pour valider la notion et passer à la suite. Vous pouvez réessayer autant de fois que nécessaire.</p>
                     @for (q of l.checks; track q.id; let qi = $index) {
                       <div class="check-q">
-                        <div class="row" style="align-items:flex-start"><strong style="flex:1">{{ qi + 1 }}. {{ q.question }}</strong><app-speak [text]="q.question + '. ' + q.options.join('. ')" /></div>
-                        @for (o of q.options; track $index; let j = $index) {
-                          <button class="option-card" [class.selected]="checkAnswers()[qi] === j"
-                                  [class.right]="checked() && j === q.correctIndex" [class.wrong]="checked() && checkAnswers()[qi] === j && j !== q.correctIndex"
-                                  [disabled]="checked()" (click)="pickCheck(qi, j)">
-                            <span class="letter">{{ letters[j] }}</span>{{ o }}
-                          </button>
-                        }
+                        <app-question [question]="q" [number]="qi + 1" [value]="checkAnswers()[qi]" (valueChange)="pickCheck(qi, $event)"
+                                      [clientShuffle]="true" [disabled]="checked()" [reveal]="checked()" [solution]="solutionOf(q)" />
                         @if (checked() && q.explanation) { <div class="notice info small"><app-icon name="lightbulb" [size]="16" /> {{ q.explanation }}</div> }
                       </div>
                     }
@@ -236,10 +269,9 @@ interface Step {
                         @if (examQ(); as q) {
                           <div class="lesson-kicker">Question {{ examIndex() + 1 }} sur {{ p.questions.length }}</div>
                           <div class="progress" style="margin:.4rem 0 1rem"><div [style.width.%]="(examIndex() + 1) * 100 / p.questions.length"></div></div>
-                          <div class="row" style="align-items:flex-start"><h2 style="flex:1">{{ q.question }}</h2><app-speak [text]="q.question + '. ' + q.options.join('. ')" /></div>
-                          @for (o of q.options; track $index; let j = $index) {
-                            <button class="option-card" [class.selected]="examAnswers()[examIndex()] === j" (click)="pickExam(j)"><span class="letter">{{ letters[j] }}</span>{{ o }}</button>
-                          }
+                          <div class="exam-q">
+                            <app-question [question]="q" [value]="examAnswers()[examIndex()]" (valueChange)="pickExam($event)" />
+                          </div>
                           <div class="row" style="margin-top:1rem">
                             <button class="btn" (click)="examIndex() === 0 ? examStage.set('intro') : examIndex.set(examIndex() - 1)"><app-icon name="back" /> Précédente</button>
                             <span style="flex:1"></span>
@@ -270,10 +302,8 @@ interface Step {
                             <summary class="row" style="min-height:44px;cursor:pointer"><app-icon name="check-circle" /> <strong>Voir la correction</strong></summary>
                             @for (q of p.questions; track q.id; let i = $index) {
                               <div style="margin-top:1rem">
-                                <strong>{{ i + 1 }}. {{ q.question }}</strong>
-                                @for (o of q.options; track $index; let j = $index) {
-                                  <div class="option-card" [class.right]="j === r.corrections[i].correctIndex" [class.wrong]="j === examAnswers()[i] && !r.corrections[i].correct" style="pointer-events:none"><span class="letter">{{ letters[j] }}</span>{{ o }}</div>
-                                }
+                                <app-question [question]="q" [number]="i + 1" [value]="examAnswers()[i]" [disabled]="true" [reveal]="true"
+                                              [solution]="r.corrections[i].correctIndex" />
                                 @if (r.corrections[i].explanation) { <div class="notice info small"><app-icon name="lightbulb" [size]="16" /> {{ r.corrections[i].explanation }}</div> }
                               </div>
                             }
@@ -326,7 +356,52 @@ interface Step {
               }
             }
           </main>
+
+          @if (notesOpen()) {
+            <aside class="cp-notes" aria-label="Mes notes">
+              <div class="row" style="justify-content:space-between">
+                <h3 style="margin:0"><app-icon name="note" [size]="18" /> Mes notes</h3>
+                <button class="btn ghost icon-btn" (click)="notesOpen.set(false)" aria-label="Fermer les notes"><app-icon name="x" /></button>
+              </div>
+              @if (step()?.lesson; as l) {
+                <label class="small"><strong>Leçon {{ l.position }} · {{ l.title }}</strong>
+                  <textarea rows="7" [ngModel]="noteText()" (ngModelChange)="typeNote(l.id, $event)" placeholder="Ce que je retiens, une idée à essayer en classe…" maxlength="4000"></textarea>
+                </label>
+                <div class="xs muted">{{ noteState() }}</div>
+              } @else {
+                <p class="small muted">Ouvrez une leçon pour prendre des notes.</p>
+              }
+              @if (otherNotes().length) {
+                <h4 class="small" style="margin:1rem 0 .3rem">Mes autres notes dans ce cours</h4>
+                <ul class="note-list">
+                  @for (n of otherNotes(); track n.lessonId) {
+                    <li><button class="link" (click)="openLesson(n.lessonId)">@if (n.bookmarked) {<app-icon name="bookmark" [size]="13" />} Leçon {{ n.lessonPosition || '' }} · {{ n.lessonTitle || 'Leçon' }}</button>
+                      @if (n.text) { <p class="xs">{{ n.text }}</p> }</li>
+                  }
+                </ul>
+              }
+            </aside>
+          }
         </div>
+
+        @if (helpOpen()) {
+          <div class="modal-scrim" (click)="helpOpen.set(false)">
+            <div class="modal" role="dialog" aria-modal="true" aria-label="Raccourcis clavier" (click)="$event.stopPropagation()">
+              <div class="row" style="justify-content:space-between"><h3 style="margin:0">Raccourcis clavier</h3>
+                <button class="icon-btn ghost" (click)="helpOpen.set(false)" aria-label="Fermer"><app-icon name="x" /></button></div>
+              <dl class="keys">
+                <dt><kbd>→</kbd></dt><dd>Étape suivante (si elle est ouverte)</dd>
+                <dt><kbd>←</kbd></dt><dd>Étape précédente</dd>
+                <dt><kbd>K</kbd> ou <kbd>Espace</kbd></dt><dd>Lecture / pause de la vidéo ou de l'audio</dd>
+                <dt><kbd>J</kbd> / <kbd>L</kbd></dt><dd>Reculer / avancer de 10 secondes</dd>
+                <dt><kbd>N</kbd></dt><dd>Ouvrir ou fermer mes notes</dd>
+                <dt><kbd>B</kbd></dt><dd>Ajouter ou retirer un signet</dd>
+                <dt><kbd>F</kbd></dt><dd>Mode concentration</dd>
+                <dt><kbd>?</kbd></dt><dd>Afficher cette aide</dd>
+              </dl>
+            </div>
+          </div>
+        }
 
         @if (step(); as s) {
           @if (s.kind === 'lesson' || s.kind === 'check') {
@@ -403,6 +478,34 @@ export class PlayerPage implements OnDestroy {
 
   rating = signal(0);
   rated = signal(false);
+
+  // notes, concentration, aide, transcription
+  notesOpen = signal(false);
+  focusMode = signal(localStorage.getItem('formation.focus') === '1');
+  helpOpen = signal(false);
+  notes = signal<NoteItem[]>([]);
+  noteText = signal('');
+  noteState = signal('');
+  cues = signal<{ start: number; end: number; text: string }[]>([]);
+  cueIndex = signal(-1);
+  private noteTimer: ReturnType<typeof setTimeout> | undefined;
+  private lastSavedPos = 0;
+  private engagementApi = inject(EngagementApi);
+
+  readonly otherNotes = computed(() => this.notes().filter((n) => n.lessonId !== this.step()?.lesson?.id && (n.text || n.bookmarked)));
+
+  /** Minutes de lecons restantes. */
+  readonly remaining = computed(() => {
+    const p = this.pkg();
+    if (!p) return 0;
+    return p.lessons.filter((l) => !this.read().has(l.id) && !this.learning.isDone(l.id)).reduce((a, l) => a + l.durationMinutes, 0);
+  });
+
+  readonly upNext = computed(() => {
+    const s = this.step();
+    if (s?.kind !== 'lesson') return null;
+    return this.steps()[this.index() + 1] ?? null;
+  });
 
   readonly steps = computed<Step[]>(() => {
     const p = this.pkg();
@@ -508,6 +611,10 @@ export class PlayerPage implements OnDestroy {
       this.read.set(new Set((await this.store.get<number[]>('kv', 'read-' + id).catch(() => undefined)) ?? []));
       const { pkg } = await this.learning.coursePackage(id, me?.contentVersion);
       this.pkg.set(pkg);
+      void this.engagementApi.notes(id).then((n) => {
+        this.notes.set(n);
+        this.noteText.set(this.noteFor(this.step()?.lesson?.id ?? -1)?.text ?? '');
+      });
       void this.catalog.myLearning().then((m) => {
         const c = m.courses.find((x) => x.courseId === id);
         if (c) this.examBest.update((b) => Math.max(b, c.bestScore));
@@ -549,7 +656,10 @@ export class PlayerPage implements OnDestroy {
         const l = s.lesson!;
         await this.markRead(l.id);
         // sans quiz, lire la lecon suffit a la valider
-        if (!l.checks?.length && !this.learning.isDone(l.id)) await this.learning.completeLesson(l.id, (Date.now() - this.startedAt) / 1000);
+        if (!l.checks?.length && !this.learning.isDone(l.id)) {
+          await this.learning.completeLesson(l.id, (Date.now() - this.startedAt) / 1000);
+          this.toast.show({ icon: 'check-circle', title: 'Leçon terminée', text: '+10 points d\'expérience' }, 1800);
+        }
       }
       this.go(this.index() + 1);
     } finally {
@@ -574,6 +684,11 @@ export class PlayerPage implements OnDestroy {
     this.sent.set('');
     this.pfText = '';
     this.pfFile = null;
+    this.cues.set([]);
+    this.cueIndex.set(-1);
+    this.lastSavedPos = 0;
+    this.noteText.set(s.lesson ? (this.noteFor(s.lesson.id)?.text ?? '') : '');
+    this.noteState.set('');
     const p = this.pkg()!;
     if (s.kind === 'lesson') {
       const l = s.lesson!;
@@ -596,7 +711,9 @@ export class PlayerPage implements OnDestroy {
     this.checked.set(false);
   }
 
-  pickCheck(qi: number, j: number): void {
+  solutionOf = checkSolution;
+
+  pickCheck(qi: number, j: number | undefined): void {
     this.checkAnswers.update((a) => a.map((x, i) => (i === qi ? j : x)));
   }
 
@@ -606,11 +723,12 @@ export class PlayerPage implements OnDestroy {
   }
 
   async validateCheck(l: Lesson): Promise<void> {
-    const good = l.checks.filter((q, i) => this.checkAnswers()[i] === q.correctIndex).length;
+    const good = l.checks.filter((q, i) => this.checkAnswers()[i] === checkSolution(q)).length;
     const pct = Math.round((good * 100) / l.checks.length);
     this.checked.set(true);
     if (pct >= this.pkg()!.passScore && !this.learning.isDone(l.id)) {
       await this.learning.completeLesson(l.id, (Date.now() - this.startedAt) / 1000, this.checkAnswers().map((a) => a ?? -1));
+      this.toast.show({ icon: 'check-circle', title: 'Notion validée', text: '+10 points d\'expérience' }, 1800);
     }
   }
 
@@ -622,7 +740,7 @@ export class PlayerPage implements OnDestroy {
     this.examStage.set('questions');
   }
 
-  pickExam(j: number): void {
+  pickExam(j: number | undefined): void {
     this.examAnswers.update((a) => a.map((x, i) => (i === this.examIndex() ? j : x)));
   }
 
@@ -700,6 +818,7 @@ export class PlayerPage implements OnDestroy {
       const v = await this.media.playableUrl(l.subtitlesUrl);
       if (v.startsWith('blob:')) this.blobUrls.push(v);
       this.vtt.set(v);
+      void fetch(v).then((r) => r.text()).then((t) => this.cues.set(parseVtt(t))).catch(() => undefined);
     }
   }
 
@@ -725,6 +844,7 @@ export class PlayerPage implements OnDestroy {
   onTime(): void {
     const a = this.audioEl()?.nativeElement;
     if (!a) return;
+    this.savePosition(a);
     this.time.set(a.currentTime);
     this.duration.set(Number.isFinite(a.duration) ? a.duration : 0);
   }
@@ -756,6 +876,146 @@ export class PlayerPage implements OnDestroy {
     } finally {
       this.sending.set(false);
     }
+  }
+
+  // ---------- reprise, transcription, raccourcis, notes ----------
+  private mediaEl(): HTMLMediaElement | undefined {
+    return this.videoEl()?.nativeElement ?? this.audioEl()?.nativeElement;
+  }
+
+  private posKey(): string {
+    return 'formation.pos.' + (this.step()?.lesson?.id ?? 0);
+  }
+
+  /** Reprend la video ou l'audio la ou on s'etait arrete. */
+  restorePosition(): void {
+    const el = this.mediaEl();
+    if (!el) return;
+    el.playbackRate = this.rate();
+    const t = Number(localStorage.getItem(this.posKey()) ?? 0);
+    if (t > 5 && Number.isFinite(el.duration) && t < el.duration - 5) {
+      el.currentTime = t;
+      this.toast.show({ icon: 'play', title: 'Reprise à ' + this.fmt(t), text: 'Là où vous vous étiez arrêté·e.' }, 2500);
+    }
+  }
+
+  onVideoTime(): void {
+    const el = this.videoEl()?.nativeElement;
+    if (!el) return;
+    this.savePosition(el);
+    const cs = this.cues();
+    if (cs.length) {
+      const i = cs.findIndex((c) => el.currentTime >= c.start && el.currentTime < c.end);
+      if (i !== this.cueIndex()) this.cueIndex.set(i);
+    }
+  }
+
+  private savePosition(el: HTMLMediaElement): void {
+    if (Math.abs(el.currentTime - this.lastSavedPos) < 3) return;
+    this.lastSavedPos = el.currentTime;
+    const end = Number.isFinite(el.duration) && el.currentTime > el.duration - 5;
+    if (end) localStorage.removeItem(this.posKey());
+    else localStorage.setItem(this.posKey(), String(Math.floor(el.currentTime)));
+  }
+
+  seekTo(t: number): void {
+    const el = this.mediaEl();
+    if (!el) return;
+    el.currentTime = t;
+    void el.play().catch(() => undefined);
+  }
+
+  skip(d: number): void {
+    const el = this.mediaEl();
+    if (el) el.currentTime = Math.max(0, el.currentTime + d);
+  }
+
+  toggleMedia(): void {
+    const el = this.mediaEl();
+    if (!el) return;
+    el.playbackRate = this.rate();
+    if (el.paused) void el.play().catch(() => undefined);
+    else el.pause();
+  }
+
+  toggleFocus(): void {
+    this.focusMode.update((v) => !v);
+    localStorage.setItem('formation.focus', this.focusMode() ? '1' : '0');
+  }
+
+  onKey(e: KeyboardEvent): void {
+    const t = e.target as HTMLElement;
+    if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable) return;
+    const s = this.step();
+    if (!s) return;
+    const k = e.key.toLowerCase();
+    if (k === 'escape') {
+      this.helpOpen.set(false);
+      return;
+    }
+    if (k === 'arrowright') {
+      if ((s.kind === 'lesson' || (s.kind === 'check' && this.isDone(s))) && !this.busy()) void this.next();
+    } else if (k === 'arrowleft') {
+      if (this.index() > 0) this.go(this.index() - 1);
+    } else if (k === 'k' || (k === ' ' && t.tagName !== 'BUTTON')) {
+      if (!this.mediaEl()) return;
+      this.toggleMedia();
+    } else if (k === 'j') {
+      this.skip(-10);
+    } else if (k === 'l') {
+      this.skip(10);
+    } else if (k === 'n') {
+      this.notesOpen.update((v) => !v);
+    } else if (k === 'b') {
+      if (s.lesson && s.kind === 'lesson') void this.toggleBookmark(s.lesson.id);
+    } else if (k === 'f') {
+      this.toggleFocus();
+    } else if (e.key === '?') {
+      this.helpOpen.set(true);
+    } else {
+      return;
+    }
+    e.preventDefault();
+  }
+
+  noteFor(lessonId: number): NoteItem | null {
+    return this.notes().find((n) => n.lessonId === lessonId) ?? null;
+  }
+
+  typeNote(lessonId: number, text: string): void {
+    this.noteText.set(text);
+    this.noteState.set('Enregistrement…');
+    clearTimeout(this.noteTimer);
+    this.noteTimer = setTimeout(() => void this.persistNote(lessonId, text, this.noteFor(lessonId)?.bookmarked ?? false), 700);
+  }
+
+  async toggleBookmark(lessonId: number): Promise<void> {
+    const n = this.noteFor(lessonId);
+    const on = !n?.bookmarked;
+    await this.persistNote(lessonId, n?.text ?? (lessonId === this.step()?.lesson?.id ? this.noteText() : ''), on);
+    this.toast.show({ icon: 'bookmark', title: on ? 'Signet ajouté' : 'Signet retiré' }, 1500);
+  }
+
+  private async persistNote(lessonId: number, text: string, bookmarked: boolean): Promise<void> {
+    const p = this.pkg();
+    const l = p?.lessons.find((x) => x.id === lessonId);
+    if (!p || !l) return;
+    const others = this.notes().filter((n) => n.lessonId !== lessonId);
+    this.notes.set(text.trim() || bookmarked
+      ? [...others, { lessonId, lessonTitle: l.title, lessonPosition: l.position, courseId: p.id, courseTitle: p.title, text, bookmarked, updatedAt: new Date().toISOString() }]
+      : others);
+    const online = await this.engagementApi.saveNote(p.id, lessonId, text, bookmarked);
+    this.noteState.set(online ? 'Enregistré' : 'Enregistré sur l\'appareil · envoi au retour du réseau');
+  }
+
+  openLesson(lessonId: number): void {
+    const i = this.steps().findIndex((s) => s.kind === 'lesson' && s.lesson!.id === lessonId);
+    if (i >= 0) this.go(i);
+  }
+
+  remainingLabel(): string {
+    const m = this.remaining();
+    return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0');
   }
 
   // ---------- libelles ----------
@@ -796,4 +1056,22 @@ export class PlayerPage implements OnDestroy {
     this.revoke();
     this.assistant.setContext({});
   }
+}
+
+/** Lecture d'un fichier WebVTT : liste de phrases horodatees pour la transcription interactive. */
+export function parseVtt(text: string): { start: number; end: number; text: string }[] {
+  const out: { start: number; end: number; text: string }[] = [];
+  const toSec = (t: string) => {
+    const p = t.trim().split(':').map(Number);
+    return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + p[1];
+  };
+  for (const block of text.replace(/\r/g, '').split(/\n\n+/)) {
+    const lines = block.split('\n');
+    const i = lines.findIndex((l) => l.includes('-->'));
+    if (i < 0) continue;
+    const [a, b] = lines[i].split('-->');
+    const t = lines.slice(i + 1).join(' ').replace(/<[^>]+>/g, '').trim();
+    if (t) out.push({ start: toSec(a), end: toSec(b.trim().split(' ')[0]), text: t });
+  }
+  return out;
 }

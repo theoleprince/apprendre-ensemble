@@ -110,6 +110,7 @@ public class ConfigAdminService {
         p.setRequiredLevel(in.requiredLevel());
         p.setPublished(in.published());
         p.setPrice(Math.max(0, in.price()));
+        Presentations.apply(p, in.presentation());
         return toAdmin(programs.save(p));
     }
 
@@ -124,7 +125,8 @@ public class ConfigAdminService {
         long n = classrooms.findAll().stream().filter(c -> c.getProgram().getId().equals(p.getId())).count();
         return new ProgramAdmin(p.getId(), p.getTitle(), p.getDescription(), p.getIcon(), p.getDurationLabel(), p.getCountryCode(),
                 p.getTargetRoles(), p.getCourses().stream().map(Course::getId).toList(),
-                p.getCourses().stream().map(Course::getTitle).toList(), p.getRequiredLevel(), p.isPublished(), n, p.getPrice());
+                p.getCourses().stream().map(Course::getTitle).toList(), p.getRequiredLevel(), p.isPublished(), n, p.getPrice(),
+                Presentations.of(p));
     }
 
     // ---------- Etablissements ----------
